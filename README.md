@@ -40,17 +40,17 @@ WALLIX Access Manager 5.2.4.0 (the current releases, both dated 2026-03-12).
 | Privileged  | -- HTTPS 443 ---->|   Load balancer (L7 / L4)  |    |   | Directory connector |
 | user        |                   +------+---------------+-----+    |   | agent (on-prem)     |
 | (browser)   |                          |               |          |   +---------------------+
-+-------------+                   +------+-----+  +------+-----+    |        |
-       |                          | Access Mgr |  | Access Mgr |    |        |
-       | native RDP 3389          |   node 1   |  |   node 2   |    |        | LDAP / AD
-       | native SSH 22            +------------+  +------------+    |        |
-       |                                 +-------+-------+          |        |
-       |                          shared /       | REST API 443     |        |
-       |                          replicated     | RDP 3389         |        |
-       |                          MariaDB DB     | SSH 22           |        |
-       |                          +--------------+-------------+    |        |
-       |                          |  +----------+  +----------+|<---+        |
-       |                          |  | Bastion 1|  | Bastion 2||            ++----------+
++-------------+                   +------+-----+  +------+-----+    |         |
+       |                          | Access Mgr |  | Access Mgr |    |         |
+       | native RDP 3389          |   node 1   |  |   node 2   |    |         | LDAP / AD
+       | native SSH 22            +------------+  +------------+    |         |
+       |                                 +-------+-------+          |         |
+       |                          shared /       | REST API 443     |         |
+       |                          replicated     | RDP 3389         |         |
+       |                          MariaDB DB     | SSH 22           |         |
+       |                          +--------------+-------------+    |         |
+       |                          |  +----------+  +----------+|<---+         |
+       |                          |  | Bastion 1|  | Bastion 2||            +-+---------+
        |                          |  | proxies  |==| proxies  || LDAP/AD    | Active    |
        |                          |  | vault    |  | vault    ||----------->| Directory |
        +------------------------->|  +----------+  +----------+|  389/636   +-----------+
