@@ -29,3 +29,9 @@ are Markdown reports with ASCII/Mermaid diagrams and links to vendor documentati
 - Access Manager release notes: https://pam.wallix.one/documentation/release-notes/am-rn-en.html
 - The HTML doc site https://doc.wallix.com/ requires a WALLIX Trustelem SSO login; use the PDFs above instead.
 - Useful workflow: download the PDFs to the scratchpad and run `pdftotext -layout` to grep chapters.
+
+## Git
+
+- Remote: https://github.com/morandeirachema/Trustelem- (public repository, branch `main`).
+- Commit directly to `main` with plain descriptive messages; the report lives under `docs/`.
+- PDFs downloaded for research are ignored by `.gitignore`; keep them in the scratchpad, not the repo.
