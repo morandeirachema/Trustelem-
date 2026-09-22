@@ -41,7 +41,7 @@ fixes and are the minimum versions this design assumes.
 +-------------+                   +------+---------------+-----+    |   +----+----------------+
 | Privileged  | -- HTTPS 443 ---->|   Load balancer (L7 / L4)  |    |   | Directory connector |
 | user        |                   +------+---------------+-----+    |   | agent (on-prem)     |
-| (browser)   |                          |               |          |   +---------------------+
+| (browser)   |                          |               |          |   +-----+---------------+
 +-------------+                   +------+-----+  +------+-----+    |         |
        |                          | Access Mgr |  | Access Mgr |    |         |
        | native RDP 3389          |   node 1   |  |   node 2   |    |         | LDAP / AD

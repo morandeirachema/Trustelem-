@@ -1,26 +1,24 @@
-+-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+
-|  RDP/SSH client |  |  Bastion proxy  |  |   Active Dir.   |  | Trustelem Conn. |  | Trustelem cloud |  |  Authenticator  |
-+-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+
-         | TCP 3389 / 22, login user@AD + AD password                   |                    |                    |
-         |------------------->|                    |                    |                    |                    |
-         |                    | LDAP bind (primary factor)              |                    |                    |
-         |                    |------------------->|                    |                    |                    |
-         |                    | bind OK + group membership              |                    |                    |
-         |                    |<-------------------|                    |                    |                    |
-         |                    | RADIUS Access-Request: User-Name, NAS-Id=WAB, Framed-IP      |                    |
-         |                    |---------------------------------------->|                    |                    |
-         |                    |                    |                    | forward over WebSocket 443              |
-         |                    |                    |                    |------------------->|                    |
-         |                    |                    |                    |                    | push notification  |
-         |                    |                    |                    |                    |------------------->|
-         |                    |                    |                    |                    | approve (or TOTP via Access-Challenge)
-         |                    |                    |                    |                    |<-------------------|
-         |                    |                    |                    | accept             |                    |
-         |                    |                    |                    |<-------------------|                    |
-         |                    | RADIUS Access-Accept                    |                    |                    |
-         |                    |<----------------------------------------|                    |                    |
-         |                    |                    |                    |                    |                    |
-         |                    | [authorization check, target selection, recording]           |                    |
-         | proxied session to target               |                    |                    |                    |
-         |<-------------------|                    |                    |                    |                    |
-         |                    |                    |                    |                    |                    |
++---------------+  +---------------+  +---------------+  +---------------+  +---------------+
+| RDP/SSH client|  | Bastion proxy |  |  Active Dir.  |  |Trustelem Conn.|  | Authenticator |
++---------------+  +---------------+  +---------------+  +---------------+  +---------------+
+        | TCP 3389/22, user@AD + AD password  |                  |                  |
+        |----------------->|                  |                  |                  |
+        |                  | LDAP bind (primary factor)          |                  |
+        |                  |----------------->|                  |                  |
+        |                  | bind OK + groups |                  |                  |
+        |                  |<-----------------|                  |                  |
+        |                  | RADIUS Access-Request (User-Name, NAS-Id=WAB, Framed-IP)
+        |                  |------------------------------------>|                  |
+        |                  |                  |                  |                  |
+        |                  |                  |                  | [relayed to cloud, WSS 443]
+        |                  |                  |                  | push notification|
+        |                  |                  |                  |----------------->|
+        |                  |                  |                  | approve or TOTP code
+        |                  |                  |                  |<-----------------|
+        |                  | RADIUS Access-Accept                |                  |
+        |                  |<------------------------------------|                  |
+        |                  |                  |                  |                  |
+        |                  | [authz check, target selection, recording]             |
+        | proxied session to target           |                  |                  |
+        |<-----------------|                  |                  |                  |
+        |                  |                  |                  |                  |

@@ -1,12 +1,12 @@
-                    +----------------------------------------------------------------+
-                    |        WALLIX Trustelem cloud tenant (SaaS, EU datacenters)    |    +--------------+
-                    |   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com    |    | WALLIX       |
-                    |                                                                |443 | Authenticator|
-                    |   Users, Groups, Directories, Apps, Services, Access rules,    |<-->| app: iOS,    |
-                    |   Security settings, Application certificates, Logs, API       |push| Android,     |
-                    |                                                                |    | Windows      |
-                    |   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend   |    +--------------+
-                    +--+------------------------------------------+------------------+
+                 +--------------------------------------------------------------+
+                 |       WALLIX Trustelem cloud tenant (SaaS, EU datacenters)   |    +-------------+
+                 |   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com  |    |WALLIX       |
+                 |                                                              |443 |Authenticator|
+                 |   Users, Groups, Directories, Apps, Services, Access rules,  |<-->|app: iOS,    |
+                 |   Security settings, Application certificates, Logs, API     |push|Android,     |
+                 |                                                              |    |Windows      |
+                 |   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend |    +-------------+
+                 +-----+------------------------------------------+-------------+
                        |                                          |
                        | WebSocket TLS 443                        | WebSocket TLS 443
                        | outbound only, cert pinned               | outbound only, cert pinned

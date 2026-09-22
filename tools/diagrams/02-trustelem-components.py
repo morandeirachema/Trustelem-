@@ -2,16 +2,16 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from asciigrid import Grid
 
-g = Grid(108, 34)
-g.box(20, 0, 66, 9, ["        WALLIX Trustelem cloud tenant (SaaS, EU datacenters)",
+g = Grid(102, 34)
+g.box(17, 0, 64, 9, ["       WALLIX Trustelem cloud tenant (SaaS, EU datacenters)",
                      "   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com",
                      "",
                      "   Users, Groups, Directories, Apps, Services, Access rules,",
                      "   Security settings, Application certificates, Logs, API",
                      "",
                      "   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend"])
-g.put(86, 3, "443"); g.put(86, 4, "<-->"); g.put(86, 5, "push")
-g.box(90, 1, 16, 7, [" WALLIX", " Authenticator", " app: iOS,", " Android,", " Windows"])
+g.put(81, 3, "443"); g.put(81, 4, "<-->"); g.put(81, 5, "push")
+g.box(85, 1, 15, 7, ["WALLIX", "Authenticator", "app: iOS,", "Android,", "Windows"])
 g.put(23, 8, "+"); g.put(66, 8, "+")
 g.vline(23, 9, 13); g.vline(66, 9, 13)
 g.put(25, 10, "WebSocket TLS 443"); g.put(25, 11, "outbound only, cert pinned")

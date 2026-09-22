@@ -103,15 +103,15 @@ Sources: [WALLIX One launch](https://www.wallix.com/press/2023/introducing-walli
 ### 3.1 Trustelem / WALLIX One IDaaS
 
 ```
-                    +----------------------------------------------------------------+
-                    |        WALLIX Trustelem cloud tenant (SaaS, EU datacenters)    |    +--------------+
-                    |   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com    |    | WALLIX       |
-                    |                                                                |443 | Authenticator|
-                    |   Users, Groups, Directories, Apps, Services, Access rules,    |<-->| app: iOS,    |
-                    |   Security settings, Application certificates, Logs, API       |push| Android,     |
-                    |                                                                |    | Windows      |
-                    |   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend   |    +--------------+
-                    +--+------------------------------------------+------------------+
+                 +--------------------------------------------------------------+
+                 |       WALLIX Trustelem cloud tenant (SaaS, EU datacenters)   |    +-------------+
+                 |   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com  |    |WALLIX       |
+                 |                                                              |443 |Authenticator|
+                 |   Users, Groups, Directories, Apps, Services, Access rules,  |<-->|app: iOS,    |
+                 |   Security settings, Application certificates, Logs, API     |push|Android,     |
+                 |                                                              |    |Windows      |
+                 |   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend |    +-------------+
+                 +-----+------------------------------------------+-------------+
                        |                                          |
                        | WebSocket TLS 443                        | WebSocket TLS 443
                        | outbound only, cert pinned               | outbound only, cert pinned
@@ -269,7 +269,7 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
 +-------------+                   +------+---------------+-----+    |   +----+----------------+
 | Privileged  | -- HTTPS 443 ---->|   Load balancer (L7 / L4)  |    |   | Directory connector |
 | user        |                   +------+---------------+-----+    |   | agent (on-prem)     |
-| (browser)   |                          |               |          |   +---------------------+
+| (browser)   |                          |               |          |   +-----+---------------+
 +-------------+                   +------+-----+  +------+-----+    |         |
        |                          | Access Mgr |  | Access Mgr |    |         |
        | native RDP 3389          |   node 1   |  |   node 2   |    |         | LDAP / AD
@@ -314,34 +314,34 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
 ### 4.2 Identity flow, web path
 
 ```
-+---------------------+  +---------------------+  +---------------------+  +---------------------+
-|       Browser       |  | LB + Access Manager |  |    Trustelem IdP    |  |       Bastion       |
-+---------------------+  +---------------------+  +---------------------+  +---------------------+
-           | GET https://am/wabam/<org>?domain=<DOMAIN>      |                        |
-           |----------------------->|                        |                        |
-           | 302 SAML AuthnRequest (Redirect binding)        |                        |
-           |<-----------------------|                        |                        |
-           | GET <tenant>.trustelem.com/app/<ID>/sso         |                        |
-           |------------------------------------------------>|                        |
-           |                        |                        |                        |
-           |                        |                        | [AD password via ADConnect, then push / TOTP / passkey]
-           | SAML Response: signed assertion, NameID=email, uid/email/profile         |
-           |<------------------------------------------------|                        |
-           | POST assertion to AM ACS                        |                        |
-           |----------------------->|                        |                        |
-           |                        |                        |                        |
-           |                        | [verify signature, map Login/Profile, open web session]
-           |                        | REST API 443 + X-Auth-Key: authorizations of login@DOMAIN
-           |                        |------------------------------------------------>|
-           |                        | authorizations (SAML domain user, group mapping)|
-           |                        |<------------------------------------------------|
-           | launch session (WebSocket)                      |                        |
-           |----------------------->|                        |                        |
-           |                        | RDP 3389 / SSH 22 proxy connection as login@DOMAIN
-           |                        |------------------------------------------------>|
-           |                        |                        |                        |
-           |                        |                        |                        | [no re-auth: identity trusted from AM]
-           |                        |                        |                        |
++-----------------+  +-----------------+  +-----------------+  +-----------------+
+|     Browser     |  | LB + Access Mgr |  |  Trustelem IdP  |  |     Bastion     |
++-----------------+  +-----------------+  +-----------------+  +-----------------+
+         | GET /wabam/<org>?domain=<DOMAIN>        |                    |
+         |------------------->|                    |                    |
+         | 302 SAML AuthnRequest (Redirect)        |                    |
+         |<-------------------|                    |                    |
+         | GET <tenant>.trustelem.com/app/<ID>/sso |                    |
+         |---------------------------------------->|                    |
+         |                    |                    |                    |
+         |                    |                    | [AD password (ADConnect) + push/TOTP/passkey]
+         | SAML Response: signed assertion, NameID=email, attrs         |
+         |<----------------------------------------|                    |
+         | POST assertion to the AM ACS            |                    |
+         |------------------->|                    |                    |
+         |                    |                    |                    |
+         |                    | [verify signature, map Login/Profile, open session]
+         |                    | REST 443 + X-Auth-Key: authorizations of login@DOMAIN
+         |                    |---------------------------------------->|
+         |                    | authorizations (SAML domain, group mapping)
+         |                    |<----------------------------------------|
+         | launch session (WebSocket)              |                    |
+         |------------------->|                    |                    |
+         |                    | RDP 3389 / SSH 22 proxy login as login@DOMAIN
+         |                    |---------------------------------------->|
+         |                    |                    |                    |
+         |                    |                    |                    | [no re-auth, session recorded]
+         |                    |                    |                    |
 ```
 
 Key rules, all from the vendor guides:
@@ -368,32 +368,30 @@ Key rules, all from the vendor guides:
 ### 4.3 Identity flow, native client path
 
 ```
-+-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+
-|  RDP/SSH client |  |  Bastion proxy  |  |   Active Dir.   |  | Trustelem Conn. |  | Trustelem cloud |  |  Authenticator  |
-+-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+  +-----------------+
-         | TCP 3389 / 22, login user@AD + AD password                   |                    |                    |
-         |------------------->|                    |                    |                    |                    |
-         |                    | LDAP bind (primary factor)              |                    |                    |
-         |                    |------------------->|                    |                    |                    |
-         |                    | bind OK + group membership              |                    |                    |
-         |                    |<-------------------|                    |                    |                    |
-         |                    | RADIUS Access-Request: User-Name, NAS-Id=WAB, Framed-IP      |                    |
-         |                    |---------------------------------------->|                    |                    |
-         |                    |                    |                    | forward over WebSocket 443              |
-         |                    |                    |                    |------------------->|                    |
-         |                    |                    |                    |                    | push notification  |
-         |                    |                    |                    |                    |------------------->|
-         |                    |                    |                    |                    | approve (or TOTP via Access-Challenge)
-         |                    |                    |                    |                    |<-------------------|
-         |                    |                    |                    | accept             |                    |
-         |                    |                    |                    |<-------------------|                    |
-         |                    | RADIUS Access-Accept                    |                    |                    |
-         |                    |<----------------------------------------|                    |                    |
-         |                    |                    |                    |                    |                    |
-         |                    | [authorization check, target selection, recording]           |                    |
-         | proxied session to target               |                    |                    |                    |
-         |<-------------------|                    |                    |                    |                    |
-         |                    |                    |                    |                    |                    |
++---------------+  +---------------+  +---------------+  +---------------+  +---------------+
+| RDP/SSH client|  | Bastion proxy |  |  Active Dir.  |  |Trustelem Conn.|  | Authenticator |
++---------------+  +---------------+  +---------------+  +---------------+  +---------------+
+        | TCP 3389/22, user@AD + AD password  |                  |                  |
+        |----------------->|                  |                  |                  |
+        |                  | LDAP bind (primary factor)          |                  |
+        |                  |----------------->|                  |                  |
+        |                  | bind OK + groups |                  |                  |
+        |                  |<-----------------|                  |                  |
+        |                  | RADIUS Access-Request (User-Name, NAS-Id=WAB, Framed-IP)
+        |                  |------------------------------------>|                  |
+        |                  |                  |                  |                  |
+        |                  |                  |                  | [relayed to cloud, WSS 443]
+        |                  |                  |                  | push notification|
+        |                  |                  |                  |----------------->|
+        |                  |                  |                  | approve or TOTP code
+        |                  |                  |                  |<-----------------|
+        |                  | RADIUS Access-Accept                |                  |
+        |                  |<------------------------------------|                  |
+        |                  |                  |                  |                  |
+        |                  | [authz check, target selection, recording]             |
+        | proxied session to target           |                  |                  |
+        |<-----------------|                  |                  |                  |
+        |                  |                  |                  |                  |
 ```
 
 - On the Bastion, the RADIUS external authentication is linked as *Secondary authentication*
