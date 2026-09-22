@@ -15,8 +15,9 @@ are Markdown reports with ASCII box diagrams and links to vendor documentation.
   Prefer primary WALLIX sources over blogs.
 - Put today's date (ISO format) in the header of each report and state which product versions it was
   verified against (currently Bastion 12.3.2 and Access Manager 5.2.4.0).
-- Diagrams are ASCII only (no Mermaid). Draw them with a small grid script (box/vline/hline on a fixed
-  character grid) so borders align, then paste the output into a fenced code block.
+- Diagrams are ASCII only (no Mermaid). Draw them with `tools/asciigrid.py` (Grid.box/vline/hline and
+  `sequence()`), one script per diagram under `tools/diagrams/`, rendered into `docs/diagrams/*.txt`
+  and pasted into the report. Never hand-edit a diagram; edit the script and re-render.
 - Keep verified facts separate from inferences; mark gaps explicitly rather than guessing.
 - No Claude references in commit messages or document bylines.
 
