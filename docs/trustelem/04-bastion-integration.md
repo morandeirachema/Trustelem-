@@ -262,6 +262,6 @@ Fill this in before the change window; every value appears in one of the scenari
   the password alone.
 - If the login is unknown to Trustelem the RADIUS request fails; check the Trustelem Logs page.
 - For anything else, "Read the debug chapter of LDAP-Radius Trustelem Connect"
-  (see `07-troubleshooting.md`).
+  (see `08-troubleshooting.md`).
 
 Sources: [WALLIX Bastion page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion).
