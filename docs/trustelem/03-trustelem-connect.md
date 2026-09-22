@@ -156,7 +156,7 @@ addr = "siem.example.local"
 port = "5514"
 ```
 
-Or with the CLI: `./TrustelemConnect set-target <name> <host:port>` "writes a [target.<name>]
+Or with the CLI: `./TrustelemConnect set-target <name> <host:port>` "writes a `[target.<name>]`
 section in config.ini and enables outgoing connections"; options `-always-tls`, `-no-tls`,
 `-insecure-allow-skip-tls-check`, `-override`. "Restart the service so the new target is
 advertised to Trustelem." SIEM configuration itself is in chapter 07.
