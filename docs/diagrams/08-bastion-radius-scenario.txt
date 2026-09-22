@@ -1,0 +1,16 @@
++--------------------+              +--------------------+
+| Bastion node       |-- 1. LDAP bind ->tive Directory   |
+|                    |<- groups --------rimary factor)   |
+| AD auth domain     |              +--------------------+
+| + Secondary auth   |
+|   = RADIUS         |
+|                    |              +--------------------+        +--------------+
+| 'Use mobile        |-- 2. Access-Req ->stelem Connect  |-WSS 443->Trustelem    |
+|  device' = ON      |              | RADIUS 1812/udp    |        | cloud tenant |
+|                    |<- Access-Accept --ays to cloud    |<- push OK(access rule)|
+| timeout 45-60 s    |              +--------------------+        +--------------+
++--------------------+                                                   +
+                                                                         |
+3. The user approves the push (or types a TOTP in the Access-Challenge).---------+
+                                                                  | Authenticator|
+                                                                  +--------------+
