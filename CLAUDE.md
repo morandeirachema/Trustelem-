@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A documentation and architecture workspace for a WALLIX Privileged Access Management (PAM) design:
 WALLIX Trustelem (now sold as WALLIX One IDaaS) providing MFA/SSO for a WALLIX Bastion cluster and a
 WALLIX Access Manager cluster. There is no application code, build, lint or test tooling. Deliverables
-are Markdown reports with ASCII/Mermaid diagrams and links to vendor documentation.
+are Markdown reports with ASCII box diagrams and links to vendor documentation.
 
 ## Conventions for documents in this repo
 
@@ -15,8 +15,8 @@ are Markdown reports with ASCII/Mermaid diagrams and links to vendor documentati
   Prefer primary WALLIX sources over blogs.
 - Put today's date (ISO format) in the header of each report and state which product versions it was
   verified against (currently Bastion 12.3.2 and Access Manager 5.2.4.0).
-- ASCII diagram boxes must be aligned (equal width borders, consistent padding) so they render cleanly in
-  plain Markdown.
+- Diagrams are ASCII only (no Mermaid). Draw them with a small grid script (box/vline/hline on a fixed
+  character grid) so borders align, then paste the output into a fenced code block.
 - Keep verified facts separate from inferences; mark gaps explicitly rather than guessing.
 - No Claude references in commit messages or document bylines.
 
