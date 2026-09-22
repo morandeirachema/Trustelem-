@@ -14,10 +14,14 @@ account running the connector"; "thanks to this connector Trustelem does not sto
 for Active Directory users."
 
 ```
-+-------------------+  WSS 443, outbound   +---------------------+  LDAP/LDAPS 389/636  +--------------+
-| Trustelem cloud   | <------------------- | ADConnect VM 1 (p1) | -------------------> | Domain       |
-| admin.trustelem   | <------------------- | ADConnect VM 2 (p2) | -------------------> | controllers  |
-+-------------------+                      +---------------------+                      +--------------+
++--------------------+              +------------------------+              +--------------------+
+| Trustelem cloud    |<- outbound WSS --Connect VM 1 (prio 1)|-- LDAP bind -->Domain             |
+| admin.trustelem    |              | ADConnect VM 2 (prio 2)|              | controllers        |
+| .com (WSS 443)     |<- outbound WSS --ad-only AD account   |-- LDAP bind -->LDAP/LDAPS 389/636 |
+|                    |              |                        |              |                    |
++--------------------+              +------------------------+              +--------------------+
+
+The cloud never connects inbound; both agents open the websocket, the cloud uses the first healthy o
 ```
 
 ## 2. Prerequisites (verbatim)

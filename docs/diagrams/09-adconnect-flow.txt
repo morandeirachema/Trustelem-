@@ -1,0 +1,8 @@
++--------------------+              +------------------------+              +--------------------+
+| Trustelem cloud    |<- outbound WSS --Connect VM 1 (prio 1)|-- LDAP bind -->Domain             |
+| admin.trustelem    |              | ADConnect VM 2 (prio 2)|              | controllers        |
+| .com (WSS 443)     |<- outbound WSS --ad-only AD account   |-- LDAP bind -->LDAP/LDAPS 389/636 |
+|                    |              |                        |              |                    |
++--------------------+              +------------------------+              +--------------------+
+
+The cloud never connects inbound; both agents open the websocket, the cloud uses the first healthy o
