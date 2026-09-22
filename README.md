@@ -13,7 +13,7 @@ precise. The goal is a document set a PAM architect can hand to an integration
 team: design, protocols, exact configuration paths on each product, and day-2
 operations.
 
-Last updated: 2026-09-22. Verified against WALLIX Bastion 12.3.2 and
+Last updated: 2026-09-23. Verified against WALLIX Bastion 12.3.2 and
 WALLIX Access Manager 5.2.4.0 (public guides dated 2026-03-12). Newer builds exist:
 Bastion 12.3.7 / 12.4.1 and Access Manager 5.2.7 / 6.0.4 carry the July 2026 security
 fixes and are the minimum versions this design assumes.
@@ -118,7 +118,7 @@ Two access paths coexist:
 |   |   +-- 08-troubleshooting.md
 |   +-- trustelem-bastion-access-manager-architecture.md   architecture report
 |   +-- runbooks/                 Bastion HA replication, Access Manager farm
-|   +-- reference/                Terraform for the Bastion side, logging and SIEM
+|   +-- reference/                Terraform for the Bastion side, logging and SIEM, standards
 |   +-- diagrams/                 rendered ASCII diagrams
 |   +-- research-notes/           sourced working notes per product
 +-- tools/
@@ -164,6 +164,6 @@ The PDF guides above are public and are the versions these notes cite.
 - [x] Test and acceptance checklist (section 7.5 of the report)
 - [x] Gap review: access-path coverage, admin access model, DR, sizing, hardening, rollout plan
 - [x] Trustelem chapters 01 to 08 (setup, ADConnect, Connect, integrations, MFA and rules, operations, troubleshooting)
-- [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform, logging and SIEM)
+- [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform, logging and SIEM, standards and compliance)
 - [ ] Validate the design against Bastion 12.4 and Access Manager 6.0 release notes (need vendor login)
 - [ ] Get answers to the vendor questions in section 9.1 of the report

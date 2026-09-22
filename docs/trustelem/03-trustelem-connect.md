@@ -157,7 +157,21 @@ section in config.ini and enables outgoing connections"; options `-always-tls`, 
 `-insecure-allow-skip-tls-check`, `-override`. "Restart the service so the new target is
 advertised to Trustelem." SIEM configuration itself is in chapter 07.
 
-## 10. Placement and sizing guidance
+## 10. RADIUS transport security
+
+RADIUS over UDP obfuscates only the password (MD5 XOR with the shared secret) and, without the
+Message-Authenticator attribute on every packet, is exposed to CVE-2024-3596 (BlastRADIUS),
+where an on-path attacker can turn an Access-Reject into an Access-Accept
+([blastradius.fail](https://www.blastradius.fail/)). Neither the Bastion guide nor the Trustelem
+Connect page documents Message-Authenticator, RADIUS/TLS is not offered, and no WALLIX advisory
+on the CVE was found ([advisories](https://www.wallix.com/support-services/alerts/)). Until
+WALLIX confirms the behaviour, treat the Bastion-to-Connect hop as one that must stay inside a
+trusted administration network: same VLAN or host-adjacent placement, no crossing of user
+networks, and firewall rules that allow 1812/udp only from the Bastion and Access Manager
+addresses. Details and the vendor questions are in
+[Standards and compliance](../reference/standards-and-compliance.md).
+
+## 11. Placement and sizing guidance
 
 - Two VMs on separate hosts, ideally one per site; listeners bound to `*` on a dedicated VM.
 - Put the VMs on the same network segment as the Bastion and Access Manager nodes so RADIUS

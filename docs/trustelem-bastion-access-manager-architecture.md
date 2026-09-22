@@ -83,6 +83,13 @@ Three things a PAM architect must not miss:
 | Access Manager | WALLIX Access Manager | 5.2.4.0 (2026-03-12) | 5.2.7, 6.0.4 | Debian 10 (5.x), Debian 12 (6.0), Java 17 / Jetty 11, MariaDB |
 | MFA bundle | WALLIX Authenticator | offer name | | Trustelem licence limited to Bastion and Access Manager |
 
+Assurance: Bastion 12.0.14 holds BSI certificate BSZ-0020-2025 (2025-09-29, valid to
+2027-09-28), recognised by ANSSI; the older ANSSI CSPN 2019/15 for Bastion 6.0 is listed as no
+longer maintained; WALLIX holds ISO/IEC 27001:2022 with the WALLIX One SaaS platform in scope.
+Sources: [BSI BSZ-0020-2025](https://www.bsi.bund.de/SharedDocs/Zertifikate_BSZ/Bestaetigt/BSZ-0020-2025.html),
+[ANSSI catalogue](https://messervices.cyber.gouv.fr/visas/catalogue-produits-services-profils-de-protection-sites-certifies-qualifies-agrees-anssi.pdf),
+[WALLIX ISO 27001 press release](https://www.wallix.com/wp-content/uploads/2025/01/250901_-WALLIX-ISO270012022_FINAL_VFR.pdf).
+
 Sources: [Enterprise Vault quick start naming note](https://vault-doc.wallix.com/books/enterprise-vault-administration/page/quick-start-guide),
 [Bastion release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html),
 [Access Manager release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html),
@@ -1066,6 +1073,12 @@ Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustele
    MFA session and the internal network zone.
 10. Licensing: Access Manager concurrent-user count, Bastion licence per replicated node, and
     the WALLIX Authenticator per-user model for administrators who also need other apps.
+11. RADIUS security: Message-Authenticator on the Bastion client and Trustelem Connect, a
+    statement on CVE-2024-3596 (BlastRADIUS), and any RadSec roadmap.
+12. PKCE on the Bastion and Access Manager OIDC clients and the Trustelem provider; number
+    matching or push rate limiting in WALLIX Authenticator; certification coverage of Bastion
+    12.3 and 12.4 versus the BSI-certified 12.0.14 (see the
+    [standards and compliance reference](reference/standards-and-compliance.md)).
 
 
 ## 10. Glossary
