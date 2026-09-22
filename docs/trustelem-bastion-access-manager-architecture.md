@@ -340,7 +340,7 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
          |                    | RDP 3389 / SSH 22 proxy login as login@DOMAIN
          |                    |---------------------------------------->|
          |                    |                    |                    |
-         |                    |                    |                    | [no re-auth, session recorded]
+         |                    |                    |                    | [no re-auth needed]
          |                    |                    |                    |
 ```
 

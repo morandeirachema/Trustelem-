@@ -16,5 +16,5 @@ print(sequence(
         (3, 1, "authorizations (SAML domain, group mapping)"),
         (0, 1, "launch session (WebSocket)"),
         (1, 3, "RDP 3389 / SSH 22 proxy login as login@DOMAIN"),
-        ("note", 3, "no re-auth, session recorded"),
+        ("note", 3, "no re-auth needed"),
     ], col_width=19))
