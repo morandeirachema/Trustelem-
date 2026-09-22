@@ -21,11 +21,12 @@ Default ports: "usually tcp port 2001 for LDAP, and udp port 1812 for Radius".
 ```
 +--------------------+                  +----------------------------+              +--------------+
 | Bastion nodes      |                  | Trustelem Connect VM       |              | Trustelem    |
-| Access Manager     |- Access-Request ->                            |- WSS 443 --> | cloud        |
-| nodes              |<- Accept/Challenge :1812/udp  Bastion app     |<-- decision  |              |
-|                    |- LDAP bind ------> :2812/udp  Access Mgr app  |              | access rules,|
-| RADIUS + LDAP      |<- bind result ---- :2001/tcp  LDAP (Bastion)  |              | factors      |
-+ clients            +                  + relays each request        +              +--------------+
+| Access Manager     |- Access-Req ---->|                            |- WSS 443 --> | cloud        |
+| nodes              |<- Accept/Chall. -| :1812/udp  Bastion app     |<-- decision  |              |
+|                    |- LDAP bind ----->| :2812/udp  Access Mgr app  |              | access rules,|
+| RADIUS + LDAP      |<- bind result ---| :2001/tcp  LDAP (Bastion)  |              | factors      |
+| clients            |                  | relays each request        |              |              |
++--------------------+                  +----------------------------+              +--------------+
 
 One listener per protocol per application; secrets come from the application model in the console.
 ```
@@ -131,7 +132,7 @@ the console are pushed to the agent.
 
 ## 8. Connectivity test
 
-"./connect check <your sync id>" or "./connect check <your sync id> http://proxy.example.local:3128".
+`./connect check <your sync id>` or `./connect check <your sync id> http://proxy.example.local:3128`.
 Output fields:
 
 | Field | Meaning (verbatim) |
