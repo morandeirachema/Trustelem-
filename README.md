@@ -6,10 +6,12 @@ cloud identity provider and MFA engine, a **WALLIX Bastion** cluster as the
 session and password manager, and a **WALLIX Access Manager** cluster as the
 user-facing web portal.
 
-The goal is a document set a PAM architect can hand to an integration team:
-high-level and low-level design, the protocols between each component, the
-exact configuration paths on each product, and the day-2 operations needed to
-keep MFA working across both clusters.
+The main concern of this repository is **Trustelem itself: how to set it up,
+configure it, and integrate it** with the Bastion cluster and the Access Manager
+cluster. The Bastion and Access Manager material exists to make that integration
+precise. The goal is a document set a PAM architect can hand to an integration
+team: design, protocols, exact configuration paths on each product, and day-2
+operations.
 
 Last updated: 2026-09-22. Verified against WALLIX Bastion 12.3.2 and
 WALLIX Access Manager 5.2.4.0 (public guides dated 2026-03-12). Newer builds exist:
