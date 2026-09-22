@@ -103,32 +103,33 @@ Two access paths coexist:
 
 ```
 .
-+-- README.md          this file
-+-- CLAUDE.md          conventions for maintaining the documents
-+-- .gitignore         keeps downloaded vendor PDFs out of the repo
++-- README.md
++-- CLAUDE.md                     conventions for maintaining the documents
 +-- docs/
-|   +-- trustelem-bastion-access-manager-architecture.md   full architecture report
-|   +-- diagrams/          rendered ASCII diagrams used by the report
-|   +-- research-notes/    sourced working notes per product (Trustelem, Bastion,
-|                          Access Manager, integration)
+|   +-- README.md                 documentation index
+|   +-- trustelem/                CORE: Trustelem setup, configuration and integration
+|   |   +-- 01-tenant-setup.md
+|   |   +-- 02-directory-sync-adconnect.md
+|   |   +-- 03-trustelem-connect.md
+|   |   +-- 04-bastion-integration.md
+|   |   +-- 05-access-manager-integration.md
+|   |   +-- 06-mfa-and-access-rules.md
+|   |   +-- 07-operations.md
+|   |   +-- 08-troubleshooting.md
+|   +-- trustelem-bastion-access-manager-architecture.md   architecture report
+|   +-- runbooks/                 Bastion HA replication, Access Manager farm
+|   +-- reference/                Terraform for the Bastion side, logging and SIEM
+|   +-- diagrams/                 rendered ASCII diagrams
+|   +-- research-notes/           sourced working notes per product
 +-- tools/
-    +-- asciigrid.py       grid helper for box and sequence diagrams
-    +-- diagrams/*.py      one script per diagram; run to regenerate docs/diagrams
+    +-- asciigrid.py              grid helper for box and sequence diagrams
+    +-- diagrams/*.py             one script per diagram; run to regenerate docs/diagrams
 ```
 
-The report in `docs/` is organised as:
-
-1. Executive summary, product naming and the security advisories that set minimum versions.
-2. Component architecture of Trustelem, Bastion and Access Manager.
-3. High-level design: decisions, web and native identity flows, access-path coverage matrix,
-   administrator access model, OIDC alternative.
-4. Cluster design: Bastion HA Database Replication, Access Manager farm, failure modes,
-   disaster recovery.
-5. Low-level design: naming and mapping rules, certificates and secrets, ports, timeouts,
-   sizing, hardening checklist.
-6. Setup runbook per product, acceptance tests, rollout and rollback plan.
-7. Operations: monitoring, rotation, upgrades and backups.
-8. Caveats, open gaps and the questions to put to WALLIX, then a glossary and sources.
+The Trustelem chapters quote the vendor documentation verbatim, field by field, and give
+worksheets, verification steps and the vendor's own debug guidance. The architecture report
+puts them in context (clusters, flows, ports, sizing, rollout). The runbooks and references
+cover the appliance side.
 
 ## Primary sources
 
@@ -162,5 +163,7 @@ The PDF guides above are public and are the versions these notes cite.
 - [x] Configuration runbook per product (section 7 of the report)
 - [x] Test and acceptance checklist (section 7.5 of the report)
 - [x] Gap review: access-path coverage, admin access model, DR, sizing, hardening, rollout plan
+- [x] Trustelem chapters 01 to 08 (setup, ADConnect, Connect, integrations, MFA and rules, operations, troubleshooting)
+- [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform, logging and SIEM)
 - [ ] Validate the design against Bastion 12.4 and Access Manager 6.0 release notes (need vendor login)
 - [ ] Get answers to the vendor questions in section 9.1 of the report
