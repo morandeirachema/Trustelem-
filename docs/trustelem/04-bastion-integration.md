@@ -61,7 +61,7 @@ Source for all four steps: [WALLIX Bastion page](https://trustelem-doc.wallix.co
 | timeout 45-60 s    |                  +--------------------+        +------+-------+
 +--------------------+                                                       |
                                                                              |
-                                                                      +--------------+
+                                                                      +------+-------+
                                                                       | Authenticator|
                                                                       +--------------+
 
