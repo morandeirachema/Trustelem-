@@ -48,22 +48,24 @@ Source for all four steps: [WALLIX Bastion page](https://trustelem-doc.wallix.co
 ## 3. Scenario A: AD users with RADIUS push as second factor (recommended)
 
 ```
-+--------------------+              +--------------------+
-| Bastion node       |-- 1. LDAP bind ->tive Directory   |
-|                    |<- groups --------rimary factor)   |
-| AD auth domain     |              +--------------------+
++--------------------+                  +--------------------+
+| Bastion node       |-- 1. LDAP bind ->| Active Directory   |
+|                    |<- groups --------| (primary factor)   |
+| AD auth domain     |                  +--------------------+
 | + Secondary auth   |
 |   = RADIUS         |
-|                    |              +--------------------+        +--------------+
-| 'Use mobile        |-- 2. Access-Req ->stelem Connect  |-WSS 443->Trustelem    |
-|  device' = ON      |              | RADIUS 1812/udp    |        | cloud tenant |
-|                    |<- Access-Accept --ays to cloud    |<- push OK(access rule)|
-| timeout 45-60 s    |              +--------------------+        +--------------+
-+--------------------+                                                   +
-                                                                         |
-3. The user approves the push (or types a TOTP in the Access-Challenge).---------+
-                                                                  | Authenticator|
-                                                                  +--------------+
+|                    |                  +--------------------+        +--------------+
+| 'Use mobile        |- 2. Access-Req ->| Trustelem Connect  |- WSS ->| Trustelem    |
+|  device' = ON      |                  | RADIUS 1812/udp    |        | cloud tenant |
+|                    |<- Access-Accept -| relays to cloud    |<- OK --| (access rule)|
+| timeout 45-60 s    |                  +--------------------+        +------+-------+
++--------------------+                                                       |
+                                                                             |
+                                                                      +--------------+
+                                                                      | Authenticator|
+                                                                      +--------------+
+
+3. The user approves the push (or types a TOTP in the Access-Challenge).
 ```
 
 Bastion side, verbatim from the vendor page:
