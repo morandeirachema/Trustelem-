@@ -1,0 +1,28 @@
++---------------------+  +---------------------+  +---------------------+  +---------------------+
+|       Browser       |  | LB + Access Manager |  |    Trustelem IdP    |  |       Bastion       |
++---------------------+  +---------------------+  +---------------------+  +---------------------+
+           | GET https://am/wabam/<org>?domain=<DOMAIN>      |                        |
+           |----------------------->|                        |                        |
+           | 302 SAML AuthnRequest (Redirect binding)        |                        |
+           |<-----------------------|                        |                        |
+           | GET <tenant>.trustelem.com/app/<ID>/sso         |                        |
+           |------------------------------------------------>|                        |
+           |                        |                        |                        |
+           |                        |                        | [AD password via ADConnect, then push / TOTP / passkey]
+           | SAML Response: signed assertion, NameID=email, uid/email/profile         |
+           |<------------------------------------------------|                        |
+           | POST assertion to AM ACS                        |                        |
+           |----------------------->|                        |                        |
+           |                        |                        |                        |
+           |                        | [verify signature, map Login/Profile, open web session]
+           |                        | REST API 443 + X-Auth-Key: authorizations of login@DOMAIN
+           |                        |------------------------------------------------>|
+           |                        | authorizations (SAML domain user, group mapping)|
+           |                        |<------------------------------------------------|
+           | launch session (WebSocket)                      |                        |
+           |----------------------->|                        |                        |
+           |                        | RDP 3389 / SSH 22 proxy connection as login@DOMAIN
+           |                        |------------------------------------------------>|
+           |                        |                        |                        |
+           |                        |                        |                        | [no re-auth: identity trusted from AM]
+           |                        |                        |                        |

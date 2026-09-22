@@ -1,0 +1,31 @@
++----------------------+      +--------------------------------------------------------------+
+| Privileged users     |      |  L7 load balancer in front of the farm                       |
+| browser HTTPS 443    |----> |  - HTTPS 443, WebSocket upgrade, health check on 443         |
+| (HTML5 RDP/SSH,      |      |  - X-Forwarded-For + web.proxy.trusted-proxies on AM         |
+|  WebSocket)          |      |  - source-IP affinity (cookie persistence breaks WAMUT)      |
++----------------------+      +--------------+---------------------------------+-------------+
+                                             |                                 |
+                                             |                                 |
+                              +--------------+-------------+    +--------------+-------------+
+                              |  Access Manager node 1     |    |  Access Manager node 2     |
+                              |  Debian appliance, Docker  |    |  same image and version    |
+                              |  Jetty 11 / Java 17        |    |  crypto.install.key,       |
+                              |  FreeRDP + xterm.js HTML5  | HA |  db.connections*, and      |
+                              |  MariaDB (local instance)  |<==>|  user.admin* copied        |
+                              |  Elasticsearch (audit)     | DB |  from node 1               |
+                              |  eth0 users   eth1 HA      |    |  eth0 users   eth1 HA      |
+                              |  eth2 admin (SSH 2242)     |    |  eth2 admin (SSH 2242)     |
+                              |  wabam.properties          |    |  wabam.properties          |
+                              +--------------+-------------+    +--------------+-------------+
+                                             | REST API 443 (API key)          | SAML/OIDC 443
+                                             | RDP 3389, SSH 22 to proxies     | RADIUS 1812
+                                             |                                 |
+                              +--------------+-------------+    +--------------+-------------+
+                              |  Bastion cluster           |    |  Trustelem                 |
+                              |  (AM Cluster object,       |    |  (SAML/OIDC IdP) and       |
+                              |  identical mode on)        |    |  Trustelem Connect RADIUS  |
+                              +----------------------------+    +----------------------------+
+
+MariaDB replication between nodes runs on the HA NIC (appliance script since AM 5.0,
+'--prerequisite-check', /root/sqlreplication/servers_list). Uninstall replication before
+upgrading a cluster (release note WAB-17588). Enable purge.audit.active on one node only.

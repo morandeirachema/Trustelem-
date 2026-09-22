@@ -12,7 +12,9 @@ exact configuration paths on each product, and the day-2 operations needed to
 keep MFA working across both clusters.
 
 Last updated: 2026-09-22. Verified against WALLIX Bastion 12.3.2 and
-WALLIX Access Manager 5.2.4.0 (the current releases, both dated 2026-03-12).
+WALLIX Access Manager 5.2.4.0 (public guides dated 2026-03-12). Newer builds exist:
+Bastion 12.3.7 / 12.4.1 and Access Manager 5.2.7 / 6.0.4 carry the July 2026 security
+fixes and are the minimum versions this design assumes.
 
 ## Scope
 
@@ -103,7 +105,13 @@ Two access paths coexist:
 +-- CLAUDE.md          conventions for maintaining the documents
 +-- .gitignore         keeps downloaded vendor PDFs out of the repo
 +-- docs/
-    +-- trustelem-bastion-access-manager-architecture.md   full architecture report
+|   +-- trustelem-bastion-access-manager-architecture.md   full architecture report
+|   +-- diagrams/          rendered ASCII diagrams used by the report
+|   +-- research-notes/    sourced working notes per product (Trustelem, Bastion,
+|                          Access Manager, integration)
++-- tools/
+    +-- asciigrid.py       grid helper for box and sequence diagrams
+    +-- diagrams/*.py      one script per diagram; run to regenerate docs/diagrams
 ```
 
 The report in `docs/` is organised as:
@@ -144,6 +152,7 @@ The PDF guides above are public and are the versions these notes cite.
 ## Status
 
 - [x] Repository conventions and source inventory
-- [ ] Architecture report in `docs/` (in progress)
-- [ ] Configuration runbooks per product
-- [ ] Test and acceptance checklist
+- [x] Architecture report in `docs/` (high-level and low-level design, flows, clusters)
+- [x] Configuration runbook per product (section 7 of the report)
+- [x] Test and acceptance checklist (section 7.5 of the report)
+- [ ] Validate the design against Bastion 12.4 and Access Manager 6.0 release notes (need vendor login)

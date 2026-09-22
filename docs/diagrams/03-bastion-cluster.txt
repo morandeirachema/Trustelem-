@@ -1,0 +1,29 @@
+                    +------------------------------------------------+
+                    |  Users (native RDP/SSH clients), Access Manager|
+                    +------------------------------------------------+
+                                            |
+                                            | RDP 3389, SSH 22, HTTPS 443 (UI + REST API)
+                                            |
+                    +-----------------------+------------------------+
+                    |  Front end: L4 load balancer, DNS name, or the |
+                    |  AM 'Cluster' (fewest open sessions wins)      |
+                    +-----------+------------------------+-----------+
+                                |                        |
+                                |                        |
+          +---------------------+--------+      +--------+---------------------+
+          |  Bastion node 1              |      |  Bastion node 2              |
+          |  role: primary master        |      |  role: secondary master (M/M)|
+          |                              |      |  or passive slave (M/S)      |
+          |  eth0  user + admin services |<====>|  eth0  user + admin services |
+          |  eth1  HA / replication NIC  |3306/7|  eth1  HA / replication NIC  |
+          |                              |tunnel|                              |
+          |  MariaDB (all config tables) |      |  MariaDB (replica)           |
+          |  SSH admin console 2242      |      |  SSH admin console 2242      |
+          |  proxies, vault, recordings  |      |  proxies, vault, recordings  |
+          |  local: audit + session data |      |  local: audit + session data |
+          +------------------------------+      +------------------------------+
+
+HA Database Replication = MariaDB replication inside an autossh SSH tunnel. Slaves pull
+(local 3307 to master 3306). No VIP, no heartbeat: failover is 'bastion-replication
+--elevate-master' or front-end rerouting. Not replicated: audit/session tables, recording
+options, licence, network, SNMP, SMTP, SIEM, device certificates.
