@@ -116,13 +116,17 @@ Two access paths coexist:
 
 The report in `docs/` is organised as:
 
-1. Executive summary and product naming (Trustelem versus WALLIX One IDaaS).
+1. Executive summary, product naming and the security advisories that set minimum versions.
 2. Component architecture of Trustelem, Bastion and Access Manager.
-3. High-level design of the two clusters and the identity flows.
-4. Low-level design: ports, certificates, attribute mapping, domain naming rules.
-5. Step-by-step configuration on each product.
-6. Operations: HA behaviour, upgrades, rotation, logging, testing.
-7. Gaps and caveats, with a source list.
+3. High-level design: decisions, web and native identity flows, access-path coverage matrix,
+   administrator access model, OIDC alternative.
+4. Cluster design: Bastion HA Database Replication, Access Manager farm, failure modes,
+   disaster recovery.
+5. Low-level design: naming and mapping rules, certificates and secrets, ports, timeouts,
+   sizing, hardening checklist.
+6. Setup runbook per product, acceptance tests, rollout and rollback plan.
+7. Operations: monitoring, rotation, upgrades and backups.
+8. Caveats, open gaps and the questions to put to WALLIX, then a glossary and sources.
 
 ## Primary sources
 
@@ -155,4 +159,6 @@ The PDF guides above are public and are the versions these notes cite.
 - [x] Architecture report in `docs/` (high-level and low-level design, flows, clusters)
 - [x] Configuration runbook per product (section 7 of the report)
 - [x] Test and acceptance checklist (section 7.5 of the report)
+- [x] Gap review: access-path coverage, admin access model, DR, sizing, hardening, rollout plan
 - [ ] Validate the design against Bastion 12.4 and Access Manager 6.0 release notes (need vendor login)
+- [ ] Get answers to the vendor questions in section 9.1 of the report
