@@ -6,7 +6,7 @@ flowchart TB
         DIR["Directory service"]
     end
     subgraph ONPREM["Customer network"]
-        USER["Privileged user<br/>browser or native RDP/SSH client"]
+        USER["Privileged user<br/>browser or native client"]
         LB["L7 load balancer<br/>HTTPS 443, WebSocket"]
         subgraph AMC["Access Manager farm"]
             AM1["Access Manager node 1"]
@@ -17,10 +17,10 @@ flowchart TB
             B1["Bastion 1<br/>proxies + vault"]
             B2["Bastion 2<br/>proxies + vault"]
         end
-        CONNECT["Trustelem Connect VMs<br/>RADIUS 1812/udp, LDAP 2001"]
+        CONNECT["Trustelem Connect VMs<br/>RADIUS 1812, LDAP 2001"]
         ADC["ADConnect VMs"]
         AD["Active Directory"]
-        TGT["Targets<br/>Windows, Linux, network, web"]
+        TGT["Targets"]
     end
     USER -->|HTTPS 443| LB
     USER -->|SAML / OIDC redirect, MFA| SAML

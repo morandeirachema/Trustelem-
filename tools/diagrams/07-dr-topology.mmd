@@ -3,7 +3,7 @@ flowchart TB
     subgraph A["Site A: production"]
         LBA["LB-A: HTTPS 443 (AM), 22/3389 (Bastion)"]
         AMA["AM-1 and AM-2, database replication"]
-        BA["Bastion-1 (primary master) and Bastion-2 (secondary master)<br/>HA Database Replication (M/M)"]
+        BA["Bastion-1 and Bastion-2<br/>HA Database Replication (M/M)"]
         AGA["ADConnect-A1/A2, Connect-A1/A2"]
         STA["Recording storage NFS/SMB (site A)"]
         BKA["Nightly wabam-backup + Bastion backup"]
@@ -11,7 +11,7 @@ flowchart TB
     subgraph B["Site B: disaster recovery"]
         LBB["LB-B: same DNS names on failover"]
         AMB["AM-3, cold or warm,<br/>restored from the site A wabam-backup"]
-        BB["Bastion-3 standalone, restored from the site A backup,<br/>or a slave in Master/Slaves if latency allows"]
+        BB["Bastion-3 restored from backup<br/>(or a slave if latency allows)"]
         AGB["ADConnect-B1, Connect-B1 (lower priority)"]
         STB["Recording storage (copy of site A)<br/>own licence, SIEM, SMTP, NTP settings"]
     end
@@ -20,5 +20,5 @@ flowchart TB
     BKA ==>|backups shipped| AMB
     BKA ==>|backups shipped| BB
     STA ==>|storage-level copy| STB
-    NOTE["Bastion audit and session tables never replicate, so recordings and audit history are copied at storage level.<br/>A DR Bastion refreshed by backup/restore is not real time (RPO = backup interval).<br/>Trustelem needs no DR action: agents in site B keep the tenant reachable."]
+    NOTE["Audit tables never replicate: copy recordings at storage level<br/>RPO = backup interval; Trustelem needs no DR action"]
     B -.- NOTE

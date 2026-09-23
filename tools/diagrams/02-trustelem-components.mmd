@@ -1,19 +1,18 @@
 flowchart TB
-    subgraph CLOUD["WALLIX Trustelem cloud tenant (SaaS, EU datacenters)<br/>admin-&lt;tenant&gt;.trustelem.com and &lt;tenant&gt;.trustelem.com"]
-        CONSOLE["Users, Groups, Directories, Apps, Services,<br/>Access rules, Security settings, Certificates, Logs, API"]
-        SVC["SAML 2.0 IdP | OIDC provider | RADIUS + LDAP backend"]
+    subgraph CLOUD["WALLIX Trustelem cloud tenant (SaaS, EU datacenters)"]
+        direction LR
+        CONSOLE["Admin console<br/>users, groups, directories, apps, services,<br/>access rules, security settings, logs, API"]
+        SVC["Identity services<br/>SAML 2.0 IdP, OIDC provider,<br/>RADIUS and LDAP backend"]
     end
-    APP["WALLIX Authenticator app<br/>iOS, Android, Windows: push + TOTP"]
-    subgraph AGENTS["On-premise agents (2 VMs each)"]
-        ADC["Trustelem ADConnect<br/>syncs users/groups from AD (memberOf),<br/>validates AD passwords (never stored),<br/>IWA/Kerberos, AD password reset"]
-        TC["Trustelem Connect<br/>RADIUS server UDP 1812 (2812 if busy),<br/>LDAP server TCP 2001 (LDAPS/StartTLS),<br/>SCIM client, SIEM push every 30 s"]
-    end
-    AD["Active Directory<br/>(source of truth)"]
-    BAST["Bastion nodes<br/>RADIUS client"]
-    AM["Access Manager<br/>RADIUS client"]
-    CLOUD <-->|443 push / TOTP| APP
-    ADC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
-    TC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
-    ADC -->|LDAP/LDAPS 389/636, read-only bind| AD
-    BAST -->|RADIUS 1812/udp, PAP + challenge| TC
-    AM -->|RADIUS 1812/udp, PAP| TC
+    APP["WALLIX Authenticator app<br/>push and TOTP"]
+    ADC["Trustelem ADConnect (2 VMs)<br/>AD user and group sync,<br/>AD password check, IWA"]
+    TC["Trustelem Connect (2 VMs)<br/>RADIUS 1812/udp, LDAP 2001/tcp,<br/>SCIM client, SIEM push"]
+    AD["Active Directory"]
+    BAST["Bastion nodes"]
+    AM["Access Manager nodes"]
+    SVC <-->|push, TOTP| APP
+    ADC -->|WSS 443, outbound only| SVC
+    TC -->|WSS 443, outbound only| SVC
+    ADC -->|LDAPS 636| AD
+    BAST -->|RADIUS 1812/udp| TC
+    AM -->|RADIUS 1812/udp| TC

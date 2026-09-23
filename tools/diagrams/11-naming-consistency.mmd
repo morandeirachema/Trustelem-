@@ -4,5 +4,5 @@ flowchart LR
     B["Bastion<br/>SAML authentication domain<br/><br/>Domain server name = TRUSTELEM<br/>Username claim = uid<br/>Group claim = groups<br/>mappings on group values"]
     T <-->|Domain and Login must be identical| AM
     AM <-->|Domain and Login must be identical| B
-    NOTE["The assertion goes only to Access Manager (POST to the ACS). Access Manager then calls the Bastion REST API<br/>for jdoe@TRUSTELEM; the Bastion resolves the user in its TRUSTELEM domain and applies the group mappings.<br/>Any mismatch produces an empty authorization list, not an error."]
+    NOTE["Assertion goes only to Access Manager;<br/>AM calls the Bastion REST API for login@TRUSTELEM;<br/>a mismatch gives an empty authorization list"]
     B -.- NOTE

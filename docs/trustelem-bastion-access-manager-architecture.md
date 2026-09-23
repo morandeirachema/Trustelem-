@@ -111,24 +111,23 @@ Sources: [WALLIX One launch](https://www.wallix.com/press/2023/introducing-walli
 
 ```mermaid
 flowchart TB
-    subgraph CLOUD["WALLIX Trustelem cloud tenant (SaaS, EU datacenters)<br/>admin-&lt;tenant&gt;.trustelem.com and &lt;tenant&gt;.trustelem.com"]
-        CONSOLE["Users, Groups, Directories, Apps, Services,<br/>Access rules, Security settings, Certificates, Logs, API"]
-        SVC["SAML 2.0 IdP | OIDC provider | RADIUS + LDAP backend"]
+    subgraph CLOUD["WALLIX Trustelem cloud tenant (SaaS, EU datacenters)"]
+        direction LR
+        CONSOLE["Admin console<br/>users, groups, directories, apps, services,<br/>access rules, security settings, logs, API"]
+        SVC["Identity services<br/>SAML 2.0 IdP, OIDC provider,<br/>RADIUS and LDAP backend"]
     end
-    APP["WALLIX Authenticator app<br/>iOS, Android, Windows: push + TOTP"]
-    subgraph AGENTS["On-premise agents (2 VMs each)"]
-        ADC["Trustelem ADConnect<br/>syncs users/groups from AD (memberOf),<br/>validates AD passwords (never stored),<br/>IWA/Kerberos, AD password reset"]
-        TC["Trustelem Connect<br/>RADIUS server UDP 1812 (2812 if busy),<br/>LDAP server TCP 2001 (LDAPS/StartTLS),<br/>SCIM client, SIEM push every 30 s"]
-    end
-    AD["Active Directory<br/>(source of truth)"]
-    BAST["Bastion nodes<br/>RADIUS client"]
-    AM["Access Manager<br/>RADIUS client"]
-    CLOUD <-->|443 push / TOTP| APP
-    ADC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
-    TC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
-    ADC -->|LDAP/LDAPS 389/636, read-only bind| AD
-    BAST -->|RADIUS 1812/udp, PAP + challenge| TC
-    AM -->|RADIUS 1812/udp, PAP| TC
+    APP["WALLIX Authenticator app<br/>push and TOTP"]
+    ADC["Trustelem ADConnect (2 VMs)<br/>AD user and group sync,<br/>AD password check, IWA"]
+    TC["Trustelem Connect (2 VMs)<br/>RADIUS 1812/udp, LDAP 2001/tcp,<br/>SCIM client, SIEM push"]
+    AD["Active Directory"]
+    BAST["Bastion nodes"]
+    AM["Access Manager nodes"]
+    SVC <-->|push, TOTP| APP
+    ADC -->|WSS 443, outbound only| SVC
+    TC -->|WSS 443, outbound only| SVC
+    ADC -->|LDAPS 636| AD
+    BAST -->|RADIUS 1812/udp| TC
+    AM -->|RADIUS 1812/udp| TC
 ```
 
 **Cloud tenant.** Each customer receives `https://<tenant>.trustelem.com` (user dashboard) and
@@ -258,7 +257,7 @@ flowchart TB
         DIR["Directory service"]
     end
     subgraph ONPREM["Customer network"]
-        USER["Privileged user<br/>browser or native RDP/SSH client"]
+        USER["Privileged user<br/>browser or native client"]
         LB["L7 load balancer<br/>HTTPS 443, WebSocket"]
         subgraph AMC["Access Manager farm"]
             AM1["Access Manager node 1"]
@@ -269,10 +268,10 @@ flowchart TB
             B1["Bastion 1<br/>proxies + vault"]
             B2["Bastion 2<br/>proxies + vault"]
         end
-        CONNECT["Trustelem Connect VMs<br/>RADIUS 1812/udp, LDAP 2001"]
+        CONNECT["Trustelem Connect VMs<br/>RADIUS 1812, LDAP 2001"]
         ADC["ADConnect VMs"]
         AD["Active Directory"]
-        TGT["Targets<br/>Windows, Linux, network, web"]
+        TGT["Targets"]
     end
     USER -->|HTTPS 443| LB
     USER -->|SAML / OIDC redirect, MFA| SAML
@@ -484,7 +483,7 @@ so the SAML path remains the documented one.
 ```mermaid
 flowchart TB
     USERS["Users (native RDP/SSH clients) and Access Manager"]
-    FE["Front end: L4 load balancer, DNS name,<br/>or the Access Manager Cluster object (fewest open sessions wins)"]
+    FE["Front end: L4 load balancer, DNS name<br/>or Access Manager Cluster object"]
     subgraph B1["Bastion node 1: primary master"]
         B1A["eth0 user + admin services<br/>eth1 HA / replication NIC"]
         B1B["MariaDB (all configuration tables)<br/>SSH admin console 2242<br/>proxies, vault, recordings<br/>local only: audit + session data"]
@@ -496,8 +495,8 @@ flowchart TB
     USERS -->|RDP 3389, SSH 22, HTTPS 443 UI + REST API| FE
     FE --> B1
     FE --> B2
-    B1B <-->|MariaDB replication inside an autossh SSH tunnel<br/>slaves pull local 3307 to master 3306| B2B
-    NOTE["No VIP, no heartbeat: failover is bastion-replication --elevate-master<br/>or front-end rerouting. Not replicated: audit/session tables, recording options,<br/>licence, network, SNMP, SMTP, SIEM, device certificates."]
+    B1B <-->|MariaDB replication in an autossh tunnel<br/>3307 to 3306| B2B
+    NOTE["No VIP or heartbeat: failover by --elevate-master<br/>or front-end rerouting"]
     B2 -.- NOTE
 ```
 
@@ -540,12 +539,12 @@ and the [AM Admin Guide 13 and 20.2](https://pam.wallix.one/documentation/admin-
 ```mermaid
 flowchart TB
     USERS["Privileged users<br/>browser HTTPS 443, HTML5 RDP/SSH, WebSocket"]
-    LB["L7 load balancer in front of the farm<br/>HTTPS 443, WebSocket upgrade, health check on 443<br/>X-Forwarded-For + web.proxy.trusted-proxies on AM<br/>source-IP affinity (cookie persistence breaks WAMUT)"]
+    LB["L7 load balancer<br/>HTTPS 443, WebSocket, source-IP affinity<br/>X-Forwarded-For + trusted proxies"]
     subgraph AM1["Access Manager node 1"]
-        AM1A["Debian appliance, Docker<br/>Jetty 11 / Java 17<br/>FreeRDP + xterm.js HTML5<br/>MariaDB (local instance)<br/>Elasticsearch (audit)<br/>eth0 users, eth1 HA, eth2 admin (SSH 2242)"]
+        AM1A["Debian appliance, Docker, Jetty 11<br/>FreeRDP + xterm.js, MariaDB, Elasticsearch<br/>eth0 users, eth1 HA, eth2 admin"]
     end
     subgraph AM2["Access Manager node 2"]
-        AM2A["Same image and version<br/>crypto.install.key, db.connections*, user.admin*<br/>copied from node 1<br/>Elasticsearch (audit)<br/>eth0 users, eth1 HA, eth2 admin (SSH 2242)"]
+        AM2A["Same image and version<br/>crypto.install.key and db settings<br/>copied from node 1"]
     end
     BC["Bastion cluster<br/>(AM Cluster object, identical mode on)"]
     TR["Trustelem (SAML/OIDC IdP)<br/>and Trustelem Connect RADIUS"]
@@ -557,7 +556,7 @@ flowchart TB
     AM2 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
     AM1 -->|SAML/OIDC 443, RADIUS 1812| TR
     AM2 -->|SAML/OIDC 443, RADIUS 1812| TR
-    NOTE["Appliance replication script since AM 5.0 (--prerequisite-check, /root/sqlreplication/servers_list).<br/>Uninstall replication before upgrading a cluster (WAB-17588). purge.audit.active on one node only."]
+    NOTE["Uninstall replication before a cluster upgrade<br/>purge.audit.active on one node only"]
     AM2 -.- NOTE
 ```
 
@@ -604,7 +603,7 @@ flowchart TB
     subgraph A["Site A: production"]
         LBA["LB-A: HTTPS 443 (AM), 22/3389 (Bastion)"]
         AMA["AM-1 and AM-2, database replication"]
-        BA["Bastion-1 (primary master) and Bastion-2 (secondary master)<br/>HA Database Replication (M/M)"]
+        BA["Bastion-1 and Bastion-2<br/>HA Database Replication (M/M)"]
         AGA["ADConnect-A1/A2, Connect-A1/A2"]
         STA["Recording storage NFS/SMB (site A)"]
         BKA["Nightly wabam-backup + Bastion backup"]
@@ -612,7 +611,7 @@ flowchart TB
     subgraph B["Site B: disaster recovery"]
         LBB["LB-B: same DNS names on failover"]
         AMB["AM-3, cold or warm,<br/>restored from the site A wabam-backup"]
-        BB["Bastion-3 standalone, restored from the site A backup,<br/>or a slave in Master/Slaves if latency allows"]
+        BB["Bastion-3 restored from backup<br/>(or a slave if latency allows)"]
         AGB["ADConnect-B1, Connect-B1 (lower priority)"]
         STB["Recording storage (copy of site A)<br/>own licence, SIEM, SMTP, NTP settings"]
     end
@@ -621,7 +620,7 @@ flowchart TB
     BKA ==>|backups shipped| AMB
     BKA ==>|backups shipped| BB
     STA ==>|storage-level copy| STB
-    NOTE["Bastion audit and session tables never replicate, so recordings and audit history are copied at storage level.<br/>A DR Bastion refreshed by backup/restore is not real time (RPO = backup interval).<br/>Trustelem needs no DR action: agents in site B keep the tenant reachable."]
+    NOTE["Audit tables never replicate: copy recordings at storage level<br/>RPO = backup interval; Trustelem needs no DR action"]
     B -.- NOTE
 ```
 
