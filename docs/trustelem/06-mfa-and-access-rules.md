@@ -126,4 +126,6 @@ not documented; the Bastion sends Framed-IP-Address so "same network" can be eva
 
 Choose the duration per risk: one working session (for example 8 hours) for operators on
 managed workstations, shorter for shared or external networks. The web (SAML) path has its own
-IdP session; a Trustelem "remember this browser" option is not documented.
+IdP session. Neither a "remember this browser" option nor push number matching appears in any
+of the four Trustelem documentation books (searched on 2026-09-23); treat both as unavailable
+unless WALLIX confirms otherwise.

@@ -61,9 +61,10 @@ resource "wallix-bastion_externalauth_ldap" "corp_ad" {
 ### RADIUS external authentications to Trustelem Connect (`externalauth_radius`)
 
 Arguments: `authentication_name`, `host`, `port`, `secret`, `timeout`; optional
-`description`, `use_primary_auth_domain`. The GUI option "Use mobile device for two-factor
-authentication (2FA)" is not listed in the provider documentation; check it in the GUI after
-apply, or confirm the provider version exposes it.
+`description`, `use_primary_auth_domain`. The GUI option "Use mobile device for 2 factor
+authentication(2FA)" is not exposed: the provider source `resource_externalauth_radius.go` has
+no such attribute (checked 2026-09-23), so set it in the GUI after every apply that recreates
+the resource.
 
 ```hcl
 resource "wallix-bastion_externalauth_radius" "trustelem_1" {

@@ -4,6 +4,10 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-23
 
+- Gap closure pass: official texts of Implementing Regulation 2024/2690 and DORA RTS 2024/1774
+  read and quoted (an earlier row had attributed recital wording to point 11.7.1); eth1 HA note
+  from the Bastion release notes; Terraform RADIUS resource verified from source; absence of a
+  Trustelem status page, push number matching and remember-device confirmed in the books.
 - Second audit: every command, key, path, URL fragment and ticket ID checked against the vendor
   texts, the Splunk add-on and the Sekoia page; fixed three undocumented console URL fragments,
   the SSH connection syntax in the help-desk guide and a `connect check` expectation; added the

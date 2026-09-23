@@ -113,7 +113,8 @@ Source: [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administrat
 - Incident log with root causes (for example 2026-01-05, storage failure at the hosting
   provider). Source: [incidents](https://trustelem-doc.wallix.com/books/trustelem-news/page/incidents).
 - Not documented: contractual SLA, tenant export or backup, data retention policy, maintenance
-  windows, status page. Ask WALLIX (see the vendor questions in the architecture report).
+  windows. There is no status page; the two pages above are the published record. Ask WALLIX
+  for the rest (see the vendor questions in the architecture report).
 - Features enabled on request through WALLIX support or sales: the API, delegated
   administration and custom themes.
   Sources: [API](https://trustelem-doc.wallix.com/books/trustelem-administration/page/api),
