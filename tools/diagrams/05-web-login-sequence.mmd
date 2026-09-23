@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant AM as LB + Access Manager
+    participant T as Trustelem IdP
+    participant BA as Bastion
+    B->>AM: GET /wabam/{org}?domain={DOMAIN}
+    AM-->>B: 302 SAML AuthnRequest (HTTP-Redirect binding)
+    B->>T: GET {tenant}.trustelem.com/app/{ID}/sso
+    Note over T: AD password checked through ADConnect,<br/>then push / TOTP / passkey
+    T-->>B: SAML Response: signed assertion, NameID = email,<br/>attributes uid, displayname, email, lang, profile, groups
+    B->>AM: POST assertion to the ACS
+    Note over AM: verify signatures, map Login and Profile,<br/>open the web session
+    AM->>BA: REST API 443 + X-Auth-Key: authorizations of login@DOMAIN
+    BA-->>AM: authorizations (SAML domain user, group mappings)
+    B->>AM: launch session (WebSocket)
+    AM->>BA: RDP 3389 / SSH 22 proxy login as login@DOMAIN
+    Note over BA: no re-authentication: identity trusted from AM,<br/>session recorded

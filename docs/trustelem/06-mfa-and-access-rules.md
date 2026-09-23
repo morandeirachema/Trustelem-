@@ -61,8 +61,9 @@ Three routes, all on the same page:
    allows it.
 
 Sequence for a PAM roll-out: run the campaign on the PAM groups with "Automatic enroll during
-login" before any access rule requires two factors; otherwise users on the RADIUS path fail
-("no WALLIX Authenticator = fail" for the LDAP 2-factor rule, and no push for RADIUS).
+login" before any access rule requires two factors; otherwise users fail: on LDAP "If the user
+provides login + password and doesn't have WALLIX Authenticator, the authentication will failed",
+and on RADIUS there is no push to approve.
 
 ## 5. Lost or replaced factor
 
@@ -79,7 +80,7 @@ Rules are set per application, for a user, a group or everyone. Semantics (verba
 | Protocol | Values |
 |----------|--------|
 | Web (SAML, OIDC, no-SSO apps), separately for the internal and the external zone | no rule; Default; 1 factor ("login + password OR certificate OR Kerberos"); 2 factors; Forbidden |
-| LDAP (no zones) | no rule ("users can't be sourced and can't be authenticated"); 1 factor ("users can be sourced, and only one authentication factor"); 2 factors (push wait "only possible if the app have a timeout long enought", or "login + password and TOTP code sticked together (for instance: mypasswordTOTP)"); Forbidden |
+| LDAP (no zones) | no rule ("users can't be sourced and can't be authenticated"); 1 factor ("users can be sourced, and only one authentication factor"); 2 factors (push wait "only possible if the app have a timeout long enought", or "login + password and TOTP code sticked together (for instance: mypasswordTOTP)"; "If the user provides login + password and doesn't have WALLIX Authenticator, the authentication will failed"); Forbidden |
 | RADIUS (no zones) | no rule; Always allow ("accept the authentication if the login is known, without any verification on the password/2nd factor"); 2nd factor only ("used when you have a radius authentication in addition to another authentication (AD usually)"); 2 factors; Forbidden |
 
 Priority: "1/ A user access rule wins over a group access rule, whether it is more restrictive

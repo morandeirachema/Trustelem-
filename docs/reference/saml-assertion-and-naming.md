@@ -11,20 +11,15 @@ OASIS SAML 2.0 core schema; it is not a capture from a live tenant.
 
 ## 1. Names that must match
 
-```
-+----------------------------+     +----------------------------+     +----------------------------+
-| Trustelem                  |     | Access Manager             |     | Bastion                    |
-| Access Manager app         |     | SAML Identity Provider     |     | SAML auth domain           |
-|                            |     |                            |     |                            |
-| Domain      = TRUSTELEM    |<===>| Domain Name = TRUSTELEM    |<===>| Domain server = TRUSTELEM  |
-| Login attr  = uid          |<===>| Login       = uid          |<===>| Username claim= uid        |
-| script: profile, groups    |     | Profile     = profile      |     | Group claim   = groups     |
-| metadata -> AM and Bastion |     | Strip Domain OFF           |     | mappings on group values   |
-+----------------------------+     +----------------------------+     +----------------------------+
-<===> marks values that must be identical on both sides.
-Assertion goes only to Access Manager (POST to the ACS). Access Manager then calls the Bastion REST
-API for user jdoe@TRUSTELEM; the Bastion resolves the user in its TRUSTELEM domain and applies the
-group mappings. Any mismatch in the three boxes produces an empty authorization list, not an error.
+```mermaid
+flowchart LR
+    T["Trustelem<br/>Access Manager app<br/><br/>Domain = TRUSTELEM<br/>Login attribute = uid<br/>script: profile, groups<br/>metadata to AM and Bastion"]
+    AM["Access Manager<br/>SAML Identity Provider<br/><br/>Domain Name = TRUSTELEM<br/>Login = uid<br/>Profile = profile<br/>Strip Domain OFF"]
+    B["Bastion<br/>SAML authentication domain<br/><br/>Domain server name = TRUSTELEM<br/>Username claim = uid<br/>Group claim = groups<br/>mappings on group values"]
+    T <-->|Domain and Login must be identical| AM
+    AM <-->|Domain and Login must be identical| B
+    NOTE["The assertion goes only to Access Manager (POST to the ACS). Access Manager then calls the Bastion REST API<br/>for jdoe@TRUSTELEM; the Bastion resolves the user in its TRUSTELEM domain and applies the group mappings.<br/>Any mismatch produces an empty authorization list, not an error."]
+    B -.- NOTE
 ```
 
 | Value | Trustelem | Access Manager | Bastion |

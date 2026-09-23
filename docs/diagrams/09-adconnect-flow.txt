@@ -1,8 +1,0 @@
-+--------------------+              +------------------------+              +--------------------+
-| Trustelem cloud    |<-- WSS 443 --| ADConnect VM 1 (prio 1)|-- LDAP 389 ->| Domain             |
-| admin.trustelem    |              | ADConnect VM 2 (prio 2)|              | controllers        |
-| .com (WSS 443)     |<-- WSS 443 --| read-only AD account   |-- LDAP 636 ->| LDAP/LDAPS 389/636 |
-|                    |              |                        |              |                    |
-+--------------------+              +------------------------+              +--------------------+
-
-Outbound only: each agent opens the websocket; the cloud uses the first healthy connector.

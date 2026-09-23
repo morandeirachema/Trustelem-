@@ -1,0 +1,13 @@
+flowchart LR
+    B["Bastion node<br/>AD auth domain + Secondary authentication = RADIUS<br/>'Use mobile device for 2 factor authentication(2FA)' = ON<br/>timeout 45-60 s"]
+    AD["Active Directory<br/>(primary factor)"]
+    TC["Trustelem Connect<br/>RADIUS 1812/udp<br/>relays to the cloud"]
+    T["Trustelem cloud tenant<br/>(access rule: 2nd factor only)"]
+    A["WALLIX Authenticator"]
+    B -->|1. LDAP bind, groups back| AD
+    B -->|2. Access-Request with empty password| TC
+    TC -->|WSS 443| T
+    T -->|push| A
+    A -->|3. user approves, or types a TOTP in the Access-Challenge| T
+    T -->|OK| TC
+    TC -->|Access-Accept| B

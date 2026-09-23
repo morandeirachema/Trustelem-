@@ -18,17 +18,21 @@ pushes logs to an on-premise SIEM and performs outbound SCIM provisioning.
 listener and an Access Manager RADIUS listener are two ports (for example 1812 and 2812).
 Default ports: "usually tcp port 2001 for LDAP, and udp port 1812 for Radius".
 
-```
-+--------------------+                  +----------------------------+              +--------------+
-| Bastion nodes      |                  | Trustelem Connect VM       |              | Trustelem    |
-| Access Manager     |- Access-Req ---->|                            |- WSS 443 --> | cloud        |
-| nodes              |<- Accept/Chall. -| :1812/udp  Bastion app     |<-- decision  |              |
-|                    |- LDAP bind ----->| :2812/udp  Access Mgr app  |              | access rules,|
-| RADIUS + LDAP      |<- bind result ---| :2001/tcp  LDAP (Bastion)  |              | factors      |
-| clients            |                  | relays each request        |              |              |
-+--------------------+                  +----------------------------+              +--------------+
-
-One listener per protocol per application; secrets come from the application model in the console.
+```mermaid
+flowchart LR
+    CL["Bastion nodes and<br/>Access Manager nodes<br/>(RADIUS + LDAP clients)"]
+    subgraph TC["Trustelem Connect VM"]
+        L1[":1812/udp RADIUS, Bastion app"]
+        L2[":2812/udp RADIUS, Access Manager app"]
+        L3[":2001/tcp LDAP, Bastion app"]
+    end
+    T["Trustelem cloud<br/>access rules, factors"]
+    CL -->|Access-Request / Access-Challenge| L1
+    CL -->|Access-Request| L2
+    CL -->|LDAP bind and search| L3
+    TC -->|WebSocket 443 outbound, decision returned| T
+    NOTE["One listener per protocol per application;<br/>secrets come from the application model in the console."]
+    TC -.- NOTE
 ```
 
 ## 2. Create the service in the console
@@ -107,8 +111,9 @@ the console are pushed to the agent.
   filter `(mail=%u)` in the vendor's OpenVPN example.
 - MFA over LDAP: with a *2 factors* access rule the bind succeeds only after a push approval
   ("only possible if the app have a timeout long enought") or with "login + password and TOTP
-  code sticked together (for instance: mypasswordTOTP)". Users without a WALLIX Authenticator
-  fail. Passkeys are not usable over LDAP.
+  code sticked together (for instance: mypasswordTOTP)". "If the user provides login + password
+  and doesn't have WALLIX Authenticator, the authentication will failed". Passkeys are not
+  usable over LDAP.
 
 ## 7. What the RADIUS listener does
 
@@ -120,7 +125,7 @@ the console are pushed to the agent.
 - Push-wait: "login + password then no answer from Trustelem before the validation of a push
   notification". Size the client timeout accordingly.
 - Second factor only: with the *2nd factor only* rule the password is ignored, which is what the
-  Bastion's "Use mobile device for 2FA" option exploits by "automatically sending the login and
+  Bastion's "Use mobile device for 2 factor authentication(2FA)" option exploits by "automatically sending the login and
   an empty password".
 - Always allow: "accept the authentication if the login is known, without any verification on
   the password/2nd factor" (use only as a deliberate exemption).

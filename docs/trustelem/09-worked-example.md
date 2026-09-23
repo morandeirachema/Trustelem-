@@ -119,7 +119,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | Name | Type | Values |
 |------|------|--------|
 | `CORP-AD` | Active Directory | server `dc1.corp.acme.example`, port 389, StartTLS with the corporate CA, bind `svc-bastion-ldap@corp.acme.example`, base DN `dc=corp,dc=acme,dc=example`, login attribute `sAMAccountName`, user name attribute `sAMAccountName`, timeout 30 |
-| `Trustelem-RADIUS-1` | RADIUS | server 10.10.21.41, port 1812, timeout 50, secret `R1`, "Use mobile device for 2FA" ON, "Use primary domain name for 2FA" ON |
+| `Trustelem-RADIUS-1` | RADIUS | server 10.10.21.41, port 1812, timeout 50, secret `R1`, "Use mobile device for 2 factor authentication(2FA)" ON, "Use primary domain name for two-factor authentication (2FA)" ON |
 | `Trustelem-RADIUS-2` | RADIUS | server 10.10.21.42, same values |
 | `Trustelem-LDAP` | Active Directory | server 10.10.21.41, port 2001, StartTLS, bind method simple, user `trustelem`, password from the Bastion app model, base DN `DC=acme,DC=trustelem,DC=com`, login and user name attribute `mail` |
 | `Trustelem-SAML` | SAML | IdP metadata from the `Acme Access Manager` app; claims Username `uid`, Display name `displayname`, Email `email`, Group `groups`; SP entity ID left as generated (Access Manager is the front door); timeout 900 |
@@ -216,7 +216,7 @@ Factor 1, RADIUS Factor 2.
   `TRUSTELEM` domain mappings exactly (case-insensitive on the Bastion side).
 - RADIUS secrets `R1` and `R2` match the Bastion and Access Manager entries; listeners bound
   to `*`; ports 1812 and 2812 not in conflict on the Connect VMs.
-- "Use mobile device for 2FA" ON on both Bastion RADIUS entries.
+- "Use mobile device for 2 factor authentication(2FA)" ON on both Bastion RADIUS entries.
 - Access rules exist before any test (LDAP 1 factor for `Partners`, RADIUS 2nd factor only for
   the AD groups).
 - Egress firewall allows the Connect and ADConnect VMs to `*.trustelem.com`, including

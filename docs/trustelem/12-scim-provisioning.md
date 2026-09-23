@@ -13,8 +13,8 @@ Quotes are verbatim.
 Chapter 04 scenario C makes Trustelem-only users (partners, contractors) visible to the Bastion
 through the Trustelem LDAP listener. SCIM would instead create them as Bastion users in
 advance, driven by Trustelem access rules, with automatic removal when the rule is lost. It
-would also make the "single source of identity" recommendation operational for users outside
-Active Directory.
+would also keep Trustelem as the single place where users outside Active Directory are
+managed.
 
 ## 2. What is documented on the Trustelem side
 

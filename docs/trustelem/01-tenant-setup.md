@@ -39,7 +39,9 @@ The vendor's own decision tree for WALLIX products:
 - Users in Active Directory: import them with ADConnect, enrol their factors, then use RADIUS
   as second factor on the Bastion AD domain, or SAML for Access Manager.
 - Users not in Active Directory: create Trustelem local users rather than Bastion local
-  users, "to maintain a single source of identity".
+  users, so that Trustelem stays the single place where factors and access rules are managed
+  (author's recommendation; the vendor page documents the LDAP mechanism for "local Trustelem
+  users" without stating a preference).
 - "Trustelem accounts should only be used for" partners, external users and "the definition of
   a backup administrator".
 

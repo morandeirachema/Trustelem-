@@ -8,7 +8,7 @@ A documentation and architecture workspace for a WALLIX Privileged Access Manage
 WALLIX Trustelem (now sold as WALLIX One IDaaS) providing MFA/SSO for a WALLIX Bastion cluster and a
 WALLIX Access Manager cluster. The main concern is Trustelem setup, configuration and integration;
 Bastion and Access Manager content supports that. Trustelem-specific documents live in `docs/trustelem/`. There is no application code, build, lint or test tooling. Deliverables
-are Markdown reports with ASCII box diagrams and links to vendor documentation.
+are Markdown reports with Mermaid diagrams and links to vendor documentation.
 
 ## Conventions for documents in this repo
 
@@ -16,9 +16,9 @@ are Markdown reports with ASCII box diagrams and links to vendor documentation.
   Prefer primary WALLIX sources over blogs.
 - Put today's date (ISO format) in the header of each report and state which product versions it was
   verified against (currently Bastion 12.3.2 and Access Manager 5.2.4.0).
-- Diagrams are ASCII only (no Mermaid). Draw them with `tools/asciigrid.py` (Grid.box/vline/hline and
-  `sequence()`), one script per diagram under `tools/diagrams/`, rendered into `docs/diagrams/*.txt`
-  and pasted into the report. Never hand-edit a diagram; edit the script and re-render.
+- Diagrams are Mermaid only. One source per diagram in `tools/diagrams/*.mmd`, embedded verbatim as a fenced
+  `mermaid` code block; never edit a diagram inline, edit the source and re-paste. Use `{placeholder}` rather
+  than `<placeholder>` inside sequence diagrams.
 - Keep verified facts separate from inferences; mark gaps explicitly rather than guessing.
 - No Claude references in commit messages or document bylines.
 - Run `python3 tools/check_docs.py` before committing; it verifies fences, tables, placeholders, links

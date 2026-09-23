@@ -13,7 +13,7 @@ Trustelem has a dedicated **Access Manager** application template with two proto
 
 | Option | Factors | User experience | When to use |
 |--------|---------|-----------------|-------------|
-| SAML for AD users | Trustelem password check via ADConnect plus any Trustelem factor (push, TOTP, passkey) | redirect to Trustelem, back to the portal, no further prompt; Bastion sessions launch without re-authentication | default choice; "Access Manager is compatible with SAML (recommended), LDAP and Radius" ([WALLIX Authenticator](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/presentation)) |
+| SAML for AD users | Trustelem password check via ADConnect plus any Trustelem factor (push, TOTP, passkey) | redirect to Trustelem, back to the portal, no further prompt; Bastion sessions launch without re-authentication | default choice; "Access Manager is compatible with SAML (recommanded), LDAP and Radius" [sic] ([WALLIX Authenticator](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/presentation)) |
 | SAML for Trustelem local users | Trustelem password plus a factor | same as above; Login attribute is `email` | partners and contractors without AD accounts |
 | RADIUS for AD users (AD domain in Access Manager, RADIUS as factor 2) | AD password checked by Access Manager, then a Trustelem TOTP | "first provide the AD login and password then provide the Trustelem TOTP code, even if the name of the input is Password again" | when Access Manager account mapping needs the AD password, or as a fallback path |
 | RADIUS for Access Manager local users | local password plus TOTP, or Trustelem password plus TOTP | second "Password" prompt takes the TOTP | Access Manager local administrators |
@@ -60,7 +60,7 @@ Access Manager side, **Configuration → SAML Identity Providers → +Add**:
 | Identity Provider | metadata | "Import the Trustelem metadata file" |
 | Identity Provider | Redirect Logout Uri | "Copy the Redirect Binding Uri and paste it in Redirect Logout Uri, replacing « sso » by « on_logout »" |
 | Domain | Domain Name | "the domain for federated users : still the same value used on the Bastion and on Trustelem setup" |
-| Domain | Default Profile | "Usually it is User. You can let No Default Profile if Trustelem is in charge of the profile." |
+| Domain | Default Profile | "Usually it is User" and "You can let No Default Profile if Trustelem is in charge of the profile." |
 | Domain | Login | `uid` |
 | Domain | Display Name Attribute | `displayname` |
 | Domain | Email Attribute | `email` |

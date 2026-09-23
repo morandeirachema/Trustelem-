@@ -13,15 +13,18 @@ symmetric encryption." The cloud sends search and authentication requests down t
 account running the connector"; "thanks to this connector Trustelem does not store any password
 for Active Directory users."
 
-```
-+--------------------+              +------------------------+              +--------------------+
-| Trustelem cloud    |<-- WSS 443 --| ADConnect VM 1 (prio 1)|-- LDAP 389 ->| Domain             |
-| admin.trustelem    |              | ADConnect VM 2 (prio 2)|              | controllers        |
-| .com (WSS 443)     |<-- WSS 443 --| read-only AD account   |-- LDAP 636 ->| LDAP/LDAPS 389/636 |
-|                    |              |                        |              |                    |
-+--------------------+              +------------------------+              +--------------------+
-
-Outbound only: each agent opens the websocket; the cloud uses the first healthy connector.
+```mermaid
+flowchart LR
+    CLOUD["Trustelem cloud<br/>admin.trustelem.com (WSS 443)"]
+    A1["ADConnect VM 1 (priority 1)<br/>read-only AD account"]
+    A2["ADConnect VM 2 (priority 2)<br/>read-only AD account"]
+    DC["Domain controllers<br/>LDAP/LDAPS 389/636"]
+    A1 -->|outbound WebSocket 443| CLOUD
+    A2 -->|outbound WebSocket 443| CLOUD
+    A1 -->|LDAP bind, search| DC
+    A2 -->|LDAP bind, search| DC
+    NOTE["Outbound only: each agent opens the websocket;<br/>the cloud uses the first healthy connector in priority order."]
+    CLOUD -.- NOTE
 ```
 
 ## 2. Prerequisites (verbatim)

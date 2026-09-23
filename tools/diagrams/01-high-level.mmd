@@ -1,0 +1,38 @@
+flowchart TB
+    subgraph CLOUD["WALLIX Trustelem / WALLIX One IDaaS (SaaS, EU datacenters)"]
+        SAML["SAML 2.0 IdP"]
+        OIDC["OIDC provider"]
+        RAD["RADIUS + LDAP backend"]
+        DIR["Directory service"]
+    end
+    subgraph ONPREM["Customer network"]
+        USER["Privileged user<br/>browser or native RDP/SSH client"]
+        LB["L7 load balancer<br/>HTTPS 443, WebSocket"]
+        subgraph AMC["Access Manager farm"]
+            AM1["Access Manager node 1"]
+            AM2["Access Manager node 2"]
+            DB[("shared / replicated MariaDB")]
+        end
+        subgraph BC["Bastion cluster: HA Database Replication"]
+            B1["Bastion 1<br/>proxies + vault"]
+            B2["Bastion 2<br/>proxies + vault"]
+        end
+        CONNECT["Trustelem Connect VMs<br/>RADIUS 1812/udp, LDAP 2001"]
+        ADC["ADConnect VMs"]
+        AD["Active Directory"]
+        TGT["Targets<br/>Windows, Linux, network, web"]
+    end
+    USER -->|HTTPS 443| LB
+    USER -->|SAML / OIDC redirect, MFA| SAML
+    LB --> AM1 & AM2
+    AM1 --- DB
+    AM2 --- DB
+    AM1 & AM2 -->|REST API 443, RDP 3389, SSH 22| B1 & B2
+    USER -->|native RDP 3389 / SSH 22| B1 & B2
+    B1 <-->|MariaDB over autossh tunnel| B2
+    B1 & B2 -->|RADIUS 1812/udp secondary factor| CONNECT
+    B1 & B2 -->|LDAP/AD 389/636| AD
+    CONNECT -->|WSS 443 outbound only| RAD
+    ADC -->|LDAP/LDAPS| AD
+    ADC -->|WSS 443 outbound only| DIR
+    B1 & B2 -->|RDP, SSH, VNC, HTTPS, Telnet| TGT

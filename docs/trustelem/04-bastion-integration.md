@@ -47,25 +47,20 @@ Source for all four steps: [WALLIX Bastion page](https://trustelem-doc.wallix.co
 
 ## 3. Scenario A: AD users with RADIUS push as second factor (recommended)
 
-```
-+--------------------+                  +--------------------+
-| Bastion node       |-- 1. LDAP bind ->| Active Directory   |
-|                    |<- groups --------| (primary factor)   |
-| AD auth domain     |                  +--------------------+
-| + Secondary auth   |
-|   = RADIUS         |
-|                    |                  +--------------------+        +--------------+
-| 'Use mobile        |- 2. Access-Req ->| Trustelem Connect  |- WSS ->| Trustelem    |
-|  device' = ON      |                  | RADIUS 1812/udp    |        | cloud tenant |
-|                    |<- Access-Accept -| relays to cloud    |<- OK --| (access rule)|
-| timeout 45-60 s    |                  +--------------------+        +------+-------+
-+--------------------+                                                       |
-                                                                             |
-                                                                      +------+-------+
-                                                                      | Authenticator|
-                                                                      +--------------+
-
-3. The user approves the push (or types a TOTP in the Access-Challenge).
+```mermaid
+flowchart LR
+    B["Bastion node<br/>AD auth domain + Secondary authentication = RADIUS<br/>'Use mobile device for 2 factor authentication(2FA)' = ON<br/>timeout 45-60 s"]
+    AD["Active Directory<br/>(primary factor)"]
+    TC["Trustelem Connect<br/>RADIUS 1812/udp<br/>relays to the cloud"]
+    T["Trustelem cloud tenant<br/>(access rule: 2nd factor only)"]
+    A["WALLIX Authenticator"]
+    B -->|1. LDAP bind, groups back| AD
+    B -->|2. Access-Request with empty password| TC
+    TC -->|WSS 443| T
+    T -->|push| A
+    A -->|3. user approves, or types a TOTP in the Access-Challenge| T
+    T -->|OK| TC
+    TC -->|Access-Accept| B
 ```
 
 Bastion side, verbatim from the vendor page:
@@ -211,8 +206,8 @@ Fill this in before the change window; every value appears in one of the scenari
 | RADIUS port | Service page | 1812 or 2812 |
 | LDAP port | Service page | 2001 |
 | Bastion RADIUS timeout | Bastion | 45 to 60 s |
-| "Use mobile device for 2FA" | Bastion | ON for scenarios A and C, OFF for B |
-| "Use primary domain name for 2FA" | Bastion | ON if Trustelem logins are UPNs |
+| "Use mobile device for 2 factor authentication(2FA)" | Bastion | ON for scenarios A and C, OFF for B |
+| "Use primary domain name for two-factor authentication (2FA)" | Bastion | ON if Trustelem logins are UPNs |
 | AD domain with secondary authentication | Bastion | |
 | Trustelem group DNs for mappings | Trustelem Groups | `CN=...,OU=Groups,DC=<tenant>,DC=trustelem,DC=com` |
 | SAML SP entity ID and ACS | Bastion SAML external auth | |

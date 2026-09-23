@@ -1,0 +1,19 @@
+sequenceDiagram
+    autonumber
+    participant C as RDP/SSH client
+    participant B as Bastion proxy
+    participant AD as Active Directory
+    participant TC as Trustelem Connect
+    participant T as Trustelem cloud
+    participant A as Authenticator app
+    C->>B: TCP 3389 / 22, login user@AD + AD password
+    B->>AD: LDAP bind (primary factor)
+    AD-->>B: bind OK + group membership
+    B->>TC: RADIUS Access-Request (User-Name, NAS-Identifier WAB, Framed-IP-Address)
+    TC->>T: relayed over WebSocket 443 (outbound only)
+    T->>A: push notification
+    A-->>T: approve (or TOTP typed in the Access-Challenge)
+    T-->>TC: accept
+    TC-->>B: RADIUS Access-Accept
+    Note over B: authorization check, target selection, recording
+    B-->>C: proxied session to the target

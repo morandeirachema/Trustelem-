@@ -37,40 +37,26 @@ The full index is in [docs/README.md](docs/README.md).
 
 ## What Trustelem provides and where it plugs in
 
-```
-                 +--------------------------------------------------------------+
-                 |       WALLIX Trustelem cloud tenant (SaaS, EU datacenters)   |    +-------------+
-                 |   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com  |    |WALLIX       |
-                 |                                                              |443 |Authenticator|
-                 |   Users, Groups, Directories, Apps, Services, Access rules,  |<-->|app: iOS,    |
-                 |   Security settings, Application certificates, Logs, API     |push|Android,     |
-                 |                                                              |    |Windows      |
-                 |   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend |    +-------------+
-                 +-----+------------------------------------------+-------------+
-                       |                                          |
-                       | WebSocket TLS 443                        | WebSocket TLS 443
-                       | outbound only, cert pinned               | outbound only, cert pinned
-                       |                                          |
-                       |                                          |
-+----------------------+-------------------+  +-------------------+----------------------+
-|  Trustelem ADConnect (2 VMs, priority)   |  |  Trustelem Connect (2 VMs, failover)     |
-|  Windows service or Linux daemon         |  |  Windows or Linux, runs as 'trustelem'   |
-|  - syncs users/groups from AD (memberOf) |  |  - RADIUS server  UDP 1812 (2812 if busy)|
-|  - validates AD passwords (never stored) |  |  - LDAP server TCP 2001 (LDAPS/StartTLS) |
-|  - IWA/Kerberos, AD password reset       |  |  - SCIM client, SIEM log push every 30 s |
-|  - LDAP/LDAPS 389/636 to domain ctrls    |  |  - relays RADIUS requests to the cloud   |
-+---------+--------------------------------+  +---------+---------------------+----------+
-          | LDAP/LDAPS 389/636                          | RADIUS 1812/udp     | RADIUS 1812/udp
-          | read-only bind account                      | PAP + challenge     | PAP
-          |                                             |                     |
-+------------------------+                    +------------------+  +------------------+
-| Active Directory       |                    | Bastion nodes    |  | Access Manager   |
-| (source of truth)      |                    | (RADIUS client)  |  | (RADIUS client)  |
-+------------------------+                    +------------------+  +------------------+
-
-
-Passkeys and FIDO2 keys work only on the web (SAML/OIDC) path. Over LDAP and RADIUS the second
-factor is a push approval, a TOTP, or a password+code concatenation.
+```mermaid
+flowchart TB
+    subgraph CLOUD["WALLIX Trustelem cloud tenant (SaaS, EU datacenters)<br/>admin-&lt;tenant&gt;.trustelem.com and &lt;tenant&gt;.trustelem.com"]
+        CONSOLE["Users, Groups, Directories, Apps, Services,<br/>Access rules, Security settings, Certificates, Logs, API"]
+        SVC["SAML 2.0 IdP | OIDC provider | RADIUS + LDAP backend"]
+    end
+    APP["WALLIX Authenticator app<br/>iOS, Android, Windows: push + TOTP"]
+    subgraph AGENTS["On-premise agents (2 VMs each)"]
+        ADC["Trustelem ADConnect<br/>syncs users/groups from AD (memberOf),<br/>validates AD passwords (never stored),<br/>IWA/Kerberos, AD password reset"]
+        TC["Trustelem Connect<br/>RADIUS server UDP 1812 (2812 if busy),<br/>LDAP server TCP 2001 (LDAPS/StartTLS),<br/>SCIM client, SIEM push every 30 s"]
+    end
+    AD["Active Directory<br/>(source of truth)"]
+    BAST["Bastion nodes<br/>RADIUS client"]
+    AM["Access Manager<br/>RADIUS client"]
+    CLOUD <-->|443 push / TOTP| APP
+    ADC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
+    TC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
+    ADC -->|LDAP/LDAPS 389/636, read-only bind| AD
+    BAST -->|RADIUS 1812/udp, PAP + challenge| TC
+    AM -->|RADIUS 1812/udp, PAP| TC
 ```
 
 | Trustelem service | Consumed by | Path protected | Chapter |
@@ -135,12 +121,10 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 |   +-- reference/                Terraform for the Bastion side, logging and SIEM,
 |   |                             SAML assertion and naming, Trustelem API export,
 |   |                             standards and compliance
-|   +-- diagrams/                 rendered ASCII diagrams
 |   +-- archive/research-notes/   archived working notes (superseded by the chapters)
 +-- CHANGELOG.md
 +-- tools/
-    +-- asciigrid.py              grid helper for box and sequence diagrams
-    +-- diagrams/*.py             one script per diagram; run to regenerate docs/diagrams
+    +-- diagrams/*.mmd            Mermaid source of every diagram, embedded verbatim in the docs
     +-- check_docs.py             structural checks, also run by GitHub Actions
 ```
 
@@ -168,8 +152,8 @@ login, itself a live example of the IdP in this design; the PDF guides above are
 ## Working on the documents
 
 - Every technical claim links to its source; verified facts, inferences and gaps are marked.
-- Diagrams are plain ASCII drawn on a fixed grid (`tools/asciigrid.py`) so boxes stay aligned
-  and render anywhere Markdown does; edit the script, never the rendered text.
+- Diagrams are Mermaid. Each has one source file in `tools/diagrams/` embedded verbatim as a fenced
+  `mermaid` code block; edit the source and re-paste it, and the check script verifies the match.
 - To re-verify a chapter, download the PDF into a scratch folder and extract it with
   `pdftotext -layout`; the Trustelem books export as HTML at `.../books/<book>/export/html`.
 - The "last updated" date and the verified product versions are refreshed whenever a claim is

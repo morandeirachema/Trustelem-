@@ -109,40 +109,26 @@ Sources: [WALLIX One launch](https://www.wallix.com/press/2023/introducing-walli
 
 ### 3.1 Trustelem / WALLIX One IDaaS
 
-```
-                 +--------------------------------------------------------------+
-                 |       WALLIX Trustelem cloud tenant (SaaS, EU datacenters)   |    +-------------+
-                 |   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com  |    |WALLIX       |
-                 |                                                              |443 |Authenticator|
-                 |   Users, Groups, Directories, Apps, Services, Access rules,  |<-->|app: iOS,    |
-                 |   Security settings, Application certificates, Logs, API     |push|Android,     |
-                 |                                                              |    |Windows      |
-                 |   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend |    +-------------+
-                 +-----+------------------------------------------+-------------+
-                       |                                          |
-                       | WebSocket TLS 443                        | WebSocket TLS 443
-                       | outbound only, cert pinned               | outbound only, cert pinned
-                       |                                          |
-                       |                                          |
-+----------------------+-------------------+  +-------------------+----------------------+
-|  Trustelem ADConnect (2 VMs, priority)   |  |  Trustelem Connect (2 VMs, failover)     |
-|  Windows service or Linux daemon         |  |  Windows or Linux, runs as 'trustelem'   |
-|  - syncs users/groups from AD (memberOf) |  |  - RADIUS server  UDP 1812 (2812 if busy)|
-|  - validates AD passwords (never stored) |  |  - LDAP server TCP 2001 (LDAPS/StartTLS) |
-|  - IWA/Kerberos, AD password reset       |  |  - SCIM client, SIEM log push every 30 s |
-|  - LDAP/LDAPS 389/636 to domain ctrls    |  |  - relays RADIUS requests to the cloud   |
-+---------+--------------------------------+  +---------+---------------------+----------+
-          | LDAP/LDAPS 389/636                          | RADIUS 1812/udp     | RADIUS 1812/udp
-          | read-only bind account                      | PAP + challenge     | PAP
-          |                                             |                     |
-+------------------------+                    +------------------+  +------------------+
-| Active Directory       |                    | Bastion nodes    |  | Access Manager   |
-| (source of truth)      |                    | (RADIUS client)  |  | (RADIUS client)  |
-+------------------------+                    +------------------+  +------------------+
-
-
-Passkeys and FIDO2 keys work only on the web (SAML/OIDC) path. Over LDAP and RADIUS the second
-factor is a push approval, a TOTP, or a password+code concatenation.
+```mermaid
+flowchart TB
+    subgraph CLOUD["WALLIX Trustelem cloud tenant (SaaS, EU datacenters)<br/>admin-&lt;tenant&gt;.trustelem.com and &lt;tenant&gt;.trustelem.com"]
+        CONSOLE["Users, Groups, Directories, Apps, Services,<br/>Access rules, Security settings, Certificates, Logs, API"]
+        SVC["SAML 2.0 IdP | OIDC provider | RADIUS + LDAP backend"]
+    end
+    APP["WALLIX Authenticator app<br/>iOS, Android, Windows: push + TOTP"]
+    subgraph AGENTS["On-premise agents (2 VMs each)"]
+        ADC["Trustelem ADConnect<br/>syncs users/groups from AD (memberOf),<br/>validates AD passwords (never stored),<br/>IWA/Kerberos, AD password reset"]
+        TC["Trustelem Connect<br/>RADIUS server UDP 1812 (2812 if busy),<br/>LDAP server TCP 2001 (LDAPS/StartTLS),<br/>SCIM client, SIEM push every 30 s"]
+    end
+    AD["Active Directory<br/>(source of truth)"]
+    BAST["Bastion nodes<br/>RADIUS client"]
+    AM["Access Manager<br/>RADIUS client"]
+    CLOUD <-->|443 push / TOTP| APP
+    ADC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
+    TC -->|WebSocket TLS 443, outbound only, certificate pinned| CLOUD
+    ADC -->|LDAP/LDAPS 389/636, read-only bind| AD
+    BAST -->|RADIUS 1812/udp, PAP + challenge| TC
+    AM -->|RADIUS 1812/udp, PAP| TC
 ```
 
 **Cloud tenant.** Each customer receives `https://<tenant>.trustelem.com` (user dashboard) and
@@ -263,54 +249,53 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
 
 ## 4. High-level design
 
-```
-                                  +---------------------------------------------+
-                                  |        WALLIX Trustelem / One IDaaS         |
-                                  |   (SaaS identity provider + MFA engine)     |
-                                  |  SAML 2.0 IdP  |  OIDC OP  |  RADIUS  | AD  |
-                                  +---------------------------------------------+
-                                         |               |          |        |
-        SAML / OIDC redirects            |               |          |        | outbound HTTPS
-        (browser, HTTPS 443)             |               | RADIUS   |        | directory sync
-                                         |               | 1812/udp |        |
-+-------------+                   +------+---------------+-----+    |   +----+----------------+
-| Privileged  | -- HTTPS 443 ---->|   Load balancer (L7 / L4)  |    |   | Directory connector |
-| user        |                   +------+---------------+-----+    |   | agent (on-prem)     |
-| (browser)   |                          |               |          |   +-----+---------------+
-+-------------+                   +------+-----+  +------+-----+    |         |
-       |                          | Access Mgr |  | Access Mgr |    |         |
-       | native RDP 3389          |   node 1   |  |   node 2   |    |         | LDAP / AD
-       | native SSH 22            +------------+  +------------+    |         |
-       |                                 +-------+-------+          |         |
-       |                          shared /       | REST API 443     |         |
-       |                          replicated     | RDP 3389         |         |
-       |                          MariaDB DB     | SSH 22           |         |
-       |                          +--------------+-------------+    |         |
-       |                          |  +----------+  +----------+|<---+         |
-       |                          |  | Bastion 1|  | Bastion 2||            +-+---------+
-       |                          |  | proxies  |==| proxies  || LDAP/AD    | Active    |
-       |                          |  | vault    |  | vault    ||----------->| Directory |
-       +------------------------->|  +----------+  +----------+|  389/636   +-----------+
-                                  |                            |
-                                  | HA Database Replication    |
-                                  | (master/master or          |
-                                  |  master/slaves)            |
-                                  +------+---------------+-----+
-                                         |               |
-                                         | RDP, SSH, VNC,| HTTPS, Telnet
-                                         |               |
-                                  +------+------+ +------+---------+
-                                  | Windows /   | | Linux / network|
-                                  | jump hosts  | | / web targets  |
-                                  +-------------+ +----------------+
+```mermaid
+flowchart TB
+    subgraph CLOUD["WALLIX Trustelem / WALLIX One IDaaS (SaaS, EU datacenters)"]
+        SAML["SAML 2.0 IdP"]
+        OIDC["OIDC provider"]
+        RAD["RADIUS + LDAP backend"]
+        DIR["Directory service"]
+    end
+    subgraph ONPREM["Customer network"]
+        USER["Privileged user<br/>browser or native RDP/SSH client"]
+        LB["L7 load balancer<br/>HTTPS 443, WebSocket"]
+        subgraph AMC["Access Manager farm"]
+            AM1["Access Manager node 1"]
+            AM2["Access Manager node 2"]
+            DB[("shared / replicated MariaDB")]
+        end
+        subgraph BC["Bastion cluster: HA Database Replication"]
+            B1["Bastion 1<br/>proxies + vault"]
+            B2["Bastion 2<br/>proxies + vault"]
+        end
+        CONNECT["Trustelem Connect VMs<br/>RADIUS 1812/udp, LDAP 2001"]
+        ADC["ADConnect VMs"]
+        AD["Active Directory"]
+        TGT["Targets<br/>Windows, Linux, network, web"]
+    end
+    USER -->|HTTPS 443| LB
+    USER -->|SAML / OIDC redirect, MFA| SAML
+    LB --> AM1 & AM2
+    AM1 --- DB
+    AM2 --- DB
+    AM1 & AM2 -->|REST API 443, RDP 3389, SSH 22| B1 & B2
+    USER -->|native RDP 3389 / SSH 22| B1 & B2
+    B1 <-->|MariaDB over autossh tunnel| B2
+    B1 & B2 -->|RADIUS 1812/udp secondary factor| CONNECT
+    B1 & B2 -->|LDAP/AD 389/636| AD
+    CONNECT -->|WSS 443 outbound only| RAD
+    ADC -->|LDAP/LDAPS| AD
+    ADC -->|WSS 443 outbound only| DIR
+    B1 & B2 -->|RDP, SSH, VNC, HTTPS, Telnet| TGT
 ```
 
 ### 4.1 Design decisions
 
 | Decision | Choice | Reason and source |
 |----------|--------|-------------------|
-| Identity source | Active Directory synced by ADConnect; Trustelem local users only for partners and backup admins | Vendor decision tree: AD users import via ADConnect, then RADIUS as 2nd factor on the Bastion AD domain. [Setup instructions](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/setup-instructions), [Local users](https://trustelem-doc.wallix.com/books/trustelem-administration/page/trustelem-local-users) |
-| Web protocol | SAML 2.0 from Trustelem to Access Manager, generic SAML on Bastion | "Access Manager is compatible with SAML (recommended), LDAP and Radius". Dedicated Access Manager template exists in Trustelem. [WALLIX Authenticator](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/presentation), [AM app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager) |
+| Identity source | Active Directory synced by ADConnect; Trustelem local users only for partners and backup admins | Vendor decision tree: AD users import via ADConnect, then RADIUS as 2nd factor on the Bastion AD domain; Trustelem local users for people outside AD is the author's choice so that factors and rules live in one place. [Setup instructions](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/setup-instructions), [Local users](https://trustelem-doc.wallix.com/books/trustelem-administration/page/trustelem-local-users) |
+| Web protocol | SAML 2.0 from Trustelem to Access Manager, generic SAML on Bastion | "Access Manager is compatible with SAML (recommanded), LDAP and Radius" [sic]. Dedicated Access Manager template exists in Trustelem. [WALLIX Authenticator](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/presentation), [AM app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager) |
 | Why not OIDC | OIDC is supported on both products since Bastion 12.2 and AM 5.2.4.0, but Trustelem publishes no WALLIX OIDC template and no groups claim guidance | *gap*; [Bastion 7.3.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf), [AM 10.5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Native client MFA | RADIUS to Trustelem Connect as secondary authentication of the Bastion AD domain | Only transparent push/OTP path for RDP and SSH proxies. [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf), [Bastion app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion) |
 | Authorization | Bastion group mappings on the AD domain (native path) and on the SAML domain (web path) | RADIUS carries no groups. [Bastion 7.3.1.1.3](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
@@ -320,35 +305,25 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
 
 ### 4.2 Identity flow, web path
 
-```
-+-----------------+  +-----------------+  +-----------------+  +-----------------+
-|     Browser     |  | LB + Access Mgr |  |  Trustelem IdP  |  |     Bastion     |
-+-----------------+  +-----------------+  +-----------------+  +-----------------+
-         | GET /wabam/<org>?domain=<DOMAIN>        |                    |
-         |------------------->|                    |                    |
-         | 302 SAML AuthnRequest (Redirect)        |                    |
-         |<-------------------|                    |                    |
-         | GET <tenant>.trustelem.com/app/<ID>/sso |                    |
-         |---------------------------------------->|                    |
-         |                    |                    |                    |
-         |                    |                    | [AD password (ADConnect) + push/TOTP/passkey]
-         | SAML Response: signed assertion, NameID=email, attrs         |
-         |<----------------------------------------|                    |
-         | POST assertion to the AM ACS            |                    |
-         |------------------->|                    |                    |
-         |                    |                    |                    |
-         |                    | [verify signature, map Login/Profile, open session]
-         |                    | REST 443 + X-Auth-Key: authorizations of login@DOMAIN
-         |                    |---------------------------------------->|
-         |                    | authorizations (SAML domain, group mapping)
-         |                    |<----------------------------------------|
-         | launch session (WebSocket)              |                    |
-         |------------------->|                    |                    |
-         |                    | RDP 3389 / SSH 22 proxy login as login@DOMAIN
-         |                    |---------------------------------------->|
-         |                    |                    |                    |
-         |                    |                    |                    | [no re-auth needed]
-         |                    |                    |                    |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant AM as LB + Access Manager
+    participant T as Trustelem IdP
+    participant BA as Bastion
+    B->>AM: GET /wabam/{org}?domain={DOMAIN}
+    AM-->>B: 302 SAML AuthnRequest (HTTP-Redirect binding)
+    B->>T: GET {tenant}.trustelem.com/app/{ID}/sso
+    Note over T: AD password checked through ADConnect,<br/>then push / TOTP / passkey
+    T-->>B: SAML Response: signed assertion, NameID = email,<br/>attributes uid, displayname, email, lang, profile, groups
+    B->>AM: POST assertion to the ACS
+    Note over AM: verify signatures, map Login and Profile,<br/>open the web session
+    AM->>BA: REST API 443 + X-Auth-Key: authorizations of login@DOMAIN
+    BA-->>AM: authorizations (SAML domain user, group mappings)
+    B->>AM: launch session (WebSocket)
+    AM->>BA: RDP 3389 / SSH 22 proxy login as login@DOMAIN
+    Note over BA: no re-authentication: identity trusted from AM,<br/>session recorded
 ```
 
 Key rules, all from the vendor guides:
@@ -374,38 +349,33 @@ Key rules, all from the vendor guides:
 
 ### 4.3 Identity flow, native client path
 
-```
-+---------------+  +---------------+  +---------------+  +---------------+  +---------------+
-| RDP/SSH client|  | Bastion proxy |  |  Active Dir.  |  |Trustelem Conn.|  | Authenticator |
-+---------------+  +---------------+  +---------------+  +---------------+  +---------------+
-        | TCP 3389/22, user@AD + AD password  |                  |                  |
-        |----------------->|                  |                  |                  |
-        |                  | LDAP bind (primary factor)          |                  |
-        |                  |----------------->|                  |                  |
-        |                  | bind OK + groups |                  |                  |
-        |                  |<-----------------|                  |                  |
-        |                  | RADIUS Access-Request (User-Name, NAS-Id=WAB, Framed-IP)
-        |                  |------------------------------------>|                  |
-        |                  |                  |                  |                  |
-        |                  |                  |                  | [relayed to cloud, WSS 443]
-        |                  |                  |                  | push notification|
-        |                  |                  |                  |----------------->|
-        |                  |                  |                  | approve or TOTP code
-        |                  |                  |                  |<-----------------|
-        |                  | RADIUS Access-Accept                |                  |
-        |                  |<------------------------------------|                  |
-        |                  |                  |                  |                  |
-        |                  | [authz check, target selection, recording]             |
-        | proxied session to target           |                  |                  |
-        |<-----------------|                  |                  |                  |
-        |                  |                  |                  |                  |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as RDP/SSH client
+    participant B as Bastion proxy
+    participant AD as Active Directory
+    participant TC as Trustelem Connect
+    participant T as Trustelem cloud
+    participant A as Authenticator app
+    C->>B: TCP 3389 / 22, login user@AD + AD password
+    B->>AD: LDAP bind (primary factor)
+    AD-->>B: bind OK + group membership
+    B->>TC: RADIUS Access-Request (User-Name, NAS-Identifier WAB, Framed-IP-Address)
+    TC->>T: relayed over WebSocket 443 (outbound only)
+    T->>A: push notification
+    A-->>T: approve (or TOTP typed in the Access-Challenge)
+    T-->>TC: accept
+    TC-->>B: RADIUS Access-Accept
+    Note over B: authorization check, target selection, recording
+    B-->>C: proxied session to the target
 ```
 
 - On the Bastion, the RADIUS external authentication is linked as *Secondary authentication*
   of the AD authentication domain. With "Use mobile device for two-factor authentication
   (2FA)" enabled, the login page tells the user a push notification is coming; Trustelem
   describes this as skipping the password step by "automatically sending login and empty
-  password". "Use primary domain name for 2FA" sends `user@domain` in the second step.
+  password". "Use primary domain name for two-factor authentication (2FA)" sends `user@domain` in the second step.
   Sources: [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
   [Bastion app in Trustelem](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion).
 - The Trustelem access rule for the Bastion RADIUS application is *2nd factor only* for AD
@@ -511,36 +481,24 @@ so the SAML path remains the documented one.
 
 ### 5.1 Bastion cluster
 
-```
-                    +------------------------------------------------+
-                    |  Users (native RDP/SSH clients), Access Manager|
-                    +------------------------------------------------+
-                                            |
-                                            | RDP 3389, SSH 22, HTTPS 443 (UI + REST API)
-                                            |
-                    +-----------------------+------------------------+
-                    |  Front end: L4 load balancer, DNS name, or the |
-                    |  AM 'Cluster' (fewest open sessions wins)      |
-                    +-----------+------------------------+-----------+
-                                |                        |
-                                |                        |
-          +---------------------+--------+      +--------+---------------------+
-          |  Bastion node 1              |      |  Bastion node 2              |
-          |  role: primary master        |      |  role: secondary master (M/M)|
-          |                              |      |  or passive slave (M/S)      |
-          |  eth0  user + admin services |<====>|  eth0  user + admin services |
-          |  eth1  HA / replication NIC  |3306/7|  eth1  HA / replication NIC  |
-          |                              |tunnel|                              |
-          |  MariaDB (all config tables) |      |  MariaDB (replica)           |
-          |  SSH admin console 2242      |      |  SSH admin console 2242      |
-          |  proxies, vault, recordings  |      |  proxies, vault, recordings  |
-          |  local: audit + session data |      |  local: audit + session data |
-          +------------------------------+      +------------------------------+
-
-HA Database Replication = MariaDB replication inside an autossh SSH tunnel. Slaves pull
-(local 3307 to master 3306). No VIP, no heartbeat: failover is 'bastion-replication
---elevate-master' or front-end rerouting. Not replicated: audit/session tables, recording
-options, licence, network, SNMP, SMTP, SIEM, device certificates.
+```mermaid
+flowchart TB
+    USERS["Users (native RDP/SSH clients) and Access Manager"]
+    FE["Front end: L4 load balancer, DNS name,<br/>or the Access Manager Cluster object (fewest open sessions wins)"]
+    subgraph B1["Bastion node 1: primary master"]
+        B1A["eth0 user + admin services<br/>eth1 HA / replication NIC"]
+        B1B["MariaDB (all configuration tables)<br/>SSH admin console 2242<br/>proxies, vault, recordings<br/>local only: audit + session data"]
+    end
+    subgraph B2["Bastion node 2: secondary master (M/M) or passive slave (M/S)"]
+        B2A["eth0 user + admin services<br/>eth1 HA / replication NIC"]
+        B2B["MariaDB replica<br/>SSH admin console 2242<br/>proxies, vault, recordings<br/>local only: audit + session data"]
+    end
+    USERS -->|RDP 3389, SSH 22, HTTPS 443 UI + REST API| FE
+    FE --> B1
+    FE --> B2
+    B1B <-->|MariaDB replication inside an autossh SSH tunnel<br/>slaves pull local 3307 to master 3306| B2B
+    NOTE["No VIP, no heartbeat: failover is bastion-replication --elevate-master<br/>or front-end rerouting. Not replicated: audit/session tables, recording options,<br/>licence, network, SNMP, SMTP, SIEM, device certificates."]
+    B2 -.- NOTE
 ```
 
 Facts from the [Bastion 12.0.2 Deployment Guide, chapter 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf)
@@ -579,38 +537,28 @@ and the [AM Admin Guide 13 and 20.2](https://pam.wallix.one/documentation/admin-
 
 ### 5.2 Access Manager cluster
 
-```
-+----------------------+      +--------------------------------------------------------------+
-| Privileged users     |      |  L7 load balancer in front of the farm                       |
-| browser HTTPS 443    |----> |  - HTTPS 443, WebSocket upgrade, health check on 443         |
-| (HTML5 RDP/SSH,      |      |  - X-Forwarded-For + web.proxy.trusted-proxies on AM         |
-|  WebSocket)          |      |  - source-IP affinity (cookie persistence breaks WAMUT)      |
-+----------------------+      +--------------+---------------------------------+-------------+
-                                             |                                 |
-                                             |                                 |
-                              +--------------+-------------+    +--------------+-------------+
-                              |  Access Manager node 1     |    |  Access Manager node 2     |
-                              |  Debian appliance, Docker  |    |  same image and version    |
-                              |  Jetty 11 / Java 17        |    |  crypto.install.key,       |
-                              |  FreeRDP + xterm.js HTML5  | HA |  db.connections*, and      |
-                              |  MariaDB (local instance)  |<==>|  user.admin* copied        |
-                              |  Elasticsearch (audit)     | DB |  from node 1               |
-                              |  eth0 users   eth1 HA      |    |  eth0 users   eth1 HA      |
-                              |  eth2 admin (SSH 2242)     |    |  eth2 admin (SSH 2242)     |
-                              |  wabam.properties          |    |  wabam.properties          |
-                              +--------------+-------------+    +--------------+-------------+
-                                             | REST API 443 (API key)          | SAML/OIDC 443
-                                             | RDP 3389, SSH 22 to proxies     | RADIUS 1812
-                                             |                                 |
-                              +--------------+-------------+    +--------------+-------------+
-                              |  Bastion cluster           |    |  Trustelem                 |
-                              |  (AM Cluster object,       |    |  (SAML/OIDC IdP) and       |
-                              |  identical mode on)        |    |  Trustelem Connect RADIUS  |
-                              +----------------------------+    +----------------------------+
-
-MariaDB replication between nodes runs on the HA NIC (appliance script since AM 5.0,
-'--prerequisite-check', /root/sqlreplication/servers_list). Uninstall replication before
-upgrading a cluster (release note WAB-17588). Enable purge.audit.active on one node only.
+```mermaid
+flowchart TB
+    USERS["Privileged users<br/>browser HTTPS 443, HTML5 RDP/SSH, WebSocket"]
+    LB["L7 load balancer in front of the farm<br/>HTTPS 443, WebSocket upgrade, health check on 443<br/>X-Forwarded-For + web.proxy.trusted-proxies on AM<br/>source-IP affinity (cookie persistence breaks WAMUT)"]
+    subgraph AM1["Access Manager node 1"]
+        AM1A["Debian appliance, Docker<br/>Jetty 11 / Java 17<br/>FreeRDP + xterm.js HTML5<br/>MariaDB (local instance)<br/>Elasticsearch (audit)<br/>eth0 users, eth1 HA, eth2 admin (SSH 2242)"]
+    end
+    subgraph AM2["Access Manager node 2"]
+        AM2A["Same image and version<br/>crypto.install.key, db.connections*, user.admin*<br/>copied from node 1<br/>Elasticsearch (audit)<br/>eth0 users, eth1 HA, eth2 admin (SSH 2242)"]
+    end
+    BC["Bastion cluster<br/>(AM Cluster object, identical mode on)"]
+    TR["Trustelem (SAML/OIDC IdP)<br/>and Trustelem Connect RADIUS"]
+    USERS --> LB
+    LB --> AM1
+    LB --> AM2
+    AM1A <-->|MariaDB replication on the HA NIC| AM2A
+    AM1 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
+    AM2 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
+    AM1 -->|SAML/OIDC 443, RADIUS 1812| TR
+    AM2 -->|SAML/OIDC 443, RADIUS 1812| TR
+    NOTE["Appliance replication script since AM 5.0 (--prerequisite-check, /root/sqlreplication/servers_list).<br/>Uninstall replication before upgrading a cluster (WAB-17588). purge.audit.active on one node only."]
+    AM2 -.- NOTE
 ```
 
 Facts from the [AM Admin Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)
@@ -650,35 +598,31 @@ and [AM release notes](https://pam.wallix.one/documentation/release-notes/am-rn-
 
 ### 5.4 Disaster recovery and multi-site
 
-```
-+--------------------------------------------------------------------------------------------------+
-|   WALLIX Trustelem cloud (SaaS, both sites use the same tenant, agents in each site)             |
-+--------------------------------------------------------------------------------------------------+
-                        +                                                 +
-                        |                                                 |
-                        |                                                 |
-+-----------------------+----------------------+    +---------------------+------------------------+
-|  SITE A  (production)                        |    |  SITE B  (disaster recovery)                 |
-|                                              |    |                                              |
-|  LB-A: HTTPS 443 (AM), 22/3389 (Bastion)     |    |  LB-B: same DNS names on failover            |
-|                                              |    |                                              |
-|  AM-1  <==DB repl==>  AM-2                   |    |  AM-3 (cold or warm, restored from           |
-|                                              |    |        wabam-backup of site A)               |
-|  Bastion-1 (primary master)                  |    |                                              |
-|  Bastion-2 (secondary master)                |==> |  Bastion-3 (standalone, restored from        |
-|     HA Database Replication (M/M)            |==> |        site A backup; or a slave in          |
-|                                              |    |        Master/Slaves if latency allows)      |
-|  ADConnect-A1/A2, Connect-A1/A2              |    |                                              |
-|  Recording storage NFS/SMB (site A)          |    |  ADConnect-B1, Connect-B1 (lower priority)   |
-|  Nightly wabam-backup + Bastion backup       |    |  Recording storage (copy of site A)          |
-|  shipped to site B (==> arrows)              |    |  Own licence, SIEM, SMTP, NTP settings       |
-|                                              |    |                                              |
-|                                              |    |                                              |
-+----------------------------------------------+    +----------------------------------------------+
-
-Bastion audit and session tables are never replicated, so recordings and audit history must be
-copied at storage level. A DR Bastion refreshed by backup/restore is not real time (RPO = backup
-interval). Trustelem needs no DR action: agents in site B keep the tenant reachable.
+```mermaid
+flowchart TB
+    CLOUD["WALLIX Trustelem cloud (SaaS)<br/>same tenant for both sites, agents in each site"]
+    subgraph A["Site A: production"]
+        LBA["LB-A: HTTPS 443 (AM), 22/3389 (Bastion)"]
+        AMA["AM-1 and AM-2, database replication"]
+        BA["Bastion-1 (primary master) and Bastion-2 (secondary master)<br/>HA Database Replication (M/M)"]
+        AGA["ADConnect-A1/A2, Connect-A1/A2"]
+        STA["Recording storage NFS/SMB (site A)"]
+        BKA["Nightly wabam-backup + Bastion backup"]
+    end
+    subgraph B["Site B: disaster recovery"]
+        LBB["LB-B: same DNS names on failover"]
+        AMB["AM-3, cold or warm,<br/>restored from the site A wabam-backup"]
+        BB["Bastion-3 standalone, restored from the site A backup,<br/>or a slave in Master/Slaves if latency allows"]
+        AGB["ADConnect-B1, Connect-B1 (lower priority)"]
+        STB["Recording storage (copy of site A)<br/>own licence, SIEM, SMTP, NTP settings"]
+    end
+    AGA --> CLOUD
+    AGB --> CLOUD
+    BKA ==>|backups shipped| AMB
+    BKA ==>|backups shipped| BB
+    STA ==>|storage-level copy| STB
+    NOTE["Bastion audit and session tables never replicate, so recordings and audit history are copied at storage level.<br/>A DR Bastion refreshed by backup/restore is not real time (RPO = backup interval).<br/>Trustelem needs no DR action: agents in site B keep the tenant reachable."]
+    B -.- NOTE
 ```
 
 - Replication is designed for nodes "located in the same environment or hosted on virtual
@@ -809,7 +753,7 @@ is a node loss, not a capacity share.
 | Keep the DoS filter (`web.max.requests.perSec=60`) and SNI host check enabled | Access Manager | [AM 21.4 and 21.5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Never enable TRACE or ALL log levels in production | Access Manager | [AM 15.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Restrict 2242 and the admin interface to the administration network; use the dedicated admin NIC | both | [AM Install Guide 3.2](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf), [Deployment Guide 2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
-| Use StartTLS or LDAPS towards AD and towards Trustelem Connect (Trustelem: "simply check startTLS on the Bastion") | Bastion, Access Manager | [Bastion app in Trustelem](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion) |
+| Use StartTLS or LDAPS towards AD and towards Trustelem Connect (Trustelem: "The best way to encrypt the LDAP flows is simply to check startTLS on the Bastion") | Bastion, Access Manager | [Bastion app in Trustelem](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion) |
 | Exclude Trustelem FQDNs from TLS inspection (certificate pinning) | egress proxy | [Connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows) |
 | Passkey policy Strict or Custom with attestation for administrator groups | Trustelem | [MFA methods](https://trustelem-doc.wallix.com/books/trustelem-administration/page/multi-factors-authentication) |
 | Require 2 factors on the Trustelem admin console; keep SMS and e-mail OTP disabled | Trustelem | [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administration/page/access-rules) |

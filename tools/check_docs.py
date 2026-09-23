@@ -8,18 +8,17 @@ Exit code 1 when any check fails. Checks:
 2. Every Markdown table row has the same number of columns as its header.
 3. No raw `<placeholder>` outside code spans or fences (GitHub renders them as HTML tags).
 4. Every relative link target exists.
-5. Every rendered diagram in docs/diagrams/ is identical to the output of its script in
-   tools/diagrams/ and is at most 100 columns wide.
-6. Every diagram file is embedded verbatim somewhere in the documents (unused diagrams are
-   reported as warnings, not failures).
+5. Every Mermaid source in tools/diagrams/*.mmd starts with a known diagram type and is embedded
+   verbatim in at least one document as a ```mermaid block.
+6. Every ```mermaid block in the documents matches one of the sources (edit the source, then
+   paste; never edit a diagram inline).
 """
 import pathlib
 import re
-import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-MAX_WIDTH = 100
+DIAGRAM_TYPES = ("flowchart", "graph", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "gantt", "mindmap")
 errors = []
 warnings = []
 
@@ -68,23 +67,24 @@ def check_markdown(path: pathlib.Path):
             errors.append(f"{path}: broken relative link {target}")
 
 
+def mermaid_blocks(text: str):
+    return [b.strip("\n") for b in re.findall(r"```mermaid\n(.*?)```", text, flags=re.S)]
+
+
 def check_diagrams():
-    scripts = sorted((ROOT / "tools" / "diagrams").glob("*.py"))
-    rendered_dir = ROOT / "docs" / "diagrams"
-    all_docs = "\n".join(p.read_text(encoding="utf-8") for p in md_files())
-    for script in scripts:
-        rendered = rendered_dir / (script.stem + ".txt")
-        out = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, check=True).stdout
-        if not rendered.exists():
-            errors.append(f"{rendered} missing (run the script and save its output)")
-            continue
-        if out.rstrip("\n") != rendered.read_text(encoding="utf-8").rstrip("\n"):
-            errors.append(f"{rendered} differs from the output of {script.name}")
-        width = max((len(l) for l in out.splitlines()), default=0)
-        if width > MAX_WIDTH:
-            errors.append(f"{script.name}: diagram is {width} columns wide (max {MAX_WIDTH})")
-        if out.rstrip("\n") not in all_docs:
-            warnings.append(f"{rendered.name} is not embedded in any document")
+    sources = {p.name: p.read_text(encoding="utf-8").strip("\n") for p in sorted((ROOT / "tools" / "diagrams").glob("*.mmd"))}
+    docs = {p: p.read_text(encoding="utf-8") for p in md_files() if "archive" not in p.parts}
+    embedded = [b for t in docs.values() for b in mermaid_blocks(t)]
+    for name, src in sources.items():
+        first = src.splitlines()[0].strip() if src else ""
+        if not first.startswith(DIAGRAM_TYPES):
+            errors.append(f"tools/diagrams/{name}: first line is not a Mermaid diagram type ({first[:30]!r})")
+        if src not in embedded:
+            warnings.append(f"tools/diagrams/{name} is not embedded in any document")
+    for p, t in docs.items():
+        for b in mermaid_blocks(t):
+            if b not in sources.values():
+                errors.append(f"{p}: a mermaid block does not match any source in tools/diagrams/")
 
 
 def main():

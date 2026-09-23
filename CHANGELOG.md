@@ -4,6 +4,12 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-23
 
+- Fabrication review: every quotation checked against the downloaded vendor texts; corrected a
+  sentence wrongly attributed to Trustelem (single source of identity), the LDAP two-factor
+  wording, two option names, a Trustelem spelling, and rewrote the API export scripts against the
+  documented signatures; external standards quotes verified at their source.
+- All diagrams converted to Mermaid (`tools/diagrams/*.mmd`); ASCII grid tooling removed;
+  `tools/check_docs.py` now verifies Mermaid embedding.
 - Reference: Trustelem API export scripts (permissions, identities, logs, alerts) as the
   substitute for the missing tenant backup.
 - SCIM host scim.wallix.com and Access Manager 6.0 / Bastion 12.4 notes re-checked: still

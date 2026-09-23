@@ -26,7 +26,7 @@ with a WALLIX Bastion cluster and a WALLIX Access Manager cluster. Start in `tru
 | Document | Content |
 |----------|---------|
 | [Architecture report](trustelem-bastion-access-manager-architecture.md) | high-level and low-level design, identity flows, access-path coverage, cluster design, DR, ports, sizing, hardening, runbook summary, rollout plan, vendor questions, glossary |
-| [diagrams/](diagrams/) | rendered ASCII diagrams (regenerate with `tools/diagrams/*.py`; `tools/check_docs.py` verifies them) |
+| `tools/diagrams/*.mmd` | Mermaid sources of the diagrams embedded in the report and the chapters (`tools/check_docs.py` verifies the embedding) |
 
 ## Supporting runbooks and references
 

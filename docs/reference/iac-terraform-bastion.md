@@ -203,7 +203,7 @@ resource "wallix-bastion_apikey_v2" "access_manager" {
 ## 3. Not covered by the provider
 
 No `externalauth_oidc` or `authdomain_oidc` resource exists in the documented set, so the OIDC
-alternative stays manual. The RADIUS "Use mobile device for 2FA" option should be verified in
+alternative stays manual. The RADIUS "Use mobile device for 2 factor authentication(2FA)" option should be verified in
 the GUI after each apply until the provider documents it.
 
 ## 4. Workflow

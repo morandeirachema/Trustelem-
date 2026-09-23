@@ -1,0 +1,21 @@
+flowchart TB
+    USERS["Privileged users<br/>browser HTTPS 443, HTML5 RDP/SSH, WebSocket"]
+    LB["L7 load balancer in front of the farm<br/>HTTPS 443, WebSocket upgrade, health check on 443<br/>X-Forwarded-For + web.proxy.trusted-proxies on AM<br/>source-IP affinity (cookie persistence breaks WAMUT)"]
+    subgraph AM1["Access Manager node 1"]
+        AM1A["Debian appliance, Docker<br/>Jetty 11 / Java 17<br/>FreeRDP + xterm.js HTML5<br/>MariaDB (local instance)<br/>Elasticsearch (audit)<br/>eth0 users, eth1 HA, eth2 admin (SSH 2242)"]
+    end
+    subgraph AM2["Access Manager node 2"]
+        AM2A["Same image and version<br/>crypto.install.key, db.connections*, user.admin*<br/>copied from node 1<br/>Elasticsearch (audit)<br/>eth0 users, eth1 HA, eth2 admin (SSH 2242)"]
+    end
+    BC["Bastion cluster<br/>(AM Cluster object, identical mode on)"]
+    TR["Trustelem (SAML/OIDC IdP)<br/>and Trustelem Connect RADIUS"]
+    USERS --> LB
+    LB --> AM1
+    LB --> AM2
+    AM1A <-->|MariaDB replication on the HA NIC| AM2A
+    AM1 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
+    AM2 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
+    AM1 -->|SAML/OIDC 443, RADIUS 1812| TR
+    AM2 -->|SAML/OIDC 443, RADIUS 1812| TR
+    NOTE["Appliance replication script since AM 5.0 (--prerequisite-check, /root/sqlreplication/servers_list).<br/>Uninstall replication before upgrading a cluster (WAB-17588). purge.audit.active on one node only."]
+    AM2 -.- NOTE
