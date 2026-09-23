@@ -126,6 +126,7 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 +-- tools/
     +-- diagrams/*.mmd            Mermaid source of every diagram, embedded verbatim in the docs
     +-- check_docs.py             structural checks, also run by GitHub Actions
+    +-- check_mermaid.mjs         parses every diagram with the Mermaid library (CI)
 ```
 
 ## Primary sources
@@ -158,8 +159,9 @@ login, itself a live example of the IdP in this design; the PDF guides above are
   `pdftotext -layout`; the Trustelem books export as HTML at `.../books/<book>/export/html`.
 - The "last updated" date and the verified product versions are refreshed whenever a claim is
   re-checked against a newer release; `CHANGELOG.md` records what changed.
-- `python3 tools/check_docs.py` runs the structural checks locally; GitHub Actions runs them on
-  every push.
+- `python3 tools/check_docs.py` runs the structural checks locally and `node tools/check_mermaid.mjs`
+  parses the diagrams (after `npm install --no-save mermaid@11 jsdom@24`); GitHub Actions runs both
+  on every push.
 
 ## Status
 

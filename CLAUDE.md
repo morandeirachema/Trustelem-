@@ -21,8 +21,9 @@ are Markdown reports with Mermaid diagrams and links to vendor documentation.
   than `<placeholder>` inside sequence diagrams.
 - Keep verified facts separate from inferences; mark gaps explicitly rather than guessing.
 - No Claude references in commit messages or document bylines.
-- Run `python3 tools/check_docs.py` before committing; it verifies fences, tables, placeholders, links
-  and that every rendered diagram matches its script. Add a line to `CHANGELOG.md` for each change.
+- Run `python3 tools/check_docs.py` before committing (fences, tables, placeholders, links, Mermaid
+  embedding) and `node tools/check_mermaid.mjs` after `npm install --no-save mermaid@11 jsdom@24`
+  (Mermaid syntax). Add a line to `CHANGELOG.md` for each change.
 
 ## Vendor documentation sources
 

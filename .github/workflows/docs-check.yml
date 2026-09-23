@@ -13,5 +13,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Structural checks (fences, tables, placeholders, links, diagrams)
+      - name: Structural checks (fences, tables, placeholders, links, Mermaid embedding)
         run: python3 tools/check_docs.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Mermaid syntax check
+        run: |
+          npm install --no-save --silent mermaid@11 jsdom@24
+          node tools/check_mermaid.mjs
