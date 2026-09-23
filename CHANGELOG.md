@@ -4,6 +4,10 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-23
 
+- Reference: Trustelem API export scripts (permissions, identities, logs, alerts) as the
+  substitute for the missing tenant backup.
+- SCIM host scim.wallix.com and Access Manager 6.0 / Bastion 12.4 notes re-checked: still
+  unreachable or login-only.
 - Trustelem chapter 12: SCIM provisioning assessment (plausible, undocumented, vendor questions).
 - Trustelem chapters 09 (worked example), 10 (test plan), 11 (user and help-desk guide).
 - Reference: SAML assertion and naming consistency, with the naming diagram.

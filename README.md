@@ -133,7 +133,8 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 |   +-- trustelem-bastion-access-manager-architecture.md   design report with diagrams
 |   +-- runbooks/                 Bastion HA replication, Access Manager farm
 |   +-- reference/                Terraform for the Bastion side, logging and SIEM,
-|   |                             SAML assertion and naming, standards and compliance
+|   |                             SAML assertion and naming, Trustelem API export,
+|   |                             standards and compliance
 |   +-- diagrams/                 rendered ASCII diagrams
 |   +-- archive/research-notes/   archived working notes (superseded by the chapters)
 +-- CHANGELOG.md

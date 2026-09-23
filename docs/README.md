@@ -36,6 +36,7 @@ with a WALLIX Bastion cluster and a WALLIX Access Manager cluster. Start in `tru
 | [Access Manager farm](runbooks/access-manager-farm.md) | node install, farm replication, load balancer settings, `wabam.properties`, backup, upgrade, monitoring |
 | [Terraform for the Bastion side](reference/iac-terraform-bastion.md) | codifying the AD, RADIUS, SAML, mappings and API key objects |
 | [Logging and SIEM](reference/logging-and-siem.md) | sources, formats, correlation keys, detection rules |
+| [Trustelem API export](reference/trustelem-api-export.md) | nightly export of permissions, identities, logs and alerts as the substitute for a tenant backup |
 | [SAML assertion and naming](reference/saml-assertion-and-naming.md) | the three names that must match, illustrative assertion, what to verify in a SAML tracer |
 | [Standards and compliance](reference/standards-and-compliance.md) | RFC and OASIS clauses, NIST assurance levels, NIS2, DORA, ISO 27001, IEC 62443, PCI DSS, ANSSI guides, vendor certifications, MITRE ATT&CK mapping |
 | [archive/research-notes/](archive/research-notes/) | archived working notes (superseded by the chapters) |

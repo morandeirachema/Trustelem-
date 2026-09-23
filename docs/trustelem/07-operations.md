@@ -107,6 +107,9 @@ Useful automations for this design:
 - joiner/leaver reconciliation between AD groups, Trustelem groups and Bastion mappings;
 - pulling 30 days of logs as a backup of the SIEM feed.
 
+Scripts for these three exports and a nightly job are in the
+[Trustelem API export reference](../reference/trustelem-api-export.md).
+
 Application scripts (SAML and OIDC claim customisation) use `msg.setAttr`, `msg.addAttr` and,
 for OIDC, `claims["Groups"] = JSON.stringify(groups)`; the Bastion and Access Manager scripts
 are in chapters 04 and 05.
