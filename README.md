@@ -1,103 +1,121 @@
-# WALLIX Trustelem MFA for a Bastion and Access Manager PAM platform
+# WALLIX Trustelem: setup, configuration and integration with Bastion and Access Manager
 
-Architecture research for a Privileged Access Management (PAM) platform built on
-WALLIX products: **WALLIX Trustelem** (sold today as **WALLIX One IDaaS**) as the
-cloud identity provider and MFA engine, a **WALLIX Bastion** cluster as the
-session and password manager, and a **WALLIX Access Manager** cluster as the
-user-facing web portal.
+How to set up **WALLIX Trustelem** (sold today as **WALLIX One IDaaS**), configure its MFA
+and access rules, and integrate it with a **WALLIX Bastion** cluster and a **WALLIX Access
+Manager** cluster so that every privileged login, on the web portal and on native RDP/SSH
+clients, carries a second factor.
 
-The main concern of this repository is **Trustelem itself: how to set it up,
-configure it, and integrate it** with the Bastion cluster and the Access Manager
-cluster. The Bastion and Access Manager material exists to make that integration
-precise. The goal is a document set a PAM architect can hand to an integration
-team: design, protocols, exact configuration paths on each product, and day-2
-operations.
+Every chapter quotes the vendor documentation verbatim and links to it, field by field, with
+worksheets, verification steps and the vendor's own debug guidance. The Bastion and Access
+Manager material exists to make the Trustelem integration precise.
 
-Last updated: 2026-09-23. Verified against WALLIX Bastion 12.3.2 and
-WALLIX Access Manager 5.2.4.0 (public guides dated 2026-03-12). Newer builds exist:
-Bastion 12.3.7 / 12.4.1 and Access Manager 5.2.7 / 6.0.4 carry the July 2026 security
-fixes and are the minimum versions this design assumes.
+Last updated: 2026-09-23. Verified against the Trustelem documentation portal as read on
+2026-09-23, WALLIX Bastion 12.3.2 and WALLIX Access Manager 5.2.4.0 (public guides dated
+2026-03-12). Minimum versions assumed because of the July 2026 advisories: Bastion 12.3.7 or
+12.4.1, Access Manager 5.2.7 or 6.0.4.
 
-## Scope
+## Start here
 
-| Area | Covered |
-|------|---------|
-| Trustelem / WALLIX One IDaaS | tenant model, directory connector, authenticator app, MFA methods, SAML / OIDC / RADIUS services, access rules |
-| WALLIX Bastion cluster | HA Database Replication modes, proxies (RDP, SSH, HTTPS), external authentication, authorization model, ports |
-| WALLIX Access Manager cluster | multi-instance load balancing, shared database, Bastion clusters, SAML / OIDC / RADIUS domains, API keys |
-| Integration | end-to-end login flows, attribute and group mapping, MFA on web portal versus native RDP/SSH clients, break-glass |
-| Operations | certificate and secret rotation, logging and SIEM, upgrade order in HA, testing checklist |
+| I want to | Read |
+|-----------|------|
+| understand what Trustelem is made of and prepare the tenant | [01 Tenant setup](docs/trustelem/01-tenant-setup.md) |
+| import Active Directory users and validate AD passwords | [02 ADConnect](docs/trustelem/02-directory-sync-adconnect.md) |
+| give the Bastion and Access Manager a RADIUS or LDAP endpoint | [03 Trustelem Connect](docs/trustelem/03-trustelem-connect.md) |
+| add MFA to the Bastion (web UI and native RDP/SSH clients) | [04 Bastion integration](docs/trustelem/04-bastion-integration.md) |
+| federate the Access Manager portal with SAML, or chain RADIUS | [05 Access Manager integration](docs/trustelem/05-access-manager-integration.md) |
+| choose factors, run enrollment, write access rules | [06 MFA and access rules](docs/trustelem/06-mfa-and-access-rules.md) |
+| run it: logs, SIEM, API, certificates, outages | [07 Operations](docs/trustelem/07-operations.md) |
+| fix a failing login | [08 Troubleshooting](docs/trustelem/08-troubleshooting.md) |
+| see the whole design, clusters, ports, sizing, rollout | [Architecture report](docs/trustelem-bastion-access-manager-architecture.md) |
 
-## High-level architecture
+Reading order for a new deployment: 01, 02, 06 (enrollment), 03, 04, 05, 06 (rules), 07.
+The full index is in [docs/README.md](docs/README.md).
+
+## What Trustelem provides and where it plugs in
 
 ```
-                                  +---------------------------------------------+
-                                  |        WALLIX Trustelem / One IDaaS         |
-                                  |   (SaaS identity provider + MFA engine)     |
-                                  |  SAML 2.0 IdP  |  OIDC OP  |  RADIUS  | AD  |
-                                  +---------------------------------------------+
-                                         |               |          |        |
-        SAML / OIDC redirects            |               |          |        | outbound HTTPS
-        (browser, HTTPS 443)             |               | RADIUS   |        | directory sync
-                                         |               | 1812/udp |        |
-+-------------+                   +------+---------------+-----+    |   +----+----------------+
-| Privileged  | -- HTTPS 443 ---->|   Load balancer (L7 / L4)  |    |   | Directory connector |
-| user        |                   +------+---------------+-----+    |   | agent (on-prem)     |
-| (browser)   |                          |               |          |   +-----+---------------+
-+-------------+                   +------+-----+  +------+-----+    |         |
-       |                          | Access Mgr |  | Access Mgr |    |         |
-       | native RDP 3389          |   node 1   |  |   node 2   |    |         | LDAP / AD
-       | native SSH 22            +------------+  +------------+    |         |
-       |                                 +-------+-------+          |         |
-       |                          shared /       | REST API 443     |         |
-       |                          replicated     | RDP 3389         |         |
-       |                          MariaDB DB     | SSH 22           |         |
-       |                          +--------------+-------------+    |         |
-       |                          |  +----------+  +----------+|<---+         |
-       |                          |  | Bastion 1|  | Bastion 2||            +-+---------+
-       |                          |  | proxies  |==| proxies  || LDAP/AD    | Active    |
-       |                          |  | vault    |  | vault    ||----------->| Directory |
-       +------------------------->|  +----------+  +----------+|  389/636   +-----------+
-                                  |                            |
-                                  | HA Database Replication    |
-                                  | (master/master or          |
-                                  |  master/slaves)            |
-                                  +------+---------------+-----+
-                                         |               |
-                                         | RDP, SSH, VNC,| HTTPS, Telnet
-                                         |               |
-                                  +------+------+ +------+---------+
-                                  | Windows /   | | Linux / network|
-                                  | jump hosts  | | / web targets  |
-                                  +-------------+ +----------------+
+                 +--------------------------------------------------------------+
+                 |       WALLIX Trustelem cloud tenant (SaaS, EU datacenters)   |    +-------------+
+                 |   admin-<tenant>.trustelem.com   |   <tenant>.trustelem.com  |    |WALLIX       |
+                 |                                                              |443 |Authenticator|
+                 |   Users, Groups, Directories, Apps, Services, Access rules,  |<-->|app: iOS,    |
+                 |   Security settings, Application certificates, Logs, API     |push|Android,     |
+                 |                                                              |    |Windows      |
+                 |   SAML 2.0 IdP      OIDC provider      RADIUS + LDAP backend |    +-------------+
+                 +-----+------------------------------------------+-------------+
+                       |                                          |
+                       | WebSocket TLS 443                        | WebSocket TLS 443
+                       | outbound only, cert pinned               | outbound only, cert pinned
+                       |                                          |
+                       |                                          |
++----------------------+-------------------+  +-------------------+----------------------+
+|  Trustelem ADConnect (2 VMs, priority)   |  |  Trustelem Connect (2 VMs, failover)     |
+|  Windows service or Linux daemon         |  |  Windows or Linux, runs as 'trustelem'   |
+|  - syncs users/groups from AD (memberOf) |  |  - RADIUS server  UDP 1812 (2812 if busy)|
+|  - validates AD passwords (never stored) |  |  - LDAP server TCP 2001 (LDAPS/StartTLS) |
+|  - IWA/Kerberos, AD password reset       |  |  - SCIM client, SIEM log push every 30 s |
+|  - LDAP/LDAPS 389/636 to domain ctrls    |  |  - relays RADIUS requests to the cloud   |
++---------+--------------------------------+  +---------+---------------------+----------+
+          | LDAP/LDAPS 389/636                          | RADIUS 1812/udp     | RADIUS 1812/udp
+          | read-only bind account                      | PAP + challenge     | PAP
+          |                                             |                     |
++------------------------+                    +------------------+  +------------------+
+| Active Directory       |                    | Bastion nodes    |  | Access Manager   |
+| (source of truth)      |                    | (RADIUS client)  |  | (RADIUS client)  |
++------------------------+                    +------------------+  +------------------+
+
+
+Passkeys and FIDO2 keys work only on the web (SAML/OIDC) path. Over LDAP and RADIUS the second
+factor is a push approval, a TOTP, or a password+code concatenation.
 ```
 
-Two access paths coexist:
+| Trustelem service | Consumed by | Path protected | Chapter |
+|-------------------|-------------|----------------|---------|
+| SAML 2.0 identity provider (Access Manager template, generic SAML2 for the Bastion) | Access Manager portal; Bastion web UI through the same domain | HTML5 RDP/SSH sessions, password checkout, approvals | 05, 04 scenario D |
+| RADIUS through Trustelem Connect (PAP, Access-Challenge, push-wait, MFA session) | Bastion as secondary authentication of the AD domain; Access Manager as factor 2 | native `mstsc` and SSH clients, Bastion web UI, Access Manager fallback | 04 scenarios A and B, 05 sections 5 and 6 |
+| LDAP through Trustelem Connect (AD-like tree, port 2001) | Bastion as an AD-type directory | Trustelem-only users (partners, contractors) | 04 scenario C |
+| ADConnect | the tenant itself | AD password validation without storing passwords; group-based import | 02 |
+| WALLIX Authenticator app, TOTP, passkeys, SMS, e-mail OTP | users | push on every path; passkeys on the web path only | 06 |
+| Access rules per application, user and group | the tenant | who must present one or two factors, by zone or protocol | 06 |
+| SIEM push, API and scripts, application certificates | operations | audit, automation, rotation | 07 |
 
-1. **Web path.** The user opens Access Manager, is redirected to Trustelem
-   (SAML or OIDC), completes MFA there, and launches HTML5 sessions. Access
-   Manager talks to each Bastion over its REST API using an API key, and the
-   Bastion trusts the federated identity because both products share the same
-   authentication domain name and attribute mapping.
-2. **Native client path.** The user points `mstsc` or an SSH client straight at
-   the Bastion proxy. SAML and OIDC are not fully integrated in that path, so
-   MFA is enforced with RADIUS challenge-response against Trustelem as a
-   secondary authentication after the LDAP/AD bind, or with a one-time token
-   issued by the web interface.
+## The design in one paragraph
 
-## Protocol matrix (verified)
+Active Directory stays the source of truth; ADConnect imports users and groups and validates
+AD passwords. Web users open Access Manager, are redirected to Trustelem (SAML), complete the
+second factor there, and launch Bastion sessions without a second prompt because both
+products share the same authentication domain name and login attribute. Native RDP and SSH
+clients connect to the Bastion proxies, where the AD bind is the first factor and a RADIUS
+challenge to Trustelem Connect (push or TOTP) is the second. Two ADConnect and two Trustelem
+Connect VMs give agent failover; a two-node Bastion HA Database Replication pair and a two-node
+Access Manager farm give appliance failover. Full detail, flows and diagrams are in the
+[architecture report](docs/trustelem-bastion-access-manager-architecture.md).
 
-| Component | Protocol | Role | Source |
-|-----------|----------|------|--------|
-| Access Manager | SAML 2.0 (HTTP-Redirect and HTTP-POST bindings, SP and IdP initiated) | Service Provider | [AM Admin Guide 5.2.4.0, ch. 10.3](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
-| Access Manager | OpenID Connect, Authorization Code Flow, discovery URL | Relying Party | [AM Admin Guide 5.2.4.0, ch. 10.5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
-| Access Manager | RADIUS PAP / CHAP with challenge-response, port 1812 | RADIUS client | [AM Admin Guide 5.2.4.0, ch. 11](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
-| Access Manager | REST API over HTTPS 443, RDP 3389, SSH 22 towards each Bastion | API client | [AM Admin Guide 5.2.4.0, ch. 10.4.3 and 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
-| Bastion | SAML 2.0 Generic (only variant compatible with Access Manager) | Service Provider | [Bastion Admin Guide 12.3.2, ch. 7.3.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
-| Bastion | OpenID Connect, Authorization Code Flow, cluster-aware FQDNs | Relying Party | [Bastion Admin Guide 12.3.2, ch. 7.3.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
-| Bastion | RADIUS (RFC 2865 / RFC 8044, challenge-response, no VSAs, NAS-Identifier `WAB`) | RADIUS client, secondary factor | [Bastion Admin Guide 12.3.2, ch. 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
-| Bastion | LDAP / AD bind, Kerberos, TACACS+, X.509, SSH key and SSH CA, PingID | primary or secondary factors | [Bastion Admin Guide 12.3.2, ch. 7.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
-| Trustelem | SAML 2.0 IdP, OIDC provider, RADIUS service, directory synchronisation | Identity provider | see `docs/` report and its source list |
+## Facts you must not miss
+
+- **Only "SAML Generic" on the Bastion works with Access Manager, and once configured, direct
+  SAML login to the Bastion web UI is impossible.** Administrators therefore keep AD plus
+  RADIUS on the Bastion ([Bastion Admin Guide 7.3.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)).
+- **SAML and OIDC are "not fully integrated" for native RDP/SSH clients**; RADIUS is the only
+  transparent push/TOTP path there, and passkeys never apply over RADIUS or LDAP
+  ([Bastion 7.1.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+  [Trustelem MFA](https://trustelem-doc.wallix.com/books/trustelem-administration/page/multi-factors-authentication)).
+- **"Use mobile device for 2FA" on the Bastion RADIUS entry must be ON for AD users and OFF for
+  RADIUS-only local users**; the vendor explains it "skip[s] the login + password step ... by
+  automatically sending the login and an empty password" ([Trustelem Bastion page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion)).
+- **Trustelem users are invisible to the Bastion until an access rule exists** ("Trustelem
+  users will not be found by the Bastion before having an access rule (1 or 2 factors)").
+- **New Trustelem IPs 185.4.44.114 and 185.4.44.117 come into service on 2026-09-29**; add them
+  to egress rules now, keep the existing ones, and exclude `*.trustelem.com` from TLS
+  inspection ([network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows)).
+- **No cloud, no MFA**: Trustelem Connect only relays to the tenant. Keep a local, IP-restricted
+  Bastion administrator as break-glass.
+- **Patch levels**: WSA-2026-07-0001 (Bastion 12.3.0 to 12.3.6 and 12.4.0, CVSS 10) and
+  WSA-2026-07-0002 (Access Manager SAML bypass before 5.1.10, 5.2.7, 6.0.4)
+  ([advisories](https://www.wallix.com/support-services/alerts/)).
+- **RADIUS between the Bastion and Trustelem Connect is plain UDP**; Message-Authenticator and
+  RadSec are undocumented, so keep that hop inside the administration network
+  ([standards reference](docs/reference/standards-and-compliance.md)).
 
 ## Repository layout
 
@@ -107,18 +125,11 @@ Two access paths coexist:
 +-- CLAUDE.md                     conventions for maintaining the documents
 +-- docs/
 |   +-- README.md                 documentation index
-|   +-- trustelem/                CORE: Trustelem setup, configuration and integration
-|   |   +-- 01-tenant-setup.md
-|   |   +-- 02-directory-sync-adconnect.md
-|   |   +-- 03-trustelem-connect.md
-|   |   +-- 04-bastion-integration.md
-|   |   +-- 05-access-manager-integration.md
-|   |   +-- 06-mfa-and-access-rules.md
-|   |   +-- 07-operations.md
-|   |   +-- 08-troubleshooting.md
-|   +-- trustelem-bastion-access-manager-architecture.md   architecture report
+|   +-- trustelem/                CORE: setup, configuration and integration (chapters 01 to 08)
+|   +-- trustelem-bastion-access-manager-architecture.md   design report with diagrams
 |   +-- runbooks/                 Bastion HA replication, Access Manager farm
-|   +-- reference/                Terraform for the Bastion side, logging and SIEM, standards
+|   +-- reference/                Terraform for the Bastion side, logging and SIEM,
+|   |                             standards and compliance
 |   +-- diagrams/                 rendered ASCII diagrams
 |   +-- research-notes/           sourced working notes per product
 +-- tools/
@@ -126,44 +137,44 @@ Two access paths coexist:
     +-- diagrams/*.py             one script per diagram; run to regenerate docs/diagrams
 ```
 
-The Trustelem chapters quote the vendor documentation verbatim, field by field, and give
-worksheets, verification steps and the vendor's own debug guidance. The architecture report
-puts them in context (clusters, flows, ports, sizing, rollout). The runbooks and references
-cover the appliance side.
-
 ## Primary sources
 
-- WALLIX One PAM documentation index: <https://pam.wallix.one/documentation/administration/getting-started/documentation.html>
-- WALLIX Bastion 12.3.2 Functional Administration Guide: <https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf>
-- WALLIX Access Manager 5.2.4.0 Administration Guide: <https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf>
-- WALLIX Bastion release notes: <https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html>
-- WALLIX Access Manager release notes: <https://pam.wallix.one/documentation/release-notes/am-rn-en.html>
-- Bastion and Access Manager compatibility matrix: <https://support.wallix.com/hc/en-us/articles/24928252714013-Compatibility-Between-Bastion-and-Access-Manager>
+- Trustelem documentation portal: <https://trustelem-doc.wallix.com/> (books: Trustelem
+  administration, Trustelem applications, WALLIX Authenticator, Trustelem news)
+- Trustelem application pages used most: [WALLIX Bastion](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion),
+  [WALLIX Bastion SAML](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
+  [WALLIX Access Manager](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager),
+  [LDAP-Radius Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect),
+  [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect),
+  [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administration/page/access-rules)
 - WALLIX One IDaaS product page: <https://www.wallix.com/products/idaas/>
+- WALLIX Bastion 12.3.2 Functional Administration Guide: <https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf>
+- WALLIX Bastion 12.0.2 Deployment Guide: <https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf>
+- WALLIX Access Manager 5.2.4.0 Administration Guide: <https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf>
+- Release notes: [Bastion](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html),
+  [Access Manager](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)
+- WALLIX security advisories: <https://www.wallix.com/support-services/alerts/>
 
-The WALLIX HTML documentation site at <https://doc.wallix.com/> sits behind a
-Trustelem SAML login, which is itself a live example of the IdP in this design.
-The PDF guides above are public and are the versions these notes cite.
+The WALLIX HTML documentation site at <https://doc.wallix.com/> sits behind a Trustelem SAML
+login, itself a live example of the IdP in this design; the PDF guides above are public.
 
 ## Working on the documents
 
-- Every technical claim links to its source. Verified facts and inferences are
-  kept in separate paragraphs or marked explicitly.
-- Diagrams are plain ASCII drawn on a fixed grid so boxes stay aligned and render anywhere Markdown
-  does, including GitHub and terminal viewers.
-- To re-verify a chapter, download the PDF into a scratch folder and extract it
-  with `pdftotext -layout`, then grep for the chapter title.
-- Product versions and the "last updated" date at the top of each document are
-  refreshed whenever a claim is re-checked against a newer release.
+- Every technical claim links to its source; verified facts, inferences and gaps are marked.
+- Diagrams are plain ASCII drawn on a fixed grid (`tools/asciigrid.py`) so boxes stay aligned
+  and render anywhere Markdown does; edit the script, never the rendered text.
+- To re-verify a chapter, download the PDF into a scratch folder and extract it with
+  `pdftotext -layout`; the Trustelem books export as HTML at `.../books/<book>/export/html`.
+- The "last updated" date and the verified product versions are refreshed whenever a claim is
+  re-checked against a newer release.
 
 ## Status
 
-- [x] Repository conventions and source inventory
-- [x] Architecture report in `docs/` (high-level and low-level design, flows, clusters)
-- [x] Configuration runbook per product (section 7 of the report)
-- [x] Test and acceptance checklist (section 7.5 of the report)
-- [x] Gap review: access-path coverage, admin access model, DR, sizing, hardening, rollout plan
-- [x] Trustelem chapters 01 to 08 (setup, ADConnect, Connect, integrations, MFA and rules, operations, troubleshooting)
-- [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform, logging and SIEM, standards and compliance)
-- [ ] Validate the design against Bastion 12.4 and Access Manager 6.0 release notes (need vendor login)
-- [ ] Get answers to the vendor questions in section 9.1 of the report
+- [x] Trustelem chapters 01 to 08 (setup, ADConnect, Connect, Bastion and Access Manager
+      integration, MFA and rules, operations, troubleshooting)
+- [x] Architecture report with flows, clusters, DR, ports, sizing, hardening, rollout plan
+- [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform,
+      logging and SIEM, standards and compliance)
+- [ ] Vendor answers to the open questions (RADIUS Message-Authenticator, SAML clock skew,
+      PKCE, push number matching, hosting assurances, SLA)
+- [ ] Validation against the Bastion 12.4 and Access Manager 6.0 release notes (vendor login)
