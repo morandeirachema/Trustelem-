@@ -13,7 +13,7 @@ audit log entry.
 
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
-| C-01 | Connect VM installed | `./connect check <service id>` on each Connect VM | `Network: true`, `CanTLS: true`, `CommOK: true`, `RemoteIP` shows the egress address | command output saved |
+| C-01 | Connect VM installed | `./connect check <service id>` on each Connect VM | `CommOK: true` ("The flows are correct"), neither `Network: false` nor `CanTLS: false`, `RemoteIP` shows the egress address | command output saved |
 | C-02 | ADConnect installed | Directories page, connector table | both connectors listed with IP, server name and service account; LED green | screenshot |
 | C-03 | Firewall rules applied | `nslookup admin.trustelem.com`, `nslookup connect.trustelem.com`; block 185.4.44.22 temporarily on a test VM | names resolve; the connector reconnects through the other addresses | firewall log |
 | C-04 | Both Connect VMs on | Services page | both services on, listeners 1812, 2001, 2812 visible with the eye button | screenshot |

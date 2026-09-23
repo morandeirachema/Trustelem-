@@ -4,6 +4,10 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-23
 
+- Second audit: every command, key, path, URL fragment and ticket ID checked against the vendor
+  texts, the Splunk add-on and the Sekoia page; fixed three undocumented console URL fragments,
+  the SSH connection syntax in the help-desk guide and a `connect check` expectation; added the
+  open questions and gaps register.
 - Fabrication review: every quotation checked against the downloaded vendor texts; corrected a
   sentence wrongly attributed to Trustelem (single source of identity), the LDAP two-factor
   wording, two option names, a Trustelem spelling, and rewrote the API export scripts against the

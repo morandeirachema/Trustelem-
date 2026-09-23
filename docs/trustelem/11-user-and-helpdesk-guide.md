@@ -55,7 +55,10 @@ RDP (`mstsc`):
 
 SSH (OpenSSH, PuTTY, WALLIX-PuTTY):
 
-1. `ssh login@domain@bastion` or use the connection file downloaded from the web UI.
+1. `ssh {MY_ID}@{BASTION}` opens the target selector (the Bastion login `{MY_ID}` is
+   `login@domain` when the domain is not the default one); a direct connection is
+   `ssh -l {ACCOUNT}@{DOMAIN}@{DEVICE}+{SERVICE}+{MY_ID} {BASTION}`, or use the connection file
+   downloaded from the web UI ([Bastion Users Guide 8.5.3 and 8.5.5](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf)).
 2. Enter the AD password when prompted.
 3. A second prompt appears (keyboard-interactive): approve the push or type the code.
 

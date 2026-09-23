@@ -22,11 +22,11 @@ Admin console areas you will use for a PAM deployment:
 
 | Area | URL fragment | Used for |
 |------|--------------|----------|
-| Dashboard | `app#/` | user counts per directory with a health LED per connector, authentication statistics |
-| Users, Groups | `app#/users`, `app#/groups` | local users, imported AD users, group membership used by access rules and SAML scripts |
+| Dashboard | `app#/dashboard` | user counts per directory with a health LED per connector, authentication statistics |
+| Users, Groups | `app#/users` (Groups: menu entry, fragment not documented) | local users, imported AD users, group membership used by access rules and SAML scripts |
 | Directories | `app#/directories` | Active Directory sync through ADConnect (chapter 02) |
-| Apps | `app#/apps` | the Bastion and Access Manager applications (chapters 04 and 05) |
-| Services | `app#/services` | Trustelem Connect instances and their LDAP/RADIUS listeners (chapter 03) |
+| Apps | menu entry (fragment not documented) | the Bastion and Access Manager applications (chapters 04 and 05) |
+| Services | menu entry (fragment not documented) | Trustelem Connect instances and their LDAP/RADIUS listeners (chapter 03) |
 | Access rules | per app | who must present one or two factors (chapter 06) |
 | Security settings | `app#/security` | authentication factors, passkey policy, password management, internal network, application certificates |
 | API / scripts | `app#/api-scripts` | automation (chapter 07) |
