@@ -26,6 +26,9 @@ Last updated: 2026-09-23. Verified against the Trustelem documentation portal as
 | choose factors, run enrollment, write access rules | [06 MFA and access rules](docs/trustelem/06-mfa-and-access-rules.md) |
 | run it: logs, SIEM, API, certificates, outages | [07 Operations](docs/trustelem/07-operations.md) |
 | fix a failing login | [08 Troubleshooting](docs/trustelem/08-troubleshooting.md) |
+| see every field filled in for a sample organisation | [09 Worked example](docs/trustelem/09-worked-example.md) |
+| validate the deployment or a change | [10 Test plan](docs/trustelem/10-test-plan.md) |
+| brief the help desk and the users | [11 User and help-desk guide](docs/trustelem/11-user-and-helpdesk-guide.md) |
 | see the whole design, clusters, ports, sizing, rollout | [Architecture report](docs/trustelem-bastion-access-manager-architecture.md) |
 
 Reading order for a new deployment: 01, 02, 06 (enrollment), 03, 04, 05, 06 (rules), 07.
@@ -125,16 +128,18 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 +-- CLAUDE.md                     conventions for maintaining the documents
 +-- docs/
 |   +-- README.md                 documentation index
-|   +-- trustelem/                CORE: setup, configuration and integration (chapters 01 to 08)
+|   +-- trustelem/                CORE: setup, configuration and integration (chapters 01 to 11)
 |   +-- trustelem-bastion-access-manager-architecture.md   design report with diagrams
 |   +-- runbooks/                 Bastion HA replication, Access Manager farm
 |   +-- reference/                Terraform for the Bastion side, logging and SIEM,
-|   |                             standards and compliance
+|   |                             SAML assertion and naming, standards and compliance
 |   +-- diagrams/                 rendered ASCII diagrams
-|   +-- research-notes/           sourced working notes per product
+|   +-- archive/research-notes/   archived working notes (superseded by the chapters)
++-- CHANGELOG.md
 +-- tools/
     +-- asciigrid.py              grid helper for box and sequence diagrams
     +-- diagrams/*.py             one script per diagram; run to regenerate docs/diagrams
+    +-- check_docs.py             structural checks, also run by GitHub Actions
 ```
 
 ## Primary sources
@@ -166,12 +171,16 @@ login, itself a live example of the IdP in this design; the PDF guides above are
 - To re-verify a chapter, download the PDF into a scratch folder and extract it with
   `pdftotext -layout`; the Trustelem books export as HTML at `.../books/<book>/export/html`.
 - The "last updated" date and the verified product versions are refreshed whenever a claim is
-  re-checked against a newer release.
+  re-checked against a newer release; `CHANGELOG.md` records what changed.
+- `python3 tools/check_docs.py` runs the structural checks locally; GitHub Actions runs them on
+  every push.
 
 ## Status
 
-- [x] Trustelem chapters 01 to 08 (setup, ADConnect, Connect, Bastion and Access Manager
-      integration, MFA and rules, operations, troubleshooting)
+- [x] Trustelem chapters 01 to 11 (setup, ADConnect, Connect, Bastion and Access Manager
+      integration, MFA and rules, operations, troubleshooting, worked example, test plan,
+      user and help-desk guide)
+- [x] Docs check script and CI workflow; research notes archived
 - [x] Architecture report with flows, clusters, DR, ports, sizing, hardening, rollout plan
 - [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform,
       logging and SIEM, standards and compliance)

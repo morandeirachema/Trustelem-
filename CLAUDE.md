@@ -21,6 +21,8 @@ are Markdown reports with ASCII box diagrams and links to vendor documentation.
   and pasted into the report. Never hand-edit a diagram; edit the script and re-render.
 - Keep verified facts separate from inferences; mark gaps explicitly rather than guessing.
 - No Claude references in commit messages or document bylines.
+- Run `python3 tools/check_docs.py` before committing; it verifies fences, tables, placeholders, links
+  and that every rendered diagram matches its script. Add a line to `CHANGELOG.md` for each change.
 
 ## Vendor documentation sources
 

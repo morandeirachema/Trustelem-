@@ -1,0 +1,223 @@
+# Worked example: one tenant, one Bastion pair, one Access Manager farm
+
+Date: 2026-09-23. This chapter fills in every field from chapters 01 to 06 for a fictitious
+organisation so that the values can be checked side by side. All names, addresses and secrets
+are invented; the field names and rules come from the vendor pages cited in the chapters
+([Bastion app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion),
+[Access Manager app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager),
+[Bastion SAML](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
+[Bastion Admin Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+[AM Admin Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)).
+
+## 1. The organisation
+
+| Item | Value |
+|------|-------|
+| Company | Acme Industries |
+| Trustelem tenant | `acme` (`https://acme.trustelem.com`, `https://admin-acme.trustelem.com`) |
+| Active Directory | forest `corp.acme.example`, domain controllers `dc1.corp.acme.example` (10.10.1.11) and `dc2` (10.10.1.12) |
+| PAM groups in AD | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors`, `PAM-Automation` |
+| Partner users (no AD) | Trustelem group `Partners` |
+| Bastion nodes | `bastion-1.corp.acme.example` 10.10.20.21 (primary master), `bastion-2` 10.10.20.22 |
+| Bastion front-end name | `bastion.corp.acme.example` 10.10.20.20 (L4 load balancer, 22 and 3389) |
+| Access Manager nodes | `am-1` 10.10.20.31, `am-2` 10.10.20.32; HA NICs 10.10.29.31 and .32 |
+| Access Manager URL | `https://pam.acme.example/wabam` (L7 load balancer 10.10.20.30) |
+| Trustelem Connect VMs | `tconnect-1` 10.10.21.41, `tconnect-2` 10.10.21.42 (administration network) |
+| ADConnect VMs | `adconnect-1` 10.10.21.51, `adconnect-2` 10.10.21.52 |
+| Federated domain name | `TRUSTELEM` (identical on the Bastion authentication domain, the Access Manager SAML domain and the Trustelem Access Manager app) |
+| Access Manager organization | identifier `acme` |
+
+## 2. Trustelem console
+
+### Directories
+
+| Field | Value |
+|-------|-------|
+| Directory name | `Acme AD` |
+| Use a connector | checked |
+| Synchronization ID | `2jy34wpcohrhdytr6hutym6qfi2l7nnw` (example format) |
+| Connectors | `adconnect-1` priority 1, `adconnect-2` priority 2 |
+| Service account | `svc-trustelem-ad@corp.acme.example`, read-only |
+| Groups synchronised | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors`, `PAM-Automation` |
+| Custom attributes | `sAMAccountName`, `userPrincipalName`, `memberOf` |
+| Frequency | the shortest interval the domain controllers tolerate |
+
+`config.ini` on `adconnect-1` (Linux):
+
+```ini
+sync_id = 2jy34wpcohrhdytr6hutym6qfi2l7nnw
+state_dir = run/
+ldap_addr = ldaps://dc1.corp.acme.example?tls_verify
+ldap_port = 636
+ldap_user = svc-trustelem-ad@corp.acme.example
+ldap_password = <from the secret manager>
+```
+
+### Services (Trustelem Connect)
+
+| Service | VM | Applications and listeners |
+|---------|----|----------------------------|
+| `tconnect-1` | 10.10.21.41 | Bastion: RADIUS `*:1812`, LDAP `*:2001` (LDAPS off, StartTLS from the Bastion); Access Manager: RADIUS `*:2812` |
+| `tconnect-2` | 10.10.21.42 | same listeners |
+
+`config.ini` on `tconnect-1` (Linux), with the SIEM target:
+
+```ini
+service_id = 5kd82nwqzr7hxa4tm2ybc9ef3guvl6op
+state_dir = run/
+outgoing_allowed = "true"
+[target.siem]
+addr = "siem.corp.acme.example"
+port = "5514"
+```
+
+### Apps
+
+| App | Template | Settings |
+|-----|----------|----------|
+| `Acme Bastion` | WALLIX Bastion | LDAP on (service account `trustelem`, base DN `DC=acme,DC=trustelem,DC=com`), Radius on (secret `R1` from the model), MFA session 8 h |
+| `Acme Access Manager` | WALLIX Access Manager | Root URL `https://pam.acme.example/wabam`, Organization identifier `acme`, Domain `TRUSTELEM`, SAML on, Radius on (secret `R2`), custom script below |
+
+Access Manager app custom script:
+
+```javascript
+msg.setAttr("profile","User")
+for (let group in groups) {
+  if(group=="PAM-Admins"){msg.setAttr("profile","Administrator")}
+  if(group=="PAM-Auditors"){msg.setAttr("profile","Auditor")}
+}
+for (let g in groups){ msg.addAttr("groups",g); }
+```
+
+### Security settings
+
+| Setting | Value |
+|---------|-------|
+| Authentication factors | WALLIX Authenticator (Login on, User can reset token: `PAM-Operators` only), TOTP (Login on), Second-step passkey (Login on); SMS and e-mail off |
+| Passkey policy | Strict for `PAM-Admins`, Recommended for others |
+| Internal network | `203.0.113.0/24` (office egress) |
+| Default authentication level for users | 2 factors |
+| Password level (local users) | High, minimum 14 characters |
+| Admin console | 2 factors |
+| Application certificate | `acme-saml-2026`, expiry noted in the operations calendar |
+
+### Access rules
+
+| App | Target | Web internal | Web external | LDAP | RADIUS |
+|-----|--------|--------------|--------------|------|--------|
+| Acme Access Manager | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors`, `Partners` | 2 factors | 2 factors | | 2nd factor only |
+| Acme Access Manager | everyone | Forbidden | Forbidden | | Forbidden |
+| Acme Bastion | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors` | | | | 2nd factor only |
+| Acme Bastion | `PAM-Automation` | | | | Always allow |
+| Acme Bastion | `Partners` | | | 1 factor | 2nd factor only |
+| Acme Bastion | everyone | | | Forbidden | Forbidden |
+
+## 3. Bastion (configured on `bastion-1`, replicated to `bastion-2`)
+
+### External authentications
+
+| Name | Type | Values |
+|------|------|--------|
+| `CORP-AD` | Active Directory | server `dc1.corp.acme.example`, port 389, StartTLS with the corporate CA, bind `svc-bastion-ldap@corp.acme.example`, base DN `dc=corp,dc=acme,dc=example`, login attribute `sAMAccountName`, user name attribute `sAMAccountName`, timeout 30 |
+| `Trustelem-RADIUS-1` | RADIUS | server 10.10.21.41, port 1812, timeout 50, secret `R1`, "Use mobile device for 2FA" ON, "Use primary domain name for 2FA" ON |
+| `Trustelem-RADIUS-2` | RADIUS | server 10.10.21.42, same values |
+| `Trustelem-LDAP` | Active Directory | server 10.10.21.41, port 2001, StartTLS, bind method simple, user `trustelem`, password from the Bastion app model, base DN `DC=acme,DC=trustelem,DC=com`, login and user name attribute `mail` |
+| `Trustelem-SAML` | SAML | IdP metadata from the `Acme Access Manager` app; claims Username `uid`, Display name `displayname`, Email `email`, Group `groups`; SP entity ID left as generated (Access Manager is the front door); timeout 900 |
+
+### Authentication domains
+
+| Domain server name | Authentication domain name | Directory | Secondary authentication | Default domain | Notes |
+|--------------------|----------------------------|-----------|--------------------------|:-:|-------|
+| `CORP` | `corp.acme.example` | `CORP-AD` | `Trustelem-RADIUS-1`, `Trustelem-RADIUS-2` | yes | group attribute `memberOf`, default email domain `acme.example` |
+| `PARTNERS` | `partners` | `Trustelem-LDAP` | `Trustelem-RADIUS-1`, `Trustelem-RADIUS-2` | no | default email domain left empty |
+| `TRUSTELEM` | `TRUSTELEM` | protocol `Trustelem-SAML` (Other IdPs) | none | no | label "Trustelem", default email domain `acme.example`, Force authentication off |
+
+### Mappings
+
+| Domain | External group value | Bastion user group | Profile |
+|--------|----------------------|--------------------|---------|
+| `CORP` | `CN=PAM-Admins,OU=Groups,DC=corp,DC=acme,DC=example` | `pam-admins` | `product_administrator` |
+| `CORP` | `CN=PAM-Operators,OU=Groups,DC=corp,DC=acme,DC=example` | `pam-operators` | `user` |
+| `CORP` | `CN=PAM-Auditors,OU=Groups,DC=corp,DC=acme,DC=example` | `pam-auditors` | `auditor` |
+| `CORP` | `CN=PAM-Automation,OU=Groups,DC=corp,DC=acme,DC=example` | `pam-automation` | `user` |
+| `PARTNERS` | `CN=Partners,OU=Groups,DC=acme,DC=trustelem,DC=com` (case exact) | `partners` | `user` |
+| `TRUSTELEM` | `PAM-Admins` | `pam-admins` | `product_administrator` |
+| `TRUSTELEM` | `PAM-Operators` | `pam-operators` | `user` |
+| `TRUSTELEM` | `PAM-Auditors` | `pam-auditors` | `auditor` |
+| `TRUSTELEM` | `Partners` | `partners` | `user` |
+
+### Other
+
+| Item | Value |
+|------|-------|
+| API key for Access Manager | name `access-manager`, profile `wallix_access_manager_session_audit`, IP limitation `10.10.20.31,10.10.20.32` |
+| Auditor login for AM session search | `am-auditor` (local, profile `auditor`, IP-restricted) |
+| Break-glass | `bg-admin`, local password, profile `product_administrator`, source IP restricted to `10.10.21.0/24` |
+| One time password ttl | 30 s |
+| SIEM integration (each node) | `siem.corp.acme.example`, TCP 514, all categories |
+
+## 4. Access Manager (organization `acme`)
+
+### SAML Identity Provider `Trustelem`
+
+| Tab | Field | Value |
+|-----|-------|-------|
+| Service Provider | WALLIX-AM Entity ID | `WALLIX-AM` |
+| Service Provider | Sign Messages / Encrypt Messages | OFF / OFF |
+| Service Provider | Signed Response / Signed Assertion | ON / ON |
+| Service Provider | Authent. Expir. Delay | 5 minutes |
+| Identity Provider | metadata | imported from the `Acme Access Manager` app |
+| Identity Provider | Redirect Logout Uri | `https://acme.trustelem.com/app/<ID>/on_logout` |
+| Domain | Domain Name | `TRUSTELEM` |
+| Domain | Login / Display Name / Email / Language / Profile | `uid` / `displayname` / `email` / `lang` / `profile` |
+| Domain | Default Profile | User |
+
+### Bastions
+
+| Field | `bastion-1` | `bastion-2` |
+|-------|-------------|-------------|
+| Host | 10.10.20.21 | 10.10.20.22 |
+| API key | `access-manager` | same key |
+| Cluster | `acme-bastions` | `acme-bastions` |
+| Strip Domain | OFF | OFF |
+| Allow Session Search / Login | ON / `am-auditor` | ON / `am-auditor` |
+
+Settings > Application Settings: `bastion.cluster.identical.mode` on,
+`bastion.connection.timeout` 5.
+
+### RADIUS server `Trustelem` (fallback path for local administrators)
+
+Host 10.10.21.41 (and a second entry for 10.10.21.42), Protocol PAP, port 2812, timeout 50,
+Login type simple login, secret `R2`, NAS Identifier empty. Local domain: Local database
+Factor 1, RADIUS Factor 2.
+
+### Farm
+
+`wabam.properties` on `am-2` carries `crypto.install.key`, `db.connections*` and
+`user.admin*` from `am-1`; `web.proxy.trusted-proxies=10.10.20.30`;
+`purge.audit.active=true` on `am-1` only.
+
+## 5. How three users log in
+
+| User | Path | What happens |
+|------|------|--------------|
+| `jdoe` in `PAM-Operators` | browser to `https://pam.acme.example/wabam/acme` | redirect to `acme.trustelem.com`, AD password via ADConnect, push on the phone (passkey offered on the web), portal shows the `pam-operators` authorizations of `jdoe@TRUSTELEM`, RDP launches without a prompt |
+| `jdoe` | `mstsc` to `bastion.corp.acme.example` | login `jdoe@corp.acme.example`, AD password checked by the Bastion, RADIUS request to `tconnect-1` with an empty password, push approved, session; next connection within 8 h on the same network is not prompted |
+| `svc-backup` in `PAM-Automation` | scripted SFTP to the Bastion | AD password only, because its group rule is *Always allow* |
+| `p.martin@partner.example` in `Partners` | browser to the portal | Trustelem password (local user), push, Login attribute `email`; on the Bastion the `PARTNERS` domain maps the Trustelem group DN |
+| `bg-admin` | Bastion web UI from the admin network | local password, no MFA, used only when Trustelem is unreachable |
+
+## 6. Consistency checks before go-live
+
+- `TRUSTELEM` appears identically in: Trustelem Access Manager app Domain; Access Manager SAML
+  Domain Name; Bastion `Domain server name` and `Authentication domain name`.
+- Trustelem Login attribute `uid` equals the Bastion SAML Username claim `uid`.
+- The `groups` script is present on the Access Manager app and the values match the Bastion
+  `TRUSTELEM` domain mappings exactly (case-insensitive on the Bastion side).
+- RADIUS secrets `R1` and `R2` match the Bastion and Access Manager entries; listeners bound
+  to `*`; ports 1812 and 2812 not in conflict on the Connect VMs.
+- "Use mobile device for 2FA" ON on both Bastion RADIUS entries.
+- Access rules exist before any test (LDAP 1 factor for `Partners`, RADIUS 2nd factor only for
+  the AD groups).
+- Egress firewall allows the Connect and ADConnect VMs to `*.trustelem.com`, including
+  185.4.44.114 and 185.4.44.117.

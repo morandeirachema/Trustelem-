@@ -1131,4 +1131,4 @@ Third-party and community:
 - VS Code Remote-SSH keyboard-interactive issue: https://github.com/microsoft/vscode-remote-release/issues/11461
 - Partner OT architecture note (TECHDOC360): https://www.varnostne-resitve.si/wp-content/uploads/2025/03/TECHDOC360_Classic-WALLIX-Bastion-Architecture-OT.pdf
 
-The detailed research notes behind this report are in `docs/research-notes/`.
+The archived research notes behind this report are in `docs/archive/research-notes/`.

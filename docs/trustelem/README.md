@@ -14,8 +14,12 @@ Access Manager cluster. Every chapter quotes the vendor documentation verbatim a
 | [06 MFA and access rules](06-mfa-and-access-rules.md) | factors, passkey policy, enrollment campaigns, rescue codes, access-rule semantics and priority, the rule set for the PAM design, MFA session |
 | [07 Operations](07-operations.md) | logs, alerts, sessions, SIEM export, API and scripts, certificate rotation, self-service reset, delegated administration, change management, outage handling |
 | [08 Troubleshooting](08-troubleshooting.md) | symptom tables for connectors, directory sync, Bastion RADIUS and LDAP, Access Manager RADIUS and SAML, escalation data |
+| [09 Worked example](09-worked-example.md) | every field filled in for a fictitious organisation: tenant, agents, apps, access rules, Bastion, Access Manager, three user journeys, consistency checks |
+| [10 Test plan](10-test-plan.md) | test IDs with preconditions, steps, expected results and the log evidence to keep |
+| [11 User and help-desk guide](11-user-and-helpdesk-guide.md) | what users see on each path, enrollment, lost phone, help-desk checklist, emergency |
 
-Reading order for a new deployment: 01, 02, 06 (enrollment), 03, 04, 05, 06 (rules), 07.
+Reading order for a new deployment: 01, 02, 06 (enrollment), 03, 04, 05, 06 (rules), 07, then 09 as
+the template to fill in and 10 to validate. Chapter 11 is for the help desk.
 
 The surrounding design (clusters, flows, ports, sizing, runbooks for the appliances) is in the
 [architecture report](../trustelem-bastion-access-manager-architecture.md) and the
