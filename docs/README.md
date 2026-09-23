@@ -19,6 +19,7 @@ with a WALLIX Bastion cluster and a WALLIX Access Manager cluster. Start in `tru
 | [09 Worked example](trustelem/09-worked-example.md) | all fields filled in for a fictitious organisation |
 | [10 Test plan](trustelem/10-test-plan.md) | test IDs, steps, expected results, log evidence |
 | [11 User and help-desk guide](trustelem/11-user-and-helpdesk-guide.md) | end-user journeys and help-desk checklist |
+| [12 SCIM provisioning](trustelem/12-scim-provisioning.md) | assessment: plausible, undocumented, questions for WALLIX |
 
 ## Architecture
 

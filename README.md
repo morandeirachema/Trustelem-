@@ -29,6 +29,7 @@ Last updated: 2026-09-23. Verified against the Trustelem documentation portal as
 | see every field filled in for a sample organisation | [09 Worked example](docs/trustelem/09-worked-example.md) |
 | validate the deployment or a change | [10 Test plan](docs/trustelem/10-test-plan.md) |
 | brief the help desk and the users | [11 User and help-desk guide](docs/trustelem/11-user-and-helpdesk-guide.md) |
+| decide whether to provision Trustelem users into the Bastion over SCIM | [12 SCIM provisioning](docs/trustelem/12-scim-provisioning.md) |
 | see the whole design, clusters, ports, sizing, rollout | [Architecture report](docs/trustelem-bastion-access-manager-architecture.md) |
 
 Reading order for a new deployment: 01, 02, 06 (enrollment), 03, 04, 05, 06 (rules), 07.
@@ -128,7 +129,7 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 +-- CLAUDE.md                     conventions for maintaining the documents
 +-- docs/
 |   +-- README.md                 documentation index
-|   +-- trustelem/                CORE: setup, configuration and integration (chapters 01 to 11)
+|   +-- trustelem/                CORE: setup, configuration and integration (chapters 01 to 12)
 |   +-- trustelem-bastion-access-manager-architecture.md   design report with diagrams
 |   +-- runbooks/                 Bastion HA replication, Access Manager farm
 |   +-- reference/                Terraform for the Bastion side, logging and SIEM,
@@ -177,13 +178,13 @@ login, itself a live example of the IdP in this design; the PDF guides above are
 
 ## Status
 
-- [x] Trustelem chapters 01 to 11 (setup, ADConnect, Connect, Bastion and Access Manager
+- [x] Trustelem chapters 01 to 12 (setup, ADConnect, Connect, Bastion and Access Manager
       integration, MFA and rules, operations, troubleshooting, worked example, test plan,
-      user and help-desk guide)
+      user and help-desk guide, SCIM assessment)
 - [x] Docs check script and CI workflow; research notes archived
 - [x] Architecture report with flows, clusters, DR, ports, sizing, hardening, rollout plan
 - [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform,
       logging and SIEM, standards and compliance)
 - [ ] Vendor answers to the open questions (RADIUS Message-Authenticator, SAML clock skew,
-      PKCE, push number matching, hosting assurances, SLA)
+      PKCE, push number matching, hosting assurances, SLA, SCIM to Bastion)
 - [ ] Validation against the Bastion 12.4 and Access Manager 6.0 release notes (vendor login)

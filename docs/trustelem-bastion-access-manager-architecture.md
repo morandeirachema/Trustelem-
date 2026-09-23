@@ -1079,6 +1079,8 @@ Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustele
     matching or push rate limiting in WALLIX Authenticator; certification coverage of Bastion
     12.3 and 12.4 versus the BSI-certified 12.0.14 (see the
     [standards and compliance reference](reference/standards-and-compliance.md)).
+13. SCIM provisioning from Trustelem into the Bastion: supported pairing, payload, deprovisioning
+    semantics and cluster behaviour (see [SCIM assessment](trustelem/12-scim-provisioning.md)).
 
 
 ## 10. Glossary

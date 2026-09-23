@@ -4,6 +4,7 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-23
 
+- Trustelem chapter 12: SCIM provisioning assessment (plausible, undocumented, vendor questions).
 - Trustelem chapters 09 (worked example), 10 (test plan), 11 (user and help-desk guide).
 - Reference: SAML assertion and naming consistency, with the naming diagram.
 - Docs check script (`tools/check_docs.py`) and GitHub Actions workflow.

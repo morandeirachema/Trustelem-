@@ -17,6 +17,7 @@ Access Manager cluster. Every chapter quotes the vendor documentation verbatim a
 | [09 Worked example](09-worked-example.md) | every field filled in for a fictitious organisation: tenant, agents, apps, access rules, Bastion, Access Manager, three user journeys, consistency checks |
 | [10 Test plan](10-test-plan.md) | test IDs with preconditions, steps, expected results and the log evidence to keep |
 | [11 User and help-desk guide](11-user-and-helpdesk-guide.md) | what users see on each path, enrollment, lost phone, help-desk checklist, emergency |
+| [12 SCIM provisioning](12-scim-provisioning.md) | assessment of provisioning Trustelem users into the Bastion over SCIM 2.0: documented halves, untested configuration, risks, vendor questions |
 
 Reading order for a new deployment: 01, 02, 06 (enrollment), 03, 04, 05, 06 (rules), 07, then 09 as
 the template to fill in and 10 to validate. Chapter 11 is for the help desk.
