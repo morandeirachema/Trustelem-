@@ -4,19 +4,33 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-24
 
-- Deep audit and sync, cross-references: every meeting question now cites its register row or
-  is marked as a design confirmation; new rows T14 (log retention) and T15 (hardware TOTP
+- Audit and source verification ("fuentes"): every cited claim, not only quotations, checked
+  against the Bastion 12.3.2 and Access Manager 5.2.4.0 guides, the 4.0.6.1 install guide, the
+  12.0.2 deployment guide, both public release notes, the four Trustelem books and 69 third-party
+  sources (RFCs, OASIS, OpenID, W3C, NIST, EUR-Lex through the Publications Office, ANSSI, BSI,
+  MITRE, CIS, Splunk, Sekoia, Terraform provider, advisories, app stores). Main corrections:
+  the Access Manager domain name must equal the Bastion *Domain server name* (both product
+  guides; the Trustelem page's Authentication domain name wording is recorded in B7), reverting
+  the pass-2 change; the API does list enrolled factors (`listAuthTokens`); SCIM pushes groups;
+  certificate-expiry mail can come after expiry; SSH key/CA is SSH-proxy only; the Bastion RADIUS
+  client is PAP only (WAB-16237); X.509 is not available to the Access Manager global
+  administrator; OIDC and certificate-command versions; HID timeout guide and the OT DR note
+  re-attributed; DORA, IEC 62443, ANSSI PA-022 R37/R39, MITRE T1556.006 and ISO scope rows fixed;
+  about 40 statements marked as inference or recommendation; prose, tree and tag fixes.
+- Deep audit and sync, cross-references: meeting questions cite their register row or are
+  marked as design confirmations (commercial blocks tagged C1 to C4 in the source pass); new rows T14 (log retention) and T15 (hardware TOTP
   tokens); T1, T4, T5, A5, B1 and A1 extended; closed rows S1, S2 and B5 moved to a *Closed*
   section; register rows put in numeric order; report 9.1 and 7.5 point to the register and the
   test plan; README tree, dates, counts and CI wording corrected; archive notes indexed; stale
   `tools/__pycache__` file removed from git.
-- Deep audit and sync, diagrams: the Access Manager RADIUS listener is port 2812 everywhere (it
-  was 1812 in three diagrams, the port matrix and the runbook); component names unified across
+- Deep audit and sync, diagrams: the Access Manager RADIUS listener is port 2812 (it was 1812
+  in three diagrams, the port matrix and the runbook; the glossary and chapter 03 firewall line
+  followed in the source pass); component names unified across
   the eleven diagrams; the TOTP path drawn through the client and the Access-Challenge instead of
   the app; Master/Master failover by front-end rerouting and `--elevate-master` only for
   Master/Slaves; DR diagram per-node settings moved off the storage box; the Bastion field that
-  must equal the Access Manager domain name is the Authentication domain name (Domain server name
-  set identical); new gap B7 and meeting question 6.6 on which Bastion domain the Access Manager
+  must equal the Access Manager domain name was changed to the Authentication domain name
+  (reverted in the source pass below: both product guides name the Domain server name); new gap B7 and meeting question 6.6 on which Bastion domain the Access Manager
   domain name matches; Access Manager to Trustelem 443 back-channel row added to the port matrix.
 - Deep audit and sync, sources: every quotation re-checked against the Bastion and Access
   Manager guides, the public release notes and the four Trustelem books (about 160 Bastion, 26

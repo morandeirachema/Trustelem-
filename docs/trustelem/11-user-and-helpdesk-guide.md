@@ -50,7 +50,8 @@ RDP (`mstsc`):
 3. The screen announces a push notification; approve it on the phone (or, if the screen asks
    for a code, type the six digits from the app).
 4. Pick the target from the list.
-5. If the connection fails before the login screen and the workstation uses Kerberos, add
+5. If the connection fails before the login screen because Kerberos is enabled on the Bastion
+   RDP proxy and the user does not log in with Kerberos, add
    `enablecredsspsupport:i:0` and `authentication level:i:2` to the `.rdp` file (FreeRDP:
    `/sec:tls`).
 

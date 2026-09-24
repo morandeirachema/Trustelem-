@@ -121,7 +121,7 @@ Source: [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administrat
   provider). Source: [incidents](https://trustelem-doc.wallix.com/books/trustelem-news/page/incidents).
 - Not documented: contractual SLA, tenant export or backup, data retention policy, maintenance
   windows. There is no status page; the two pages above are the published record. Ask WALLIX
-  for the rest (see the vendor questions in the architecture report).
+  for the rest (see the [open questions and gaps register](../reference/open-questions-and-gaps.md)).
 - Features enabled on request through WALLIX support or sales: the API, delegated
   administration and custom themes.
   Sources: [API](https://trustelem-doc.wallix.com/books/trustelem-administration/page/api),

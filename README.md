@@ -125,12 +125,12 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 |   |                             vendor meeting script
 |   +-- archive/research-notes/   archived working notes (superseded by the chapters)
 +-- CHANGELOG.md
++-- .github/workflows/            docs-check.yml (push and PR), link-check.yml (Mondays)
 +-- tools/
     +-- diagrams/*.mmd            Mermaid source of every diagram, embedded verbatim in the docs
     +-- check_docs.py             structural checks, also run by GitHub Actions
     +-- check_mermaid.mjs         parses every diagram with the Mermaid library (CI)
     +-- check_links.py            fetches every external URL (weekly CI)
-+-- .github/workflows/            docs-check.yml (push and PR), link-check.yml (Mondays)
 ```
 
 ## Primary sources
@@ -175,7 +175,7 @@ login, itself a live example of the IdP in this design; the PDF guides above are
 - [x] Trustelem chapters 01 to 12 (setup, ADConnect, Connect, Bastion and Access Manager
       integration, MFA and rules, operations, troubleshooting, worked example, test plan,
       user and help-desk guide, SCIM assessment)
-- [x] Docs check script and CI workflow; research notes archived
+- [x] Check scripts and CI workflows; research notes archived
 - [x] Architecture report with flows, clusters, DR, ports, sizing, hardening, rollout plan
 - [x] Runbooks (Bastion HA replication, Access Manager farm) and references (Terraform,
       logging and SIEM, standards and compliance)
@@ -194,6 +194,7 @@ npm install --no-save mermaid@11 jsdom@24        # optional, for the diagram par
 node tools/check_mermaid.mjs
 ```
 
-The repository is public and holds only Markdown, Mermaid sources and the three check scripts.
+The repository is public and holds only Markdown, Mermaid sources, the three check scripts and two GitHub Actions
+workflows.
 Vendor PDFs downloaded for research are ignored by `.gitignore` and are not needed to read the
 documents.

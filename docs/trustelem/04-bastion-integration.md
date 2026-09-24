@@ -86,7 +86,8 @@ Trustelem side: RADIUS access rule **2nd factor only** for the groups that must 
 "If you want to skip the 2nd factor step for some users, you can select for them the rule
 Always allow instead on Trustelem."
 
-Bastion behaviour to know (Admin Guide 7.2.5.4): challenge-response is supported; attributes
+Bastion behaviour to know (Admin Guide 7.2.5.4): only PAP is supported (known limitation
+WAB-16237 in the [release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)); challenge-response is supported; attributes
 sent are User-Name, User-Password, State, NAS-Identifier `WAB` and Framed-IP-Address; no
 vendor-specific attributes. "Use primary domain name for two-factor authentication (2FA)"
 forces `user@domain` in the RADIUS User-Name, which matters when the Trustelem login is the
@@ -188,14 +189,16 @@ authentication domain create the mappings between Bastion user groups and the Tr
 names sent in `groups`.
 
 With Access Manager: "the Access Manager should be > 5.0", "AM Domain Name = Bastion
-Authentication domain name", "AM Login = Bastion Username", and the same `groups` script on the
+Authentication domain name" (the Bastion and Access Manager guides name the *Domain server
+name* instead; set both fields to the same value, gap B7), "AM Login = Bastion Username", and the same `groups` script on the
 Access Manager application.
 
 Behind Access Manager (chapter 05) the Bastion imports the Access Manager app metadata instead
 of a Bastion SAML app, and the Username claim equals the Access Manager Login attribute (`uid`
 for AD users, per "AM Login = Bastion Username"); the `email` claim above belongs to the native
 SAML procedure. Skipping the Bastion SAML app in the Access Manager design is an inference from
-the flow (the Bastion never receives the assertion), recorded with gap B7.
+the flow (the Bastion never receives the assertion); question 6.6 of the vendor meeting
+script and gap B7 cover it.
 
 Bastion-side constraints from the Admin Guide 7.3.1: only "SAML Generic" is compatible with
 Access Manager; once SAML is configured with Access Manager, direct SAML login to the Bastion
@@ -221,16 +224,17 @@ Fill this in before the change window; every value appears in one of the scenari
 | AD domain with secondary authentication | Bastion | |
 | Trustelem group DNs for mappings | Trustelem Groups | `CN=...,OU=Groups,DC=<tenant>,DC=trustelem,DC=com` |
 | SAML SP entity ID and ACS | Bastion SAML external auth | |
-| SAML authentication domain name | Bastion | same as Access Manager domain |
+| SAML Domain server name and Authentication domain name | Bastion | both equal to the Access Manager domain name |
 | IdP initiated URL | Bastion authentication domain | |
 | Access rules | Trustelem | per group: RADIUS *2nd factor only*, LDAP *1 factor*, web *2 factors* |
 
 ## 8. Timeouts, sessions and user experience
 
 - Bastion RADIUS timeout defaults to 5 s; a push needs time to reach the phone and be approved.
-  A WALLIX-published RADIUS guide for another push vendor recommends 45 to 50 s; this design
-  uses 45 to 60 s.
-  Source: [HID RADIUS guide](https://www.wallix.com/wp-content/uploads/2020/07/HID_ActivID_Appliance_Wallix_RADIUS_ConfigGuide_FINAL.pdf).
+  The Trustelem Bastion page says to "let the default value, unless you have latency on your
+  network"; an HID guide hosted by WALLIX (2019) says "increase the Timeout to at least 45-50
+  seconds" for HID Approve push. This design uses 45 to 60 s after testing the push round trip.
+  Sources: [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf), [HID RADIUS guide](https://www.wallix.com/wp-content/uploads/2020/07/HID_ActivID_Appliance_Wallix_RADIUS_ConfigGuide_FINAL.pdf).
 - MFA session: "for the duration defined on Trustelem and as long as he remains on the same
   network, he will not be asked to provide his 2nd factor again"; the example given is a user
   logging in to the Bastion GUI then SSH within one hour; it requires the "Use mobile device"
@@ -238,7 +242,8 @@ Fill this in before the change window; every value appears in one of the scenari
 - Native RDP clients see the Bastion RDP proxy login screen; SSH clients get keyboard-interactive
   prompts. With Kerberos enabled on the RDP proxy, non-Kerberos users need
   `enablecredsspsupport:i:0` and `authentication level:i:2` in the `.rdp` file or `/sec:tls`
-  with FreeRDP. Source: [Bastion Users Guide 8.5.2](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf).
+  with FreeRDP, and NLA enabled. Sources: [Bastion Users Guide 9.3](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf),
+  [Bastion Admin Guide 7.2.5.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - Passkeys cannot be used over RADIUS or LDAP; users on the native path need the WALLIX
   Authenticator app or a TOTP. Source: [MFA methods](https://trustelem-doc.wallix.com/books/trustelem-administration/page/multi-factors-authentication).
 

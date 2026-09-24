@@ -35,7 +35,7 @@ WALLIX sells three products that together give MFA-protected privileged access:
   [WALLIX One IDaaS product page](https://www.wallix.com/products/idaas/).
 - **WALLIX Bastion** is the PAM appliance (session proxies for RDP, SSH, VNC, Telnet and raw
   TCP, password vault, recording). It runs on Debian 12 ([release notes WAB-17140](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html): Debian 12.13) with a MariaDB database and clusters
-  through **HA Database Replication** (master/master or master/slaves).
+  through **HA Database Replication** (Master/Master or Master/Slaves).
   Sources: [Bastion Admin Guide 12.3.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
   [Bastion 12.0.2 Deployment Guide](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf).
 - **WALLIX Access Manager** is the HTML5 web portal in front of one or more Bastions. It scales
@@ -59,7 +59,7 @@ The recommended design in this report:
    the native client path.
 4. **Two Trustelem Connect VMs and two ADConnect VMs** provide agent failover; the Bastion lists
    both RADIUS servers as primary and backup.
-5. **Clusters:** a two-node Bastion HA Database Replication pair (master/master) fronted by a
+5. **Clusters:** a two-node Bastion HA Database Replication pair (Master/Master) fronted by a
    load balancer or by the Access Manager "Cluster" object, and a two-node Access Manager farm
    behind a Layer 7 load balancer with WebSocket support and source-IP affinity.
 
@@ -69,8 +69,9 @@ Three things a PAM architect must not miss:
   REST API, affects Bastion 12.3.0 to 12.3.6 and 12.4.0 (fixed in 12.3.7 and 12.4.1).
   WSA-2026-07-0002, a CVSS 8.7 unauthenticated bypass of the SAML service provider, affects every
   Access Manager with SAML configured before 5.1.10, 5.2.7 and 6.0.4. Both were published on
-  2026-07-20. WSA-2026-02-0001 (passwords written to logs, fixed in 5.1.7 and 5.2.4) is the
-  reason not to run TRACE logging in production.
+  2026-07-20. WSA-2026-02-0001 (passwords written to logs when the "Default" or REST API log level is
+  DEBUG, TRACE or ALL and users perform password checkouts; fixed in 5.1.7 and 5.2.4) is the
+  reason to keep those log levels off in production.
   Source: [WALLIX security advisories](https://www.wallix.com/support-services/alerts/).
 - **No cloud, no MFA.** Trustelem Connect only relays to the cloud, so RADIUS and LDAP through it
   stop working if the tenant is unreachable. Keep a local, IP-restricted Bastion administrator
@@ -85,14 +86,15 @@ Three things a PAM architect must not miss:
 
 | Product | Current public name | Version verified | Newer builds seen | Base |
 |---------|--------------------|------------------|-------------------|------|
-| Trustelem | WALLIX One IDaaS ("also known as Trustelem") | SaaS, no version | continuous | SaaS "Hosted in European Data Centers" ([product page](https://www.wallix.com/products/idaas/)); multi-tenancy is an inference |
+| Trustelem | WALLIX One IDaaS ("also known as Trustelem", vault documentation quick start in the sources) | SaaS, no version | continuous | SaaS "Hosted in European Data Centers" ([product page](https://www.wallix.com/products/idaas/)); multi-tenancy is an inference |
 | Bastion | WALLIX Bastion / WALLIX PAM | 12.3.2 (2026-03-12) | 12.3.7, 12.4.3 | Debian 12, MariaDB |
 | Access Manager | WALLIX Access Manager | 5.2.4.0 (2026-03-12) | 5.2.7, 6.0.4 | Debian 10 (5.x), Debian 12 (6.0), Java 17 / Jetty 11, MariaDB |
 | MFA bundle | WALLIX Authenticator | offer name | | Trustelem licence limited to Bastion and Access Manager |
 
 Assurance: Bastion 12.0.14 holds BSI certificate BSZ-0020-2025 (2025-09-29, valid to
-2027-09-28), recognised by ANSSI; the older ANSSI CSPN 2019/15 for Bastion 6.0 is listed as no
-longer maintained; WALLIX holds ISO/IEC 27001:2022 with the WALLIX One SaaS platform in scope.
+2027-09-28; WALLIX states it is recognised by ANSSI through the CSPN-BSZ mutual recognition agreement,
+which is not reflected in the ANSSI catalogue); the older ANSSI CSPN 2019/15 for Bastion 6.0 is listed as no
+longer maintained; WALLIX holds ISO/IEC 27001:2022 and states it covers the WALLIX One SaaS platform in scope.
 Sources: [BSI BSZ-0020-2025](https://www.bsi.bund.de/SharedDocs/Zertifikate_BSZ/Bestaetigt/BSZ-0020-2025.html),
 [ANSSI catalogue](https://messervices.cyber.gouv.fr/visas/catalogue-produits-services-profils-de-protection-sites-certifies-qualifies-agrees-anssi.pdf),
 [WALLIX ISO 27001 press release](https://www.wallix.com/wp-content/uploads/2025/01/250901_-WALLIX-ISO270012022_FINAL_VFR.pdf).
@@ -210,12 +212,13 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
   recording, criticality and approval workflow. Permission profiles gate administration.
   Source: [Admin Guide 5.3 and 13](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - **Authentication matrix.** Login and password (LDAP/AD bind, local, RADIUS, TACACS+), Kerberos
-  ticket, OIDC, SAML, PingID, SSH key/CA and X.509 are available on HTTPS. On SSH and RDP,
+  ticket, OIDC, SAML, PingID and X.509 are available on HTTPS; SSH key and SSH CA are "reserved
+  to SSH connections" (7.1.4). On SSH and RDP,
   OIDC and SAML are "supported, but the workflow is not fully integrated": the user copies a
   link into a browser, retrieves a token and adds it to the client. X.509 on the proxies
   requires a prior HTTPS login. A one-time password (default 30 s) embedded in downloaded
   session files lets an authenticated web user open a native client.
-  Source: [Admin Guide 7.1.1 and 12.5](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
+  Source: [Admin Guide 7.1.1, 7.1.4 and 12.5](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - **MFA model.** "you can setup a single-factor authentication (SFA) and a two-factor
   authentication (2FA). However, it is not possible to directly configure a multifactor
   authentication (MFA)." A primary authentication is set on the authentication domain and a
@@ -237,7 +240,7 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
 - **Role.** "provides connection services between web browsers and targets ... Target accesses
   are performed through Wallix Bastion appliances. The connections are done using HTML5
   clients; no browser plug-in is required." Multi-tenant through Organizations.
-  Source: [AM Admin Guide chapter 3 and 8](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
+  Source: [AM Admin Guide chapters 3 and 8](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
 - **Stack.** Java 17 on Jetty 11, FreeRDP 3 and xterm.js for HTML5, MariaDB 10.5 embedded
   (or external MySQL, Oracle, Azure), Elasticsearch 8.18 for session audit, delivered as a
   Debian appliance where the application runs in the Docker container
@@ -308,12 +311,12 @@ flowchart TB
 
 | Decision | Choice | Reason and source |
 |----------|--------|-------------------|
-| Identity source | Active Directory synced by ADConnect; Trustelem local users only for partners and backup admins | Vendor decision tree: AD users import via ADConnect, then RADIUS as 2nd factor on the Bastion AD domain; Trustelem local users for people outside AD is the author's choice so that factors and rules live in one place. [Setup instructions](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/setup-instructions), [Local users](https://trustelem-doc.wallix.com/books/trustelem-administration/page/trustelem-local-users) |
+| Identity source | Active Directory synced by ADConnect; Trustelem local users only for partners and backup admins | Vendor decision tree: AD users import via ADConnect, then RADIUS as 2nd factor on the Bastion AD domain; for people outside AD "it's best to go through local Trustelem users, and not local Bastion users". [Setup instructions](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/setup-instructions), [Local users](https://trustelem-doc.wallix.com/books/trustelem-administration/page/trustelem-local-users) |
 | Web protocol | SAML 2.0 from Trustelem to Access Manager, generic SAML on Bastion | "Access Manager is compatible with SAML (recommanded), LDAP and Radius" [sic]. Dedicated Access Manager template exists in Trustelem. [WALLIX Authenticator](https://trustelem-doc.wallix.com/books/wallix-authenticator/page/presentation), [AM app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager) |
 | Why not OIDC | OIDC is supported on both products (Bastion 12.2; Access Manager 5.2.x, listed as WAB-10840 in the 5.2.4.0 notes while 5.2.1 and 5.2.3 notes already mention OIDC), but Trustelem publishes no WALLIX OIDC template and no groups claim guidance | *gap*; [Bastion 7.3.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf), [AM 10.5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Native client MFA | RADIUS to Trustelem Connect as secondary authentication of the Bastion AD domain | Only transparent push/OTP path for RDP and SSH proxies. [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf), [Bastion app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion) |
 | Authorization | Bastion group mappings on the AD domain (native path) and on the SAML domain (web path) | RADIUS carries no groups. [Bastion 7.3.1.1.3](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
-| Bastion cluster | Two nodes, HA Database Replication master/master | Approvals replicate only in master/master. [Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
+| Bastion cluster | Two nodes, HA Database Replication Master/Master | Approvals replicate between both masters in Master/Master. [Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Access Manager cluster | Two nodes behind an L7 load balancer, appliance MariaDB replication | [AM 20.1](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Agents | Two ADConnect and two Trustelem Connect VMs, on separate hosts from the Bastions | "The recommendation is 2 VM at least, to have a failover system". [Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect) |
 
@@ -409,8 +412,9 @@ sequenceDiagram
   users (the password was already checked by the Bastion against AD).
   Source: [Bastion app in Trustelem](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion).
 - The RADIUS timeout must cover push latency: the Bastion default is 5 s; the Trustelem Bastion
-  page says "let the default value, unless you have latency on your network", while a
-  WALLIX-published guide for another push provider uses 45 to 50 s. Test the push round trip
+  page says "let the default value, unless you have latency on your network", while an HID
+  guide hosted by WALLIX (2019) says to "increase the Timeout to at least 45-50 seconds" for
+  HID Approve push. Test the push round trip
   and raise the timeout if it does not fit.
   Source: [HID RADIUS configuration guide](https://www.wallix.com/wp-content/uploads/2020/07/HID_ActivID_Appliance_Wallix_RADIUS_ConfigGuide_FINAL.pdf).
 - Trustelem can suppress repeated prompts "for the duration defined on Trustelem and as long as
@@ -444,7 +448,7 @@ sequenceDiagram
   will be conbined [sic] with a Radius authentication"; without it the Bastion cannot even
   enumerate users.
   Source: [Bastion app in Trustelem](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion).
-- **Bastion local users with RADIUS only.** user authentication set to RADIUS
+- **Bastion local users with RADIUS only.** User authentication set to RADIUS
   alone, user name recognisable by Trustelem (e-mail), access rule *2 factors*, and "Use
   mobile device" left off. These users have no local password fallback.
   Source: [Bastion app in Trustelem](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion).
@@ -460,14 +464,14 @@ including passkeys.
 |-------------|---------------|---------------|------------------|
 | Access Manager portal (HTML5 RDP, SSH, WAMUT tunnels, password checkout, approvals) | Trustelem SAML (AD password via ADConnect) | Trustelem: push, TOTP, passkey | "complete SAML workflow ... using the same SAML Identity Provider on both" products; the portal opens Bastion sessions without a second login ([AM release notes WAB-3405](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)) |
 | Bastion web UI opened directly (administrators, auditors, approvers) | AD bind on the Bastion AD domain | Push/TOTP | SAML button is unusable once SAML is bound to Access Manager ([Bastion 7.3.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
-| Native RDP client to the Bastion proxy | AD bind | Push/TOTP on the RDP proxy login screen | With Kerberos enabled on the proxy, clients need `enablecredsspsupport:i:0` and `authentication level:i:2`, or `/sec:tls` for FreeRDP ([Users Guide 8.5.2](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf)) |
-| Native SSH, SFTP, SCP to the Bastion proxy | AD bind (or SSH key / SSH CA) | Push/TOTP via keyboard-interactive | Breaks non-interactive automation; scripted transfers should use a dedicated account without RADIUS ([VS Code issue](https://github.com/microsoft/vscode-remote-release/issues/11461)) |
+| Native RDP client to the Bastion proxy | AD bind | Push/TOTP on the RDP proxy login screen | With Kerberos enabled on the proxy, users of other methods need `enablecredsspsupport:i:0` and `authentication level:i:2`, or `/sec:tls` for FreeRDP, with NLA enabled ([Users Guide 9.3](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf), [Admin Guide 7.2.5.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
+| Native SSH, SFTP, SCP to the Bastion proxy | AD bind (or SSH key / SSH CA) | Push/TOTP via keyboard-interactive | Keyboard-interactive prompts break non-interactive clients (an open user report for a browser-OTP flow: [VS Code issue](https://github.com/microsoft/vscode-remote-release/issues/11461)); *inference:* scripted transfers use a dedicated account without RADIUS |
 | Universal Tunneling with WAMUT or WALLIX-PuTTY | same as SSH | same as SSH | The tunnel is an SSH session to the proxy; through Access Manager it inherits SAML ([Users Guide 8.6](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf)) |
 | One-time-password session files ("instant access") | already authenticated in the web UI or Access Manager | inherited | Token valid 30 s by default ([Bastion 12.5](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
-| Kerberos ticket SSO on the SSH proxy and RDP proxy (12.3.1) | Windows logon ticket | none from WALLIX | Single factor unless the workstation logon itself is MFA (smart card, Windows Hello for Business); *inference:* keep it for PAW-class workstations only ([Bastion 7.2.5.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
-| Bastion REST API and SCIM API with API keys | API key bound to a profile, optional IP restriction | none | Treat keys as secrets; restrict to Access Manager, IAM and automation hosts ([Bastion 6.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
+| Kerberos ticket SSO on the SSH proxy and on the RDP proxy (RDP since 12.3.1, WAB-208) | Windows logon ticket | none from WALLIX | Single factor unless the workstation logon itself is MFA (smart card, Windows Hello for Business); *inference:* keep it for PAW-class workstations only ([Bastion 7.2.5.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
+| Bastion REST API with API keys | API key bound to a profile; IP limitations "are inherited from the profile of the authenticated user", and the Terraform `apikey_v2` resource also sets an `ip_limitation` per key | none | Treat keys as secrets; restrict to Access Manager, IAM and automation hosts ([Bastion 6.1 and 6.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
 | Access Manager local and global administrators | local password (or Bastion domain) | RADIUS factor 2 on a local domain, or none | See 4.6 ([AM 10.1 and 12.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
-| Bastion SSH administration console (2242) | `wabadmin` password | none | Firewall to the admin network and jump host only ([Deployment Guide 2.1](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf)) |
+| Bastion SSH administration console (2242) | `wabadmin` password or SSH key (Deployment Guide 4.2) | none documented (*inference*) | Firewall to the admin network and jump host only ([Deployment Guide 2.1 and 4.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf)) |
 | Session Invite guest | time-limited link issued by the host | none | Guest has no account; host is already MFA-authenticated ([AM 14.6](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
 | Web Session Manager (isolated browser for web targets) | launched from an authenticated Bastion or AM session | inherited | Separate server linked by JWS/JWE keys ([Bastion 12.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
 
@@ -535,24 +539,26 @@ flowchart TB
 Facts from the [Bastion 12.0.2 Deployment Guide, chapter 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf)
 and the [12.3.2 release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html):
 
-- DRBD and the shared virtual IP belong to the legacy hardware-only design; "legacy DRBD code"
-  was removed in 12.3.2 and eth1 is now a standard interface.
+- "WALLIX Bastion 12 removed the High-Availability File System Replication (DRBD) feature";
+  the 12.3.2 notes remove the "legacy DRDB code" [sic] and eth1 is now a standard interface.
 - HA Database Replication is MariaDB replication carried inside an SSH tunnel maintained by
   autossh; slaves pull from local 3307 to the master's 3306, so the database port is never
   exposed on the network.
 - Modes: Master/Slave(s) (one writable node) and Master/Master (two nodes, primary and
-  secondary master). Approvals are replicated only in Master/Master; password operations and
+  secondary master). In Master/Master "approvals are replicated between both Bastions"; in
+  Master/Slaves they "must be requested and validated only on the Master"; password operations and
   scheduled rotations run only from the primary master; simultaneous API provisioning on both
   masters is unsupported.
-- Prerequisites: identical version and hotfix, encryption initialised on every node, IPv4 only,
-  never clone a configured VM, same time zone, SMTP on the master.
+- Prerequisites: the "same version of WALLIX Bastion", encryption initialised on every node,
+  IPv4 only, never clone a configured VM; same time zone and SMTP on the master are WALLIX
+  recommendations.
 - Not replicated: audit and session tables, recording options, configuration options,
   connection messages, licence, network, time, SNMP, SMTP, service control, SIEM integration,
   GPG fingerprints, device certificates. Each node must therefore receive its own licence,
   SIEM and recording-storage configuration.
 - Operations use `bastion-replication` (`--prerequisite-check`, `--install`, `--status`,
   `--resync`, `--add-slave`, `--elevate-master`, `--stop`, `--start`, `--uninstall`) and mail
-  templates ha_master_fault, ha_master_up and ha_slave_missing.
+  templates ha_master_fault, ha_master_up and ha_slave_missing (Admin Guide 8.2.2).
 - *Inference from absence:* neither guide mentions a VIP or a heartbeat. In Master/Master the
   front end reroutes to the surviving master; in Master/Slaves `bastion-replication
   --elevate-master` promotes the slave first, then the front end is rerouted.
@@ -659,14 +665,17 @@ flowchart TB
     B -.- NOTE
 ```
 
-- Replication is designed for nodes "located in the same environment or hosted on virtual
-  machines"; the guide gives no latency bound, and a remote slave in Master/Slaves mode is
-  the only replicated cross-site option (no changes are allowed on slaves).
+- "These servers can be physical appliances located in the same environment or hosted on
+  virtual machines"; the guide gives no latency bound and says nothing about cross-site
+  replication. *Inference:* a remote slave in Master/Slaves mode is the only replicated
+  cross-site option (no changes are allowed on slaves).
   Source: [Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf).
-- A DR Bastion refreshed by backup and restore is the partner-documented pattern; recovery
-  point equals the backup interval. Session recordings and audit tables are not in the
-  replication and must be copied at storage level (NFS, SMB or S3-compatible remote storage).
-  Source: [TECHDOC360 OT architecture](https://www.varnostne-resitve.si/wp-content/uploads/2025/03/TECHDOC360_Classic-WALLIX-Bastion-Architecture-OT.pdf).
+- A DR Bastion fed by a scheduled database dump from the master, "not in real time" but once
+  a day or more, is the pattern in a WALLIX OT architecture note (2023, hosted by a partner);
+  recovery point equals the dump interval. Recordings go to remote storage ("SMB/CIFS, NFS, or
+  Amazon EFS"); audit and session tables are excluded from replication per the Deployment Guide
+  chapter 5 exclusion list.
+  Sources: [WALLIX OT architecture note](https://www.varnostne-resitve.si/wp-content/uploads/2025/03/TECHDOC360_Classic-WALLIX-Bastion-Architecture-OT.pdf), [Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf).
 - Access Manager: `wabam-backup -d -n -p` produces an encrypted archive with the database,
   keystore and `wabam.properties`; restore only onto the same schema version.
   Source: [AM 15.3](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
@@ -706,7 +715,7 @@ flowchart TB
 | AM portal TLS certificate | `wabam-certificate-update` (present by 5.1.0, WAB-9894; `-s` for SANs since 5.2.0, WAB-14102) | LB re-pins if pass-through ([AM release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)) |
 | Bastion TLS certificate and proxy certificates | Bastion web UI | Toggle "Reset Bastion Certificate" and fingerprints in AM after change ([AM 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
 | RADIUS shared secret | Trustelem Bastion app model; Bastion and AM RADIUS entries | Change on both ends at once; AM has a "Change Shared Secret" toggle ([AM 11](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
-| Bastion API key | Bastion > Configuration > API keys; AM Bastion object | "Change API Key" toggle in AM ([AM 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
+| Bastion API key | Bastion API keys page (menu path not stated in the Admin Guide); AM Bastion object | "Change API Key" toggle in AM ([AM 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
 | Trustelem Connect and ADConnect sync IDs | Trustelem console (Services, Directories) and agent config | Re-register the agent if revoked ([Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect)) |
 | AM `crypto.install.key` | `wabam.properties` on every node | Must be identical across the farm ([AM 20.1](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
 
@@ -714,7 +723,7 @@ flowchart TB
 
 | From | To | Port | Purpose | Source |
 |------|----|------|---------|--------|
-| Users | Load balancer / Access Manager | TCP 443 (80 redirect) | HTML5 portal, WebSocket sessions | [AM Install Guide 2.4](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf) |
+| Users | Load balancer / Access Manager | TCP 443 (80 also listed) | HTML5 portal, WebSocket sessions | [AM Install Guide 2.4](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf) |
 | Users | Bastion nodes or LB | TCP 22, 3389 | native SSH/RDP proxies | [Deployment Guide 2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Users | Trustelem | TCP 443 | SAML/OIDC login pages | [Applications export](https://trustelem-doc.wallix.com/books/trustelem-applications/export/html) |
 | Access Manager | Bastion nodes | TCP 443, 22, 3389 | REST API, proxies | [AM 10.4.3](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
@@ -725,7 +734,7 @@ flowchart TB
 | Bastion node <-> Bastion node | | SSH tunnel managed by autossh carrying 3307 to 3306; *inference:* over the administration SSH port 2242, which the guide does not state | HA Database Replication | [Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Bastion nodes | Trustelem Connect | UDP 1812 | RADIUS secondary authentication | [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
 | Bastion nodes | Domain controllers | TCP 389/636, 88 | LDAP/AD bind, Kerberos | [Deployment Guide 2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
-| Bastion nodes | Targets | 22, 3389, 5900, 23, 443 and others | sessions | [Deployment Guide 2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
+| Bastion nodes | Targets | 22, 3389, 80/443 (Deployment Guide 2.2); VNC and Telnet targets on their own ports | sessions | [Deployment Guide 2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Bastion nodes | SIEM, NTP, SMTP, DNS, NFS/CIFS | 514, 123, 25/465/587, 53, 2049/445 | operations | [Deployment Guide 2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | ADConnect, Trustelem Connect | `*.trustelem.com`, `relay-fr-01/02.wallix.com`, IPs 185.4.44.22, 185.4.46.20-22, 185.4.44.114 and .117 (from 2026-09-29), relays 98.66.169.89 and 20.39.241.157 | TCP 443 outbound only | websocket relay; certificate pinned, no TLS inspection; HTTP CONNECT proxy allowed | [Connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows) |
 | ADConnect | Domain controllers | TCP 389/636 | sync and password validation | [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect) |
@@ -789,7 +798,7 @@ is a node loss, not a capacity share.
 | Run Bastion 12.3.7 / 12.4.1 or later and Access Manager 5.2.7 / 6.0.4 or later | both clusters | [WALLIX advisories](https://www.wallix.com/support-services/alerts/) |
 | Change all factory credentials (`admin`, `wabadmin`, `wabsuper`, `wabupgrade`, GRUB) and re-encrypt the LUKS disk passphrase | Bastion | [Deployment Guide 2.1 and 3](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Keep Signed Response and Signed Assertion on; Encrypt Messages off; import only the Trustelem signing certificate | Access Manager SAML | [AM 10.3.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
-| Restrict API keys by profile and source IP; one key per consumer | Bastion | [Bastion 6.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
+| Restrict API keys by profile and source IP; one key per consumer | Bastion | [Bastion 6.1 and 6.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
 | Enable `web.proxy.trusted-proxies` so only the load balancer may set forwarded headers | Access Manager | [AM 21.5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Keep the DoS filter (`web.max.requests.perSec=60`) and SNI host check enabled | Access Manager | [AM 21.4 and 21.5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Avoid TRACE or ALL log levels, which "may expose sensitive information, including passwords"; switch to DEBUG before generating an archive | Access Manager | [AM 15.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
@@ -832,7 +841,7 @@ then federation, then MFA enforcement. Test after each block.
 1. **Directories > Create > Active Directory**, choose "Use a connector", note the
    synchronization ID, install ADConnect on both VMs from https://dl.trustelem.com/adconnect/,
    select the AD groups to import, set the frequency.
-   Source: [AD synchronization](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect).
+   Source: [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect).
 2. **Security settings > Authentication factors**: enable WALLIX Authenticator push, TOTP and
    second-step passkeys; set the passkey policy; leave SMS and e-mail OTP off unless needed.
    Launch an enrollment campaign for the PAM user groups.
@@ -859,26 +868,29 @@ then federation, then MFA enforcement. Test after each block.
 
 ### 7.3 Bastion cluster
 
-1. Initialise both appliances (change `wabadmin` and `wabsuper` passwords on 2242, initialise
-   encryption, apply licences on each node, configure NTP, SMTP, SNMP, SIEM and recording
+1. Initialise both appliances (set the `wabadmin` and `wabsuper` passwords in the console
+   first-boot wizard, initialise encryption, apply licences on each node, configure NTP, SMTP, SNMP, SIEM and recording
    storage on each node since these are not replicated).
-   Source: [Deployment Guide ch. 2 and 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf).
-2. On the primary master run `bastion-replication --create-conf-file`, edit
-   `/etc/sqlreplication`, then `--prerequisite-check`, `--install`, `--install-monitoring`,
-   `--install-notification`, and verify with `--status`.
+   Source: [Deployment Guide ch. 4 and 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf).
+2. On the primary master run `bastion-replication --create-conf-file` (it generates the
+   configuration), then `--prerequisite-check`, `--install`, `--install-monitoring`,
+   `--install-notification`, and verify with `--monitoring` ("Show SQL replication status on
+   all Bastions").
    Source: [Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf).
 3. **Configuration > External authentication > Add > AD**: domain controllers, service account,
-   TLS options. **Configuration > Authentication domains**: create the AD domain, import user
-   groups and mappings (Users > Groups > Mappings) to AD group DNs.
-   Source: [Bastion 7.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
+   TLS options. **Configuration > Authentication domains**: create the AD domain, then on its
+   Mappings tab map AD group DNs to Bastion user groups.
+   Source: [Bastion 7.2 and 7.2.1.3](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 4. **Configuration > External authentication > Add > RADIUS** twice (Connect VM 1 and VM 2):
    port 1812, timeout 45 to 60 s, shared secret from the Trustelem app, enable "Use mobile
-   device for two-factor authentication (2FA)" and "Use primary domain name for two-factor
-   authentication (2FA)".
+   device for two-factor authentication (2FA)"; enable "Use primary domain name for two-factor
+   authentication (2FA)" only when Trustelem logins are UPNs (chapter 04).
    Source: [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 5. Edit the AD authentication domain and set **Secondary authentication** to the RADIUS
-   method (both servers as primary and backup).
-   Source: [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+   methods of both servers: "If you select several authentication methods, they are used one
+   after the other, according to the defined order" (whether that is failover or chaining is
+   checked by test B-09). A third-party MFA vendor guide also lists a server pair tried in order.
+   Sources: [Bastion 7.2.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
    [TrustBuilder RADIUS guide](https://docs.trustbuilder.com/mfa/wallix-bastion-radius-configuration).
 6. **Configuration > External authentication > Add > SAML**: upload the Trustelem IdP metadata,
    set Username to the same attribute as the AM Login attribute, Display name, Email, Group =
@@ -891,7 +903,8 @@ then federation, then MFA enforcement. Test after each block.
    value to a Bastion user group and profile, plus a default group.
    Source: [Bastion 7.3.1.1.2 and 7.3.1.1.3](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 8. Create the API key for Access Manager with profile `wallix_access_manager_session_audit`
-   and restrict it to the Access Manager IPs; create the auditor login used by Access Manager
+   and restrict it to the Access Manager IPs (through the key's IP limitation or the user
+   profile, Admin Guide 6.1); create the auditor login used by Access Manager
    session search.
    Source: [Bastion 6.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
    [AM 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
@@ -932,7 +945,7 @@ then federation, then MFA enforcement. Test after each block.
    Source: [AM 10.2.1 and 11](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
 7. Set the organization default domain to `TRUSTELEM` so users reach
    `https://<am-fqdn>/wabam/<org>` without typing the domain.
-   Source: [AM chapter 8 and 10](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
+   Source: [AM chapters 8 and 10](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
 
 ### 7.5 Acceptance tests
 
@@ -982,7 +995,7 @@ Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustele
 | Component | What to collect | How | Source |
 |-----------|-----------------|-----|--------|
 | Trustelem | authentication success/failure, factor enrollments, admin changes; directory health from the dashboard LED | Logs page, API (30 days), on-premise SIEM push through Trustelem Connect every 30 s in JSON | [On-premise SIEM](https://trustelem-doc.wallix.com/books/trustelem-administration/page/on-premise-siem), [API](https://trustelem-doc.wallix.com/books/trustelem-administration/page/api) |
-| Bastion | `wabauth` events, session start/stop, approvals, replication mails, SNMP | System > SIEM integration (syslog UDP/TCP 514); parsers for Splunk, Google SecOps, FortiSIEM, Sekoia | [Splunk add-on](https://github.com/wallix/Splunk-add-on), [Sekoia](https://docs.sekoia.com/integration/categories/iam/wallix/) |
+| Bastion | `wabauth` events, session start/stop, approvals, replication mails, SNMP | System > SIEM integration (syslog; transport and categories to confirm, the SIEM Logs guide is not public); parsers for Splunk, Google SecOps, FortiSIEM, Sekoia | [Splunk add-on](https://github.com/wallix/Splunk-add-on), [Google SecOps](https://docs.cloud.google.com/chronicle/docs/ingestion/default-parsers/wallix-bastion), [FortiSIEM](https://docs.fortinet.com/document/fortisiem/7.6.0/external-systems-configuration-guide/717035/wallix-bastion), [Sekoia](https://docs.sekoia.com/integration/categories/iam/wallix/) |
 | Access Manager | `access.log` in `/var/log/wallix/wabam`; `error.log` and `tech.log` in the log archive; audit log per organization; SNMP traps | Settings > Logs (DEBUG for SAML troubleshooting; TRACE and ALL may expose passwords); *gap:* no native syslog forwarder | [AM 15.2, 18, ch. 5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 
 ### 8.2 Rotation and lifecycle
@@ -1011,8 +1024,9 @@ Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustele
 
 - **Bastion HA**: snapshot both nodes; use the "controlled deployment" approach (clone the
   cluster, upgrade and test the clone, then deploy) or the direct approach; minor upgrades with
-  `wabupgrade` starting with the slaves in master/slave mode; `bastion-replication --stop`
-  and `--start` around the upgrade.
+  `wabupgrade` (chapter 7, which gives no HA ordering). In the major-upgrade procedure
+  `bastion-replication --stop` and `--start` bracket the backup re-import (6.2.1), and backups
+  "start with the Slaves" (6.2).
   Source: [Deployment Guide ch. 6 and 7](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf),
   [Bastion glossary](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - **Access Manager farm**: uninstall database replication (required for the upgrade to 5.2.3,
@@ -1026,8 +1040,9 @@ Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustele
 
 ## 9. Caveats and gaps
 
-- SAML and OIDC to the Bastion are complete only in the web UI; native clients rely on RADIUS
-  or the one-time-password session files.
+- SAML and OIDC to the Bastion are "supported, but the workflow is not fully integrated" on
+  native SSH and RDP clients (copy a link, retrieve a token); in practice native clients use
+  RADIUS, Kerberos, SSH keys or the one-time-password session files.
   Source: [Bastion 7.1.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - Configuring SAML on the Bastion for Access Manager makes direct SAML login to the Bastion
   impossible; administrators use LDAP/AD with RADIUS, or local accounts.
@@ -1043,7 +1058,8 @@ Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustele
   "remember this device"; adaptive access is limited to internal/external zones and the RADIUS
   MFA session. Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administration/page/access-rules).
 - Gaps confirmed on 2026-09-22: contractual SLA, SAML clock-skew tolerance, RADIUS attributes
-  returned by Trustelem, CHAP support on Trustelem RADIUS, Access Manager replication port and
+  returned by Trustelem, CHAP support on Trustelem RADIUS (the Bastion side is PAP only, known
+  limitation WAB-16237), Access Manager replication port and
   health-check URL, Bastion 12.4 and Access Manager 6.0 release notes (behind SSO), and public
   pricing for the Bastion plus Trustelem bundle.
 
@@ -1057,7 +1073,8 @@ the items below are the sign-off subset and keep their original numbering.
    channel (the public pages give history, not commitments).
 2. Maximum tolerated clock skew for SAML assertions on Access Manager and Bastion, and the
    assertion validity Trustelem issues.
-3. RADIUS: does Trustelem Connect answer CHAP as well as PAP, does it return any attributes in
+3. RADIUS: does Trustelem Connect answer CHAP as well as PAP (the Bastion itself supports only
+   PAP, WAB-16237), does it return any attributes in
    Access-Accept, and what happens to a pending push when the Bastion timeout expires first.
 4. Whether push approval (not only TOTP) is supported in the Access Manager RADIUS factor chain.
 5. Access Manager farm: replication port on the HA NIC, recommended health-check URL, and the
@@ -1070,7 +1087,8 @@ the items below are the sign-off subset and keep their original numbering.
    MFA session and the internal network zone.
 10. Licensing: Access Manager concurrent-user count, Bastion licence per replicated node, and
     the WALLIX Authenticator per-user model for administrators who also need other apps.
-11. RADIUS security: Message-Authenticator on the Bastion client and Trustelem Connect, a
+11. RADIUS security: Message-Authenticator on the Bastion client (not among the attributes
+    Admin Guide 7.2.5.4 lists) and on Trustelem Connect, a
     statement on CVE-2024-3596 (BlastRADIUS), and any RadSec roadmap.
 12. PKCE on the Bastion and Access Manager OIDC clients and the Trustelem provider; number
     matching or push rate limiting in WALLIX Authenticator; certification coverage of Bastion
@@ -1085,7 +1103,7 @@ the items below are the sign-off subset and keep their original numbering.
 | Term | Meaning |
 |------|---------|
 | ADConnect | Trustelem agent that synchronises AD users and validates AD passwords over an outbound websocket |
-| Trustelem Connect | Trustelem agent exposing local LDAP (2001) and RADIUS (1812) listeners that relay to the cloud |
+| Trustelem Connect | Trustelem agent exposing local LDAP (2001) and RADIUS (1812 Bastion, 2812 Access Manager) listeners that relay to the cloud |
 | WALLIX Authenticator | the mobile and desktop push/TOTP app, and also the name of the Trustelem licence limited to Bastion and Access Manager |
 | Authentication domain | Bastion object binding a user population (AD, SAML, OIDC) to primary and secondary authentication methods and group mappings |
 | Domain server name | Bastion field that must equal the Access Manager SAML or OIDC domain name (Bastion 7.3.1, AM 10.3.2 and 10.5.2); the Authentication domain name of the same object is set identical, as WALLIX recommends |
@@ -1128,6 +1146,6 @@ Third-party and community:
 - WALLIX Splunk add-on: https://github.com/wallix/Splunk-add-on
 - Sekoia Bastion integration: https://docs.sekoia.com/integration/categories/iam/wallix/
 - VS Code Remote-SSH keyboard-interactive issue: https://github.com/microsoft/vscode-remote-release/issues/11461
-- Partner OT architecture note (TECHDOC360): https://www.varnostne-resitve.si/wp-content/uploads/2025/03/TECHDOC360_Classic-WALLIX-Bastion-Architecture-OT.pdf
+- WALLIX OT architecture note (TECHDOC360, 2023, hosted by a partner): https://www.varnostne-resitve.si/wp-content/uploads/2025/03/TECHDOC360_Classic-WALLIX-Bastion-Architecture-OT.pdf
 
 The archived research notes behind this report are in `docs/archive/research-notes/`.

@@ -129,9 +129,9 @@ resource "wallix-bastion_authdomain_mapping" "corp_admins" {
 
 Arguments: `authentication_name`, `idp_metadata`, `timeout`, block
 `claim_customization { username (required), displayname, email, group, language }`; optional
-`certificate`, `private_key`, `passphrase`; computed `sp_entity_id`, `sp_metadata`,
-`sp_assertion_consumer_service`, `sp_single_logout_service`, `idp_entity_id`,
-`saml_request_url`.
+`description`, `certificate`, `private_key`, `passphrase`; computed `sp_entity_id`,
+`sp_metadata`, `sp_assertion_consumer_service`, `sp_single_logout_service`, `idp_entity_id`,
+`saml_request_url`, `saml_request_method`.
 
 ```hcl
 resource "wallix-bastion_externalauth_saml" "trustelem" {
@@ -150,8 +150,9 @@ output "trustelem_sp_entity_id" { value = wallix-bastion_externalauth_saml.trust
 output "trustelem_sp_acs"       { value = wallix-bastion_externalauth_saml.trustelem.sp_assertion_consumer_service }
 ```
 
-The two outputs are the values to paste into the Trustelem application (EntityID and
-Assertion Consumer Service). Rotate the Trustelem signing certificate by replacing the
+In the standalone native-SAML design the two outputs are the values to paste into a Trustelem
+generic SAML2 application (EntityID and Assertion Consumer Service); behind Access Manager no
+Bastion application is created (chapter 04). Rotate the Trustelem signing certificate by replacing the
 metadata file and applying.
 
 ### SAML authentication domain (`authdomain_saml`)
@@ -184,8 +185,9 @@ output "trustelem_idp_initiated_url" { value = wallix-bastion_authdomain_saml.tr
 
 Arguments: `apikey_name`, `profile`, `description`, `ip_limitation`; `profile` and
 `ip_limitation` are immutable; "The Bastion API never returns the raw API key value ... always
-reads back as a masked placeholder (********)", so capture the key at creation and store it in
-the secret manager.
+reads back as a masked placeholder (********)"; "retrieving the usable secret value requires
+the Bastion web UI (or another out-of-band process) at creation time", so copy it from the web
+UI when it is created and store it in the secret manager.
 
 ```hcl
 resource "wallix-bastion_apikey_v2" "access_manager" {
@@ -212,8 +214,9 @@ the GUI after each apply until the provider documents it.
 ## 4. Workflow
 
 1. `terraform plan` against the primary master in a change window.
-2. Apply; the objects replicate to the second node through HA Database Replication.
-3. Paste the SP outputs into Trustelem, download the metadata again if the SP entity ID
-   changed, and run the [test plan](../trustelem/10-test-plan.md), sections B and A.
+2. Apply; *inference:* the objects replicate to the second node through HA Database
+   Replication, as configuration data does.
+3. Standalone native SAML only: paste the SP outputs into Trustelem and download the metadata
+   again if the SP entity ID changed. Then and run the [test plan](../trustelem/10-test-plan.md), sections B and A.
 4. Keep the state file in a backend with encryption; it contains the RADIUS secret and the AD
    bind password.

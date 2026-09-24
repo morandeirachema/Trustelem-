@@ -18,8 +18,9 @@ Date: 2026-09-23. Sources: [WALLIX Splunk add-on](https://github.com/wallix/Splu
 
 ## 2. Bastion event format
 
-Splunk sourcetype `WB:syslog` extracts the bracketed tag as `WB_Event` (values seen:
-`wabauth`, `wabaudit`, `SSH Session`, `RDP Session`, `sshproxy`, `Vault Activity`) and
+Splunk sourcetype `WB:syslog` extracts the bracketed tag as `WB_Event` (values used by the
+add-on dashboards: `wabauth`, `sshproxy`, `rdpproxy`, `SSH Session`, `RDP Session`; the Sekoia
+samples add `wabaudit` and `Vault Activity`) and
 key=value pairs such as `action`, `user`, `client_ip`, `status`, `infos`, `type`, `object`,
 `session_id`, `target_ip`, `device`, `service`, `account`, `duration`, `command_line`, `data`.
 
@@ -29,7 +30,7 @@ Examples (Sekoia samples):
 [wabauth] action="authentify" user="admin" client_ip="1.1.1.1" status="success" infos="diagnostic [Authentication success: identified with local(LOCAL), authentified with: API key Bastion(APIKEY).]"
 [wabauth] action="authentify" user="username123" client_ip="1.1.1.1" status="failure" infos="diagnostic [Authentication failed]
 [SSH Session] session_id="1830cbf7a55a11dd005056b01296" client_ip="1.1.1.1" target_ip="ip-foo-bar-baz.corp.net" user="user1" device="DEVICE-FOO" service="SSH" account="username" type="SESSION_ESTABLISHED_SUCCESSFULLY"
-[RDP Session] session_id="19662b5f..." client_ip="1.1.1.1" target_ip="192.0.2.1" user="test@test.fr" device="example.com" service="RDP" account="test@test.fr" type="NEW_PROCESS" command_line="\"C:\\Windows\\system32\\test_script.exe\""
+[RDP Session] session_id="19662b5f089766d40050000400000" client_ip="1.1.1.1" target_ip="192.0.2.1" user="test@test.fr" device="example.com" service="RDP" account="test@test.fr" type="NEW_PROCESS" command_line="\"C:\\Windows\\system32\\test_script.exe\" -ServerName:serverTest"
 [Vault Activity] type="Vault" action="checkin" user="test@test.fr" account="user1" vault="local" session="True" result="Checkin successful"
 [wabaudit] action="add" type="LdapMapping" object="<QA_DOMAIN_1, OU=Group> in user_group_154954913825 GROUP" user="user1" client_ip="10.10.45.212" infos="ldapGroup [OU=Group], domain [QA_DOMAIN_1], group [user_group_154954913825]"
 [wabaudit] action="add" type="UserAuth" object="QA_USER_AUTH_KERBEROS" user="admin" client_ip="10.10.45.212" infos="wabAuthType [KERBEROS], description [], port [88], host [10.10.45.148], kerDomControler [QA.IFR.LAN]"
@@ -41,9 +42,10 @@ Usergroup, Profile, Apikey, Authorization, Approval, Backup/Restore, Cluster, De
 sessionlog and more; actions add, edit, delete, list, backup, restore, download.
 
 The `infos` diagnostic on `wabauth` names the identification source and the authentication
-method (for example `identified with local(LOCAL), authentified with: API key`). A RADIUS
-second factor appears in the same line as the method; a SAML user through Access Manager is
-identified in the SAML domain.
+method (for example `identified with local(LOCAL), authentified with: API key`, from the
+Sekoia sample). *Inference, to confirm in the lab (gap B6):* a RADIUS second factor appears in
+the same line as the method, and a SAML user through Access Manager is identified in the SAML
+domain.
 
 ## 3. Trustelem event format
 
@@ -73,13 +75,14 @@ Keep NTP on every node; SAML validation and correlation both depend on it.
 | MFA silently disabled | Bastion `wabaudit` edit on type `Ldapdomain` whose `infos` no longer lists the RADIUS secondary authentication; Trustelem permission change to *Always allow* |
 | Break-glass use | Bastion `wabauth` success for the local emergency account |
 | Federation tampering | Access Manager audit entries for SAML identity provider changes; Bastion `wabaudit` on type `UserAuth` with `wabAuthType [SAML]` |
-| API key misuse | `wabauth` success entries for API-key authentication (exact wording to confirm in the lab, gap B6) from an address outside the Access Manager farm |
+| API key misuse | `wabauth` success "authentified with: API key" (Sekoia sample) from an address outside the Access Manager farm |
 | Connector outage | absence of Trustelem RADIUS log records for more than five minutes during business hours while Bastion reports authentication failures with timeouts |
 | Session anomalies | `RDP Session` `NEW_PROCESS` or `KBD_INPUT` matching restriction patterns; `SSH Session` `SESSION_DISCONNECTION` with very short `duration` |
 
 Response hook: the Splunk add-on's kill action calls
 `PUT https://<bastion>/api/sessions?session_id=<id>` with body `{"reason": "..."}` and headers
-`X-Auth-Key` and `X-Auth-User`.
+`X-Auth-Key` and `X-Auth-User`; the helper hard-codes `X-Auth-User: admin`, so the key must be
+valid for that user.
 
 ## 6. Parser and integration references
 

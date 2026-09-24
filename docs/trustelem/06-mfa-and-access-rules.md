@@ -29,7 +29,7 @@ has 2 parameters: Login, and User can reset token":
   administrator can do a manual enrollment for users."
 - **User can reset token**: "the defined users can use their dashboard to reset this factor:
   https://mydomain.trustelem.com/#security". Restrict it to a group of users who are allowed to
-  re-enrol themselves; for privileged users prefer administrator-driven re-enrolment after an
+  re-enrol themselves; for privileged users prefer administrator-driven re-enrollment after an
   identity check.
 
 ## 3. Passkey policy
@@ -57,7 +57,7 @@ Three routes, all on the same page:
    and "Automatic enroll during login": "every time users authenticate on Trustelem login
    page, they will have a window asking them to enroll a new factor. They can skip the
    enrollment, but the window will continue to appear".
-3. **Self-service reset (re-enrolment)** at `https://<tenant>.trustelem.com/#security`, only for
+3. **Self-service reset (re-enrollment)** at `https://<tenant>.trustelem.com/#security`, only for
    the users defined under "User can reset token": "the defined users can use their dashboard to
    reset this factor".
 

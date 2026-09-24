@@ -70,17 +70,17 @@ audit log entry.
 |----|--------------|-------|----------|----------|
 | O-01 | SIEM target configured | perform B-01 | JSON record arrives within 30 s | SIEM index |
 | O-02 | API enabled | call the `listPerms` script from an allowed IP and from a blocked IP | allowed returns JSON; blocked refused | HTTP responses |
-| O-03 | new application certificate created | switch the AM app to it, re-import metadata on AM and Bastion | login works; old certificate retired | A-06 with the new certificate |
-| O-04 | user lost the phone | request a rescue code, admin releases it from Alerts | one-time code accepted within 24 h; re-enrolment | TL, Alerts page |
+| O-03 | new application certificate created | switch the AM app to it, re-import metadata on AM and Bastion | login works; old certificate removed afterwards (recommendation) | A-06 with the new certificate |
+| O-04 | user lost the phone | request a rescue code, admin releases it from Alerts | one-time code accepted within 24 h; re-enrollment | TL, Alerts page |
 | O-05 | RADIUS secret rotation | change on the app model, then on both Bastion entries and the AM server | B-01 passes; during the window Connect 2 still serves | WA |
-| O-06 | ADConnect upgrade | install new version on a third path, reorder priority, disable old | sync continues; no failed logins | Dashboard, TL |
+| O-06 | ADConnect upgrade | install the new version in parallel, list it first, then remove the old one | sync continues; no failed logins | Dashboard, TL |
 
 ## 6. Cluster behaviour
 
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
-| H-01 | Bastion replication installed | `bastion-replication --status` on `bastion-1` | both nodes in sync | command output |
-| H-02 | H-01 | add a mapping on `bastion-1` | visible on `bastion-2` within seconds | WD on both nodes |
+| H-01 | Bastion replication installed | `bastion-replication --monitoring` on `bastion-1` | both nodes in sync | command output |
+| H-02 | H-01 | add a mapping on `bastion-1` | visible on `bastion-2` shortly after (no replication delay is documented) | WD on both nodes |
 | H-03 | H-01 | `bastion-2` unreachable | logins via the load balancer continue on `bastion-1`; AM cluster stops using `bastion-2` after `bastion.connection.timeout` | AM log, LB log |
 | H-04 | AM replication installed | create a SAML IdP on `am-1` | present on `am-2` | AM audit on both |
 

@@ -92,9 +92,9 @@ bastion-luks-update --reencrypt
 ```
 
 and `WABSecurityLevel` to select "SOG-IS CES 1.3 Agreed Cryptographic Mechanisms up to 2030".
-GUI (4.3): change `admin`, initialise encryption (passphrase of at least 12 characters, cannot
-be removed later), licence via Configuration > License > Download context file, time service,
-a named `product_administrator`, first backup with a backup key of exactly 16 characters (chapter 2 of the guide says "at
+GUI (4.3): change `admin`, initialise encryption (passphrase of at least 12 characters with upper case, lower case, a number and a special
+character; "once a passphrase has been set, it cannot be deleted", Quick Start 5.3.2), licence via Configuration > License > Download context file, time service,
+a named `product_administrator`, first backup with a backup key of exactly 16 characters (section 4.3 of the guide says "at
 least 16", chapters 6 and 7 "must be exactly 16 characters long"; use 16, gap B8),
 delete the default `admin`, run `WABChangeDbRootPassword`.
 
@@ -129,8 +129,8 @@ What is your passphrase? leave blank, if there is none ?
 The rotation prompt defaults differ: keep rotation on node 1, disable it on node 2, which
 matches the rule that password operations run only from the primary master.
 
-Master/Slaves (5.1.2) is the same dialogue with choice `2` and a "Define the number of Slaves"
-prompt.
+Master/Slaves (5.1.2) is the same dialogue with choice `2`; step 5.1.2 2c defines the number
+of slaves (the example transcript does not show that prompt).
 
 ## 5. Command reference (5.2)
 
@@ -180,16 +180,18 @@ API provisioning on the surviving node only; when the failed node returns, check
 `--monitoring` and use `--resync` (or `--dump-resync` if the data diverged) from the primary
 master.
 
-Master/Slaves: promote with `bastion-replication --elevate-master` on the surviving slave, then
-repoint the front end. The step-by-step failover and failback procedure is not documented
-publicly; rehearse it on the test cluster and record your own runbook. Restoring a backup on a
-replicated node is also undocumented; treat it as a rebuild (uninstall replication, restore,
-reinstall).
+Master/Slaves: promote with `bastion-replication --elevate-master` ("Elevate a slave bastion
+from an existing cluster master/slave"; *inference:* run on the surviving slave), then repoint
+the front end. The step-by-step failover and failback procedure is not documented
+publicly; rehearse it on the test cluster and record your own runbook. For restoring backups on
+replicated nodes the guide gives, in the major-upgrade context, "stop the HA replication"
+(`bastion-replication --stop`), import each backup on its node, then `bastion-replication
+--start` (6.2.1 step 9).
 
 Disable the failed node in Access Manager (Bastions page, Active Bastion off) so the cluster
 stops trying it ([AM release note WAB-17043](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)).
 
-## 8. Upgrades in HA mode (6.2)
+## 8. Major upgrades in HA mode (chapter 6: to Bastion 12)
 
 Two methods:
 
@@ -214,8 +216,9 @@ ssh -p 2242 wabupgrade@<BASTION_IP_ADDRESS>
 BastionSecureUpgrade -i /home/wabupgrade/<ISO>.iso -c /home/wabupgrade/<ISO>.iso.sha256sum -s /home/wabupgrade/<ISO>.iso.sha256sum.sig
 ```
 
-Verify the ISO signature first: `gpg --import <CA>.pub.gpg` and
-`gpg --verify <ISO>.iso.sha256sum.sig <ISO>.iso.sha256sum` (signer "WALLIX PAM R&D Team").
+Verify the ISO signature (Deployment Guide 3.2.1.1.1): `gpg --import <CA>.pub.gpg` and
+`gpg --verify <ISO>.iso.sha256sum.sig <ISO>.iso.sha256sum` (signer "WALLIX PAM R&D Team");
+optional here, because "the WALLIX upgrade script also verifies the signature" (7.1).
 If the upgrade fails, answer `N` to the lockdown deactivation prompt, reboot in rescue mode,
 then `/opt/wab/bin/BastionSecureUpgrade --unlock-system`.
 
@@ -240,13 +243,16 @@ Source: [Quick Start 5.4](https://marketplace-wallix.s3.amazonaws.com/Bastion-qu
 ## 10. Services on the appliance
 
 From the disk-expansion procedure (Deployment Guide 3.2.2.2), the services stopped before
-resizing `/var/wab` are the authoritative service list: `wabwatchdog`, `wabrestapi`, `wabgui`,
+resizing `/var/wab` (autossh, used by replication, is not in that list): `wabwatchdog`, `wabrestapi`, `wabgui`,
 `redemption` (RDP proxy), `sashimi` (SSH proxy), `wallix-validator`, `superset`,
 `wallix-discovery`, `wallixsession`, `wallixcelery`, `wabsystemconfiguration`, `syslog-ng`,
 `acpid`, `cron`, `wab-backupdaemon`, `mariadb`. Data lives on LV `vg00/lvwab` mounted at
 `/var/wab`. GUI equivalent: System > Service control.
 
 ## 11. What replicates from the Trustelem integration
+
+*Inference* from the chapter 5 exclusion list: everything not excluded is configuration data
+and replicates.
 
 | Object | Replicated | Action on the second node |
 |--------|:-:|---------------------------|
@@ -257,4 +263,4 @@ resizing `/var/wab` are the authoritative service list: `wabwatchdog`, `wabresta
 | SIEM integration, SMTP, SNMP, NTP, network | no | configure on each node |
 | Licence | no | one licence file per node |
 | Recording options and storage | no | configure on each node |
-| Device certificates and GPG fingerprints | no | re-accept on each node |
+| Device certificates and GPG fingerprints | no | re-accept on each node; in Master/Master "you must upload the GPG key to both master nodes" (Admin Guide 4.5) |

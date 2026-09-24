@@ -147,9 +147,9 @@ What is already known:
 
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
-| 1.1 | Is there any on-premise or private-cloud edition of Trustelem / WALLIX One IDaaS, or is SaaS the only form? | Decides whether "fully on-premise" is even an option with WALLIX | |
-| 1.2 | If we must stay fully on-premise, what is WALLIX's supported way to get TOTP on Bastion and Access Manager? Do they endorse a third-party RADIUS TOTP server, and which ones have they tested? | Bastion and Access Manager both delegate MFA to RADIUS; a supported server list avoids an unsupported design | |
-| 1.3 | With a third-party RADIUS TOTP server, does WALLIX support still cover the Bastion RADIUS integration, or only the Trustelem path? | Support boundary | |
+| 1.1 | Is there any on-premise or private-cloud edition of Trustelem / WALLIX One IDaaS, or is SaaS the only form? (C3) | Decides whether "fully on-premise" is even an option with WALLIX | |
+| 1.2 | If we must stay fully on-premise, what is WALLIX's supported way to get TOTP on Bastion and Access Manager? Do they endorse a third-party RADIUS TOTP server, and which ones have they tested? (C3) | Bastion and Access Manager both delegate MFA to RADIUS; a supported server list avoids an unsupported design | |
+| 1.3 | With a third-party RADIUS TOTP server, does WALLIX support still cover the Bastion RADIUS integration, or only the Trustelem path? (C3) | Support boundary | |
 | 1.4 | If Trustelem's SaaS is unreachable (Internet outage), what is the recommended break-glass: local Bastion accounts, RADIUS failover to a second server, or an MFA session? (T12) | Outage handling, chapter 07 | |
 | 1.5 | Where exactly is the tenant hosted (provider, country), and what are the SecNumCloud, HDS and ISO 27001 scope statements? (gap T9) | Compliance and data-residency review | |
 | 1.6 | Can the tenant data (users, factors, rules, logs) be exported or backed up by the customer, and how is a tenant deleted at contract end? (gap T1) | Exit strategy | |
@@ -168,14 +168,14 @@ What is already known:
 
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
-| 2.1 | What is the licensing unit for WALLIX Authenticator: named user, enrolled device, or concurrent session? Are service accounts and break-glass accounts counted? | Budget | |
-| 2.2 | What changes in price and in features when moving from WALLIX Authenticator to full WALLIX One IDaaS (other apps, SCIM, IWA)? | Future scope | |
-| 2.3 | Bastion: is the licence per node, per cluster, or per named/concurrent user, and does a passive replica need a full licence? | HA cost | |
-| 2.4 | Access Manager: is the licence by concurrent users, and how does a farm of N nodes count? | HA cost | |
-| 2.5 | Are ADConnect, Trustelem Connect, the on-premise SIEM push and the API included, or separately priced? | Hidden costs | |
-| 2.6 | SMS and e-mail OTP: per-message cost and whether they can be disabled contractually. | Avoid surprise billing | |
-| 2.7 | Contract term, renewal terms, and what happens to authentication if the licence lapses (grace period, read-only, hard stop). | Operational risk | |
-| 2.8 | Evaluation or pilot tenant: duration, user cap, and can it be converted to production without re-enrolling users? | Pilot plan | |
+| 2.1 | What is the licensing unit for WALLIX Authenticator: named user, enrolled device, or concurrent session? Are service accounts and break-glass accounts counted? (C1) | Budget | |
+| 2.2 | What changes in price and in features when moving from WALLIX Authenticator to full WALLIX One IDaaS (other apps, SCIM, IWA)? (C1) | Future scope | |
+| 2.3 | Bastion: is the licence per node, per cluster, or per named/concurrent user, and does a passive replica need a full licence? (C1) | HA cost | |
+| 2.4 | Access Manager: is the licence by concurrent users, and how does a farm of N nodes count? (C1) | HA cost | |
+| 2.5 | Are ADConnect, Trustelem Connect, the on-premise SIEM push and the API included, or separately priced? (C1) | Hidden costs | |
+| 2.6 | SMS and e-mail OTP: per-message cost and whether they can be disabled contractually. (C1) | Avoid surprise billing | |
+| 2.7 | Contract term, renewal terms, and what happens to authentication if the licence lapses (grace period, read-only, hard stop). (C1) | Operational risk | |
+| 2.8 | Evaluation or pilot tenant: duration, user cap, and can it be converted to production without re-enrolling users? (C1) | Pilot plan | |
 
 ## 3. Effort and timeline
 
@@ -190,12 +190,12 @@ What is already known:
 
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
-| 3.1 | Typical elapsed time from order to a working tenant with ADConnect and Trustelem Connect for a customer of our size? | Planning | |
-| 3.2 | Person-days WALLIX estimates for the Bastion RADIUS integration, the Access Manager SAML integration, and the Access Manager to Bastion link? | Staffing | |
-| 3.3 | Which of these tasks does WALLIX Professional Services do, which does the partner do, and which are left to us? | Scope of the offer | |
-| 3.4 | Is there a reference project plan or a deployment checklist we can receive now? | Reuse | |
-| 3.5 | What are the prerequisites WALLIX needs from us before day one (AD service account rights, network flows, certificates, test users)? | Avoid a stalled kick-off | |
-| 3.6 | Lead time for the WALLIX Authenticator app rollout: MDM packaging, enrollment campaign tooling, and how long a campaign normally runs. | User migration | |
+| 3.1 | Typical elapsed time from order to a working tenant with ADConnect and Trustelem Connect for a customer of our size? (C2) | Planning | |
+| 3.2 | Person-days WALLIX estimates for the Bastion RADIUS integration, the Access Manager SAML integration, and the Access Manager to Bastion link? (C2) | Staffing | |
+| 3.3 | Which of these tasks does WALLIX Professional Services do, which does the partner do, and which are left to us? (C2) | Scope of the offer | |
+| 3.4 | Is there a reference project plan or a deployment checklist we can receive now? (C2) | Reuse | |
+| 3.5 | What are the prerequisites WALLIX needs from us before day one (AD service account rights, network flows, certificates, test users)? (C2) | Avoid a stalled kick-off | |
+| 3.6 | Lead time for the WALLIX Authenticator app rollout: MDM packaging, enrollment campaign tooling, and how long a campaign normally runs. (C2) | User migration | |
 
 ## 4. Support, SLA and roadmap
 
@@ -209,7 +209,7 @@ What is already known:
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
 | 4.1 | Contractual availability SLA for the tenant, planned maintenance windows and how customers are notified of incidents. (T1) | Risk acceptance | |
-| 4.2 | Support hours, response times per severity, and whether Trustelem, Bastion and Access Manager are one support contract or three. | Operations | |
+| 4.2 | Support hours, response times per severity, and whether Trustelem, Bastion and Access Manager are one support contract or three. (C4) | Operations | |
 | 4.3 | Can we get customer-portal access now to read the Bastion 12.4 and Access Manager 6.0 release notes and the System Operations Guide? (B1, B2, A1, A6) | Closes several gaps | |
 | 4.4 | End-of-support dates for Bastion 12.3 and Access Manager 5.2, and the upgrade path to 12.4 / 6.0 (Debian 12). (B1, A1) | Lifecycle | |
 | 4.5 | Roadmap: RadSec, number matching or push rate limiting in WALLIX Authenticator, browser "remember this device", PKCE and exact redirect URI matching on the OIDC clients. (T4, T7, T8, A5) | Design assumptions | |
@@ -235,7 +235,7 @@ What is already known:
 | 5.6 | Latency limit for cross-site Master/Slaves replication and the supported DR failover procedure. (B3, B2) | DR design | |
 | 5.7 | SCIM from Trustelem into the Bastion: supported, payload, deprovisioning semantics, cluster behaviour. (T5, B4; full list in [chapter 12 section 6](../trustelem/12-scim-provisioning.md)) | Provisioning | |
 | 5.8 | OIDC instead of SAML: is there a WALLIX OIDC app template in Trustelem and guidance for a groups claim, or does WALLIX only support the SAML templates? (T11) | Keeps OIDC as a fallback | |
-| 5.9 | Bastion backup key: chapter 2 of the Deployment Guide says at least 16 characters, chapters 6 and 7 exactly 16. Which is right? (B8) | Backup and DR runbook | |
+| 5.9 | Bastion backup key: section 4.3 of the Deployment Guide says at least 16 characters, chapters 6 and 7 exactly 16. Which is right? (B8) | Backup and DR runbook | |
 
 ## 6. Access Manager integration
 
@@ -279,5 +279,5 @@ What is already known:
 - Ask who owns each open answer and by when.
 - Ask for: customer-portal login, the deployment checklist (3.4), the SLA document (4.1), the
   licence quote broken down per component (block 2).
-- After the meeting, update the [gaps register](open-questions-and-gaps.md): move closed rows
+- After the meeting, update the [gaps register](open-questions-and-gaps.md): move closed rows to the Closed section
   out, add the source WALLIX sends.

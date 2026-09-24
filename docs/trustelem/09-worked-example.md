@@ -106,7 +106,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 
 | App | Target | Web internal | Web external | LDAP | RADIUS |
 |-----|--------|--------------|--------------|------|--------|
-| Acme Access Manager | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors`, `Partners` | 2 factors | 2 factors | | 2nd factor only |
+| Acme Access Manager | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors` | 2 factors | 2 factors | | 2nd factor only |
 | Acme Access Manager | everyone | Forbidden | Forbidden | | Forbidden |
 | Acme Bastion | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors` | | | | 2nd factor only |
 | Acme Bastion | `PAM-Automation` | | | | Always allow |
@@ -145,7 +145,6 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | `TRUSTELEM` | `PAM-Admins` | `pam-admins` | `product_administrator` |
 | `TRUSTELEM` | `PAM-Operators` | `pam-operators` | `user` |
 | `TRUSTELEM` | `PAM-Auditors` | `pam-auditors` | `auditor` |
-| `TRUSTELEM` | `Partners` | `partners` | `user` |
 
 ### Other
 
@@ -154,8 +153,8 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | API key for Access Manager | name `access-manager`, profile `wallix_access_manager_session_audit`, IP limitation `10.10.20.31,10.10.20.32` |
 | Auditor login for AM session search | `am-auditor` (local, profile `auditor`, IP-restricted) |
 | Break-glass | `bg-admin`, local password, profile `product_administrator`, source IP restricted to `10.10.21.0/24` |
-| One time password ttl | 30 s |
-| SIEM integration (each node) | `siem.corp.acme.example`, TCP 514, all categories |
+| One time password ttl (each node: Configuration options do not replicate) | 30 s |
+| SIEM integration (each node) | `siem.corp.acme.example`, port 514 (transport and categories per the non-public SIEM Logs guide) |
 
 ## 4. Access Manager (organization `acme`)
 
@@ -199,7 +198,7 @@ Factor 1, RADIUS Factor 2.
 `user.admin*` from `am-1`; `web.proxy.trusted-proxies=10.10.20.30`;
 `purge.audit.active=true` on `am-1` only.
 
-## 5. How three users log in
+## 5. How the users log in
 
 | User | Path | What happens |
 |------|------|--------------|
@@ -221,5 +220,6 @@ Factor 1, RADIUS Factor 2.
 - "Use mobile device for 2 factor authentication(2FA)" ON on both Bastion RADIUS entries.
 - Access rules exist before any test (LDAP 1 factor for `Partners`, RADIUS 2nd factor only for
   the AD groups).
-- Egress firewall allows the Connect and ADConnect VMs to `*.trustelem.com`, including
-  185.4.44.114 and 185.4.44.117.
+- Egress firewall allows the Connect and ADConnect VMs to `*.trustelem.com`,
+  `relay-fr-01.wallix.com` and `relay-fr-02.wallix.com`, including 185.4.44.114 and
+  185.4.44.117, with those destinations excluded from TLS inspection.

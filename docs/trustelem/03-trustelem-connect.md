@@ -143,7 +143,7 @@ in the console reach the agent without a restart.
 
 `./connect check <your sync id>` or `./connect check <your sync id> http://proxy.example.local:3128`
 (`<your sync id>` is the vendor's generic name; for Trustelem Connect it is the `service_id` of
-section 3).
+section 2).
 Output fields:
 
 | Field | Meaning (verbatim) |
@@ -182,7 +182,7 @@ Connect page documents Message-Authenticator, RADIUS/TLS is not offered, and no 
 on the CVE was found ([advisories](https://www.wallix.com/support-services/alerts/)). Until
 WALLIX confirms the behaviour, treat the Bastion-to-Connect hop as one that must stay inside a
 trusted administration network: same VLAN or host-adjacent placement, no crossing of user
-networks, and firewall rules that allow 1812/udp only from the Bastion and Access Manager
+networks, and firewall rules that allow 1812/udp only from the Bastion and 2812/udp only from Access Manager
 addresses. Details and the vendor questions are in
 [Standards and compliance](../reference/standards-and-compliance.md).
 
