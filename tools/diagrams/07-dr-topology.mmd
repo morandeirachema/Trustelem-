@@ -6,12 +6,12 @@ flowchart TB
         BA["Bastion-1 and Bastion-2<br/>HA Database Replication (M/M)"]
         AGA["ADConnect-A1/A2, Connect-A1/A2"]
         STA["Recording storage NFS/SMB (site A)"]
-        BKA["Scheduled wabam-backup + Bastion backup"]
+        BKA["wabam-backup + Bastion automatic backup<br/>(daily 18:50, custom backup key per node)"]
     end
     subgraph B["Site B: disaster recovery"]
         LBB["LB-B: same DNS names on failover"]
         AMB["AM-3, cold or warm, restored from the site A wabam-backup<br/>own licence, SIEM, SMTP, NTP settings"]
-        BB["Bastion-3 restored from backup (or a slave if site A<br/>runs M/S and latency allows); own licence, SIEM, SMTP, NTP"]
+        BB["Bastion-3 restored from backup (a slave only if<br/>both sites share one subnet); own SIEM, SMTP, NTP"]
         AGB["ADConnect-B1 (priority 2), Connect-B1 (backup RADIUS server)"]
         STB["Recording storage (copy of site A)"]
     end

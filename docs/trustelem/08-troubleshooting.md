@@ -1,11 +1,14 @@
 # Trustelem troubleshooting
 
-Date: 2026-09-23. Sources: the Debug chapter of
+Date: 2026-09-24. Sources: the Debug chapter of
 [LDAP-Radius - Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect),
 [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect),
 [connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows),
 [WALLIX Bastion](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion) and
 [WALLIX Access Manager](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager) application pages.
+Bastion and Access Manager log locations in section 8 are verified against the Bastion 12.4.3
+guides and the Access Manager 6.0.5 Administration Guide, WALLIX customer documentation behind
+the doc.wallix.com login ([doc.wallix.com](https://doc.wallix.com/)).
 Quotes are verbatim.
 
 ## 1. First question: is there a log line in Trustelem?
@@ -102,10 +105,20 @@ Additional checks from the Access Manager guide and release notes:
 
 1. Trustelem: Logs page filtered on the user, service page screenshot (listener, port,
    status), `./connect check` output.
-2. Bastion: authentication log lines (`wabauth` events in syslog), the RADIUS external
-   authentication settings, the domain's secondary authentication.
-3. Access Manager: log archive with SAML at DEBUG, the SAML Identity Provider settings, a SAML
-   tracer capture (redact the assertion signature if shared outside the team).
+2. Bastion: authentication log lines (`wabauth` events in syslog, also stored locally in
+   `/var/log/wabauth.log`; `WABJournalCtl` shows the journal, which "include SIEM logs"), the
+   Audit > Authentication history rows with their Diagnosis (RDP and SSH proxy logins only, CSV
+   export), the RADIUS external authentication settings, the domain's secondary authentication.
+   A failure line only says "Authentication failed"; the reason is on the Trustelem side.
+   Sources: [Bastion 12.4.3 Operation Guide](https://doc.wallix.com/) 6.5.2 and 13.3,
+   [Bastion 12.4.3 Auditor Guide](https://doc.wallix.com/) 10,
+   [Bastion 12.4.3 SIEM Logs Guide](https://doc.wallix.com/) 2.1.
+3. Access Manager: log archive with SAML at DEBUG (Settings > Application Settings, Logs tab;
+   files `access.log`, `error.log`, `cli.log`, `tech.log` in `/var/log/wabam` on 6.0.5, per
+   [Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) 9.7; older 5.2 path
+   `/var/log/wallix/wabam`), the SAML Identity Provider settings, a SAML tracer capture (redact
+   the assertion signature if shared outside the team). Switch TRACE or ALL back to DEBUG before
+   sharing: they "may expose sensitive information, including passwords" (9.7.1).
 4. Timestamps from all three systems and their NTP status.
 5. WALLIX support case at https://support.wallix.com; themes are enabled by
    support-trustelem@wallix.com, the delegated administration tool through "your WALLIX sales

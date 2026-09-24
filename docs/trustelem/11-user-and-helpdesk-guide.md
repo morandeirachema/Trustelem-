@@ -1,9 +1,11 @@
 # User and help-desk guide
 
-Date: 2026-09-23. What privileged users see once Trustelem MFA is live, and what the help desk
+Date: 2026-09-24. What privileged users see once Trustelem MFA is live, and what the help desk
 does when they call. Screens and wording follow the vendor pages cited in chapters 04 to 08;
 the help-desk actions follow [06 MFA and access rules](06-mfa-and-access-rules.md) and
-[07 Operations](07-operations.md).
+[07 Operations](07-operations.md). Bastion log statements are verified against the Bastion
+12.4.3 SIEM Logs Guide and Auditor Guide, WALLIX customer documentation behind the
+doc.wallix.com login ([doc.wallix.com](https://doc.wallix.com/)).
 
 ## 1. Enrolling a second factor
 
@@ -95,7 +97,16 @@ otherwise AD users go through the normal AD process.
    reached Trustelem (connector or firewall), or it was an LDAP search for a user without an
    access rule, which "you will not see any logs" for (chapter 08).
 4. If there is an entry: user not found, no access rule, no second factor, or rejected push.
-5. Bastion `[wabauth]` line for the same time: `status` and `infos`.
+5. Bastion evidence for the same time:
+   - Audit > Authentication history (RDP and SSH proxy logins only, not the web interface):
+     Result and the Diagnosis column. "Authentication attempts with an expired OTP are not
+     attributed to a user and are logged as [unknown username]", so search by time and source
+     IP as well as by user name ([Bastion 12.4.3 Auditor Guide](https://doc.wallix.com/) 10).
+   - For the PAM team or SIEM: the `[wabauth]` lines, `status` (`started`, then `success`,
+     `failure` or `canceled`) and `infos`. The `started` line shows which domain identified the
+     user (`identified with {domain}({TYPE})`); a failure only says "Authentication failed", so
+     the reason comes from the Trustelem entry in item 4
+     ([Bastion 12.4.3 SIEM Logs Guide](https://doc.wallix.com/) 2.1).
 6. Escalate to the PAM team with items 1 to 5 and [08 Troubleshooting](08-troubleshooting.md).
 
 ## 7. Emergency (Trustelem unreachable)

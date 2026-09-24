@@ -1,9 +1,12 @@
 # Codifying the Bastion side of the Trustelem integration with Terraform
 
-Date: 2026-09-23. Source: the WALLIX Terraform provider documentation
+Date: 2026-09-24. Source: the WALLIX Terraform provider documentation
 ([index](https://github.com/wallix/terraform-provider-wallix-bastion/blob/main/docs/index.md),
 [resources](https://github.com/wallix/terraform-provider-wallix-bastion/tree/main/docs/resources))
 and the [Bastion 12.3.2 Functional Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
+Verified against Bastion 12.4.3: the Functional Administration Guide, the Deployment Guide and the
+System Operations Guide (customer documentation behind the [doc.wallix.com](https://doc.wallix.com/)
+login); the Administration Guide sections behind these objects are unchanged from 12.3.2.
 The HCL below is illustrative and follows the documented arguments; validate it against the
 provider version you deploy. Placeholder values (`corp.example.local`, node addresses) are
 illustrative and are not those of the [worked example](../trustelem/09-worked-example.md),
@@ -66,7 +69,12 @@ Arguments: `authentication_name`, `host`, `port`, `secret`, `timeout`; optional
 `description`, `use_primary_auth_domain`. The GUI option "Use mobile device for 2 factor
 authentication(2FA)" is not exposed: the provider source `resource_externalauth_radius.go` has
 no such attribute (checked 2026-09-23), so set it in the GUI after every apply that recreates
-the resource.
+the resource. `use_primary_auth_domain` is the GUI option "Use primary domain name for two-factor
+authentication (2FA)", which "forces the domain name to be mentioned in the login (for example,
+user@domain) during the second authentication"
+([Admin Guide 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+12.3.2 and 12.4.3). The worked example uses sAMAccountName logins and leaves it off; set it to
+`true` only when Trustelem logins are UPNs (chapter 04, section 3).
 
 ```hcl
 resource "wallix-bastion_externalauth_radius" "trustelem_1" {
@@ -75,7 +83,7 @@ resource "wallix-bastion_externalauth_radius" "trustelem_1" {
   port                    = 1812
   secret                  = var.trustelem_radius_secret
   timeout                 = 50
-  use_primary_auth_domain = true
+  use_primary_auth_domain = false   # logins are sAMAccountName (worked example); true only for UPN logins
 }
 
 resource "wallix-bastion_externalauth_radius" "trustelem_2" {
@@ -84,7 +92,7 @@ resource "wallix-bastion_externalauth_radius" "trustelem_2" {
   port                    = 1812
   secret                  = var.trustelem_radius_secret
   timeout                 = 50
-  use_primary_auth_domain = true
+  use_primary_auth_domain = false   # logins are sAMAccountName (worked example); true only for UPN logins
 }
 ```
 
@@ -187,7 +195,13 @@ Arguments: `apikey_name`, `profile`, `description`, `ip_limitation`; `profile` a
 `ip_limitation` are immutable; "The Bastion API never returns the raw API key value ... always
 reads back as a masked placeholder (********)"; "retrieving the usable secret value requires
 the Bastion web UI (or another out-of-band process) at creation time", so copy it from the web
-UI when it is created and store it in the secret manager.
+UI when it is created and store it in the secret manager. The Bastion guides match: the
+Configuration > API keys page accepts only "a profile with the Read-only profile type", takes one
+or more individual IP addresses ("Subnet notations, for example 192.0.2.1/24, are not
+supported"), and on edit "You cannot change the profile or the IP limitations"; the key is shown
+once ([Bastion 12.4.3 System Operations Guide](https://doc.wallix.com/) 12.1 and 12.2). On the
+12.0 branch API keys carry no profile (12.0.25 System Operations Guide 12.1), so `profile` does
+not apply there.
 
 ```hcl
 resource "wallix-bastion_apikey_v2" "access_manager" {

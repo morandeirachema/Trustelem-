@@ -1,13 +1,18 @@
 # SAML assertion and naming consistency
 
-Date: 2026-09-23. The Trustelem to Access Manager to Bastion federation works only when three
+Date: 2026-09-24. The Trustelem to Access Manager to Bastion federation works only when three
 names line up and the assertion carries the expected attributes. This reference shows the
 alignment and an illustrative assertion. The assertion XML is a schematic built from the
 attribute names documented on the vendor pages
 ([Access Manager app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager),
 [Bastion SAML](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
 [generic SAML 2](https://trustelem-doc.wallix.com/books/trustelem-applications/page/saml-2)) and the
-OASIS SAML 2.0 core schema; it is not a capture from a live tenant.
+OASIS SAML 2.0 core schema; it is not a capture from a live tenant. The Bastion naming rules are
+from the [Bastion 12.3.2 Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)
+7.3.1, verified unchanged in Bastion 12.4.3 (Functional Administration Guide, Deployment Guide and
+System Operations Guide, customer documentation behind the [doc.wallix.com](https://doc.wallix.com/)
+login). The 12.4.3 Deployment Guide lists "WALLIX IDaaS (ex Trustelem)" among the supported SAML
+identity providers (section 8.1).
 
 ## 1. Names that must match
 
@@ -96,9 +101,12 @@ Points to verify in a SAML tracer capture:
   `groups`; multiple `groups` values are separate `AttributeValue` elements, one per group,
   which is what the Bastion expects for its one-value-per-mapping rule.
 - `Audience` equals the Access Manager Entity ID.
-- The NameID format is e-mail when the Bastion consumes the assertion directly; the Bastion
-  guide requires the e-mail domain to equal the authentication domain name unless the
-  Default domain option strips it.
+- The NameID format is e-mail when the Bastion consumes the assertion directly. The Bastion
+  guide says: "in the Name ID format field, select email address. The domain of the e-mail
+  address must be the same as the authentication domain name" (Admin Guide 7.3.1.1.2, 12.3.2
+  and 12.4.3). Its Default domain option only "strips the domain part (that is @domain) from
+  the user login"; the guide does not say that it relaxes the NameID rule. *Inference:* with
+  Default domain on, a mismatched e-mail domain may still work; test it rather than rely on it.
 
 ## 3. Access Manager to Bastion: no second assertion
 

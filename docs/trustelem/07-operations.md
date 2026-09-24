@@ -1,6 +1,6 @@
 # Trustelem operations
 
-Date: 2026-09-23. Sources: [On-premise SIEM](https://trustelem-doc.wallix.com/books/trustelem-administration/page/on-premise-siem),
+Date: 2026-09-24. Sources: [On-premise SIEM](https://trustelem-doc.wallix.com/books/trustelem-administration/page/on-premise-siem),
 [API](https://trustelem-doc.wallix.com/books/trustelem-administration/page/api),
 [Application scripts](https://trustelem-doc.wallix.com/books/trustelem-administration/page/application-scripts),
 [Certificate renewal](https://trustelem-doc.wallix.com/books/trustelem-administration/page/certificate-renewal),
@@ -9,6 +9,9 @@ Date: 2026-09-23. Sources: [On-premise SIEM](https://trustelem-doc.wallix.com/bo
 [Custom themes](https://trustelem-doc.wallix.com/books/trustelem-administration/page/custom-themes),
 [Summary](https://trustelem-doc.wallix.com/books/trustelem-administration/page/summary),
 [SCIM client](https://trustelem-doc.wallix.com/books/trustelem-administration/page/scim-client).
+Bastion log statements verified against the [Bastion 12.4.3 SIEM Logs Guide](https://doc.wallix.com/),
+WALLIX customer documentation behind the doc.wallix.com login; Bastion and Access Manager event
+formats are in the [logging and SIEM reference](../reference/logging-and-siem.md).
 Quotes are verbatim.
 
 ## 1. Logs, alerts and sessions in the console
@@ -67,7 +70,7 @@ SIEM use cases for the PAM design:
 | push fatigue attack | repeated RADIUS second-factor requests for one user with rejections or timeouts |
 | MFA bypass attempt | a user switched to *Always allow* (the event name is not documented; compare nightly `listPerms` exports, reference API export) |
 | factor reset abuse | rescue code issued, factor reset, then login from a new IP |
-| connector outage | directory LED not green in the dashboard (the LED is documented for directories only) and no LDAP/RADIUS logs while the Bastion reports RADIUS timeouts |
+| connector outage | directory LED not green in the dashboard (the LED is documented for directories only) and no LDAP/RADIUS logs while Bastion `wabauth` failures rise; the Bastion documents no RADIUS timeout message ([Bastion 12.4.3 SIEM Logs Guide](https://doc.wallix.com/) 2.1 gives only "Authentication failed"), so a timeout is seen as a failure after the RADIUS timeout (*inference*) |
 | SAML certificate expiry | expiry e-mail from Trustelem and Access Manager SAML errors |
 
 ## 3. API and scripts

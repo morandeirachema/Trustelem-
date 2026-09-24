@@ -4,6 +4,23 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-24
 
+- Customer guides reviewed (Bastion 12.4.3 and 12.0.25 administration, deployment, system
+  operations, SIEM logs, user and auditor guides; Access Manager 6.0.5 administration,
+  deployment, user and auditor guides; doc.wallix.com login, PDFs kept out of the repository).
+  Target versions are now Bastion 12.4.3 and Access Manager 6.0.5. Bastion HA runbook rewritten
+  on the 12.4.3 guides (`wallix-replication`, `wallix-luks-update`, `wallix-upgrade`, port 2242
+  documented as the replication path, same subnet with at most one router, `--status` checks,
+  restore on a master, minor upgrade in HA with a full-cluster window, automatic backups, disk);
+  Access Manager farm runbook rewritten for 6.0.5 (systemd `wabam`, Proxyma, `/etc/wabam`, two
+  interfaces, `wallix-replication` over 2242, sticky L7 load balancing, migration from 5.x by
+  backup and restore) with a 5.2 differences section; chapter 05 re-sourced to 6.0.5; logging
+  reference rewritten on the SIEM Logs Guide (UDP/TCP/TLS, RFC 5424 or 3164, full event
+  catalogue, verbatim `wabauth` lines, `AuthDomain`/`AuthDomainMapping` instead of the
+  non-existent `Ldapdomain`/`LdapMapping`); chapters 04, 07, 08, 09, 10, 11, the IaC and SAML
+  references, the meeting script, the architecture report and four diagrams updated. Register:
+  B3, B7, B8, A2 and A6 closed; B1, B2, B6, A1, A3, A4, A5, A7, T4, T5, B4 and S3 narrowed; new
+  B9 (rotation after losing the primary), B10 (RADIUS after SSH-key or FIDO2 login) and B11 (MFA
+  session behind a load balancer).
 - Remaining audit items: Kerberos-Password marked deprecated, RDP CredSSP condition restated,
   LUKS re-encryption and API key IP limitation re-cited, the Access Manager challenge-response
   statement added to A4, runbook defaults cited to the install guide, test-plan expectations

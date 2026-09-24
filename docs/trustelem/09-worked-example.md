@@ -1,13 +1,14 @@
 # Worked example: one tenant, one Bastion pair, one Access Manager farm
 
-Date: 2026-09-23. This chapter fills in every field from chapters 01 to 06 for a fictitious
+Date: 2026-09-24. This chapter fills in every field from chapters 01 to 06 for a fictitious
 organisation so that the values can be checked side by side. All names, addresses and secrets
 are invented; the field names and rules come from the vendor pages cited in the chapters
 ([Bastion app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion),
 [Access Manager app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager),
 [Bastion SAML](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
 [Bastion Admin Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
-[AM Admin Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)).
+[AM Admin Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)), re-checked against the
+Bastion 12.4.3 and Access Manager 6.0.5 customer guides behind the [doc.wallix.com](https://doc.wallix.com/) login.
 
 ## 1. The organisation
 
@@ -19,8 +20,8 @@ are invented; the field names and rules come from the vendor pages cited in the 
 | PAM groups in AD | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors`, `PAM-Automation` |
 | Partner users (no AD) | Trustelem group `Partners` |
 | Bastion nodes | `bastion-1.corp.acme.example` 10.10.20.21 (primary master), `bastion-2` 10.10.20.22 |
-| Bastion front-end name | `bastion.corp.acme.example` 10.10.20.20 (L4 load balancer, 22 and 3389) |
-| Access Manager nodes | `am-1` 10.10.20.31, `am-2` 10.10.20.32; HA NICs 10.10.29.31 and .32 |
+| Bastion front-end name | `bastion.corp.acme.example` 10.10.20.20 (L4 load balancer, 22 and 3389, preserving the client source address so that the RADIUS Framed-IP-Address and the Trustelem MFA session see the user's own IP) |
+| Access Manager nodes | `am-1` 10.10.20.31, `am-2` 10.10.20.32 on the administration interface, which also carries the replication tunnel (SSH 2242); user access interfaces 10.10.22.31 and .32 |
 | Access Manager URL | `https://pam.acme.example/wabam` (L7 load balancer 10.10.20.30) |
 | Trustelem Connect VMs | `tconnect-1` 10.10.21.41, `tconnect-2` 10.10.21.42 (administration network) |
 | ADConnect VMs | `adconnect-1` 10.10.21.51, `adconnect-2` 10.10.21.52 |
@@ -129,7 +130,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 
 | Domain server name | Authentication domain name | Directory | Secondary authentication | Default domain | Notes |
 |--------------------|----------------------------|-----------|--------------------------|:-:|-------|
-| `CORP` | `corp.acme.example` | `CORP-AD` | `Trustelem-RADIUS-1`, `Trustelem-RADIUS-2` | yes | group attribute `memberOf`, default email domain `acme.example` |
+| `CORP` | `corp.acme.example` | `CORP-AD` | `Trustelem-RADIUS-1`, `Trustelem-RADIUS-2` | yes | group attribute `memberOf`, default email domain `acme.example`; if Kerberos is enabled (test B-11) the Authentication domain name "must exactly match the Kerberos realm" in upper case, `CORP.ACME.EXAMPLE` (Bastion Administration Guide 7.2.1.2, 7.2.5.2) |
 | `PARTNERS` | `partners` | `Trustelem-LDAP` | `Trustelem-RADIUS-1`, `Trustelem-RADIUS-2` | no | default email domain left empty |
 | `TRUSTELEM` | `TRUSTELEM` | protocol `Trustelem-SAML` (Other IdPs) | none | no | label "Trustelem", default email domain `acme.example`, Force authentication off |
 
@@ -141,7 +142,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | `CORP` | `CN=PAM-Operators,OU=Groups,DC=corp,DC=acme,DC=example` | `pam-operators` | `user` |
 | `CORP` | `CN=PAM-Auditors,OU=Groups,DC=corp,DC=acme,DC=example` | `pam-auditors` | `auditor` |
 | `CORP` | `CN=PAM-Automation,OU=Groups,DC=corp,DC=acme,DC=example` | `pam-automation` | `user` |
-| `PARTNERS` | `CN=Partners,OU=Groups,DC=acme,DC=trustelem,DC=com` (case exact) | `partners` | `user` |
+| `PARTNERS` | `CN=Partners,OU=Groups,DC=acme,DC=trustelem,DC=com` (case as in Trustelem; the Bastion compares mappings case-insensitively, Administration Guide 7.2.1.3) | `partners` | `user` |
 | `TRUSTELEM` | `PAM-Admins` | `pam-admins` | `product_administrator` |
 | `TRUSTELEM` | `PAM-Operators` | `pam-operators` | `user` |
 | `TRUSTELEM` | `PAM-Auditors` | `pam-auditors` | `auditor` |
@@ -154,7 +155,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | Auditor login for AM session search | `am-auditor` (local, profile `auditor`, IP-restricted) |
 | Break-glass | `bg-admin`, local password, profile `product_administrator`, source IP restricted to `10.10.21.0/24` |
 | One time password ttl (each node: Configuration options do not replicate) | 30 s |
-| SIEM integration (each node) | `siem.corp.acme.example`, port 514 (transport and categories per the non-public SIEM Logs guide) |
+| SIEM integration (each node) | `siem.corp.acme.example`, TLS, RFC 5424, all filters enabled as WALLIX recommends ([System Operations Guide 12.4.3](https://doc.wallix.com/) 13.6) |
 
 ## 4. Access Manager (organization `acme`)
 
@@ -194,9 +195,15 @@ Factor 1, RADIUS Factor 2.
 
 ### Farm
 
-`wabam.properties` on `am-2` carries `crypto.install.key`, `db.connections*` and
-`user.admin*` from `am-1`; `web.proxy.trusted-proxies=10.10.20.30`;
-`purge.audit.active=true` on `am-1` only.
+Access Manager 6.0.5: `wallix-replication --create-conf-file` (Master/Master) on `am-1` with
+`am-2` as the other node, then `--install` and `--monitoring`; the replication installation
+copies what the manual farm procedure used to copy. On each node, because appliance
+configurations are not replicated: Proxyma `trusted_proxies` set to the load balancer
+10.10.20.30 in `/etc/proxyma/config.toml`, and "Limit the number of parallel connections per IP"
+deactivated ([Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) ch. 6, Administration Guide 8.4.5.1
+and 8.5.2). On Access Manager 5.2 the same design used `web.proxy.trusted-proxies=10.10.20.30`
+in `wabam.properties`, copied `crypto.install.key`, `db.connections*` and `user.admin*` by hand,
+and set `purge.audit.active=true` on `am-1` only.
 
 ## 5. How the users log in
 

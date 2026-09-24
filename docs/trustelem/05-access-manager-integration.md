@@ -1,9 +1,13 @@
 # Trustelem integration with WALLIX Access Manager
 
-Date: 2026-09-23. Sources: the Trustelem application page
+Date: 2026-09-24. Access Manager facts verified against Access Manager 6.0.5; Bastion side
+against Bastion 12.3.2. Sources: the Trustelem application page
 [WALLIX Access Manager](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager),
 the [WALLIX Bastion SAML page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
-the [Access Manager 5.2.4.0 Administration Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)
+the [Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) and
+[Access Manager 6.0.5 Users and Approvers Guide](https://doc.wallix.com/) (customer documentation
+behind the doc.wallix.com login; section numbers refer to the 6.0.5 editions), the
+[Access Manager release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)
 and the [Trustelem access rules page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/access-rules).
 Quotes are verbatim from those pages.
 
@@ -70,12 +74,25 @@ Access Manager side, **Configuration → SAML Identity Providers → +Add**:
 Trustelem access rule for the Access Manager app: "you need internal and external set to
 2 factors".
 
-Why these SP settings matter (Admin Guide 10.3.2): Encrypt Messages "is required to disabled"
-for the Bastion workflow, and "By disabling the attributes Signed Response and Signed
-Assertion, any user will be able to connect to Access Manager as an administrator." Keep both
-ON. A known issue (WAB-11153) drops the `SigAlg` parameter when Sign Messages is ON with the
-Redirect binding, which is
-another reason to leave it OFF ([release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)).
+Why these SP settings matter ([Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) 4.3.3.2.1): "Disable encryption when configuring SAML
+to authenticate to WALLIX Bastion through WALLIX Access Manager.", and "Disabling the Signed
+Response and Signed Assertion options allows any user to connect to WALLIX Access Manager as an
+administrator." Keep both ON. The same tab has **Force Authent.** and **Authent. Expir. Delay**
+("Define the authentication expiration time (in minutes)"); the guide gives no default and no
+clock-skew tolerance (gap A4). A 5.x known issue (WAB-11153) drops the `SigAlg` parameter when
+Sign Messages is ON with the Redirect binding, which is another reason to leave it OFF
+([release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html); the 6.0.5
+guides do not mention it).
+
+Domain name rule on the Access Manager side ([Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) 4.3.3.1): "If SAML
+authentication is also configured in WALLIX Bastion, the domain name must match the name Domain
+server name used in WALLIX Bastion (in Configuration > Authentication domains > SAML)." The
+Trustelem page above names the Authentication domain name instead; this design sets both Bastion
+fields to the same value (section 4). Attribute names "are case-sensitive", and Access Manager
+"supports both HTTP Redirect and HTTP POST bindings" with IdP-initiated or SP-initiated flows
+(AG 4.3.3.1, 4.3.3.2). The service provider metadata file (Download below **Metadata File**,
+shown only when editing) "is supported by some Identity Providers such as Trustelem, EntraID or
+Okta" (AG 4.3.3.2.4). "IPv6 is not supported for SAML authentications." (AG 4.3.3).
 
 ## 3. SAML for Trustelem local users
 
@@ -97,9 +114,11 @@ Bastion must recognise the same federated identity:
 - "AM Domain Name = Bastion Authentication domain name" and "AM Login = Bastion Username".
 - The same `groups` script is set on the Trustelem Access Manager application:
   `for (let g in groups){ msg.addAttr("groups",g); }`.
-- On the Access Manager **Bastions** page, **Strip Domain** is OFF for that Bastion so that
-  `login@domain` is preserved ([Admin Guide 10.3.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)).
-- "the Access Manager should be > 5.0".
+- On the Access Manager **Bastions** page, **Strip Domain** is OFF for that Bastion: "disable
+  the Strip Domain option in the Bastion configuration window. This keeps the login format as
+  user@domain, which is required for proper user mapping and authorization." ([Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) 4.3.3.2).
+- "the Access Manager should be > 5.0". This design uses 6.0.5, which "is compatible with ...
+  WALLIX Bastion 12.0 and above" ([Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) 10.1).
 
 Sources: [WALLIX Bastion SAML page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml).
 
@@ -116,7 +135,7 @@ Access Manager side, **Configuration/RADIUS Servers**:
 |-------|------------------|
 | Organization | "select the organization where your AD users are" |
 | Host | Trustelem Connect host |
-| Protocol | **PAP** |
+| Protocol | **PAP** (Access Manager offers AUTO, PAP and CHAP; "When AUTO is selected, the system first tries CHAP and switches to PAP if CHAP fails.") |
 | Authentication Port | 1812 or 2812 |
 | Connection Timeout | default "unless you have latency on your network" |
 | Login type | simple login |
@@ -125,7 +144,20 @@ Access Manager side, **Configuration/RADIUS Servers**:
 
 Then **Test Connection**, **Save**, and edit the AD domain under **Configuration > Domains**:
 Associated Authenticators = "Active Directory Authenticator Factor 1 - Radius Authenticator
-Factor 2". Trustelem RADIUS access rule: **2nd factor only**.
+Factor 2". Trustelem RADIUS access rule: **2nd factor only**. Set **Factor used for account
+mapping** to the AD factor: "If LDAP server is also set as the account mapping factor, the
+credentials used with LDAP are used for sessions relying on account mapping."
+([Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) 4.4.1).
+
+Access Manager side facts ([Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) 4.3.6): "WALLIX Access Manager also supports the
+challenge–response mechanism, allowing multiple challenge exchanges during RADIUS
+authentication, for example, to implement multi-factor authentication (MFA)"; push is not named
+(gap A4); the default port is 1812 and no timeout default is given; "IPv6 is not supported for
+RADIUS authentication." The factor chain "does not apply to SAML and OIDC" (AG 4.4.1).
+
+SAML users who need account mapping can instead enter a "Target Password Saved for Account
+Mapping with SAML and OIDC" in their preferences; "The password is not stored in WALLIX Access
+Manager and only lasts for the session." ([Access Manager 6.0.5 Users and Approvers Guide](https://doc.wallix.com/) 3.3.1).
 
 User experience: "first provide the AD login and password then provide the Trustelem TOTP
 code, even if the name of the input is Password again".
@@ -186,8 +218,11 @@ SAML:
 - "Verify if the domain used in the SAML setup is the same used on the Bastion for the
   Authentication domain name".
 - Then: install the **SAML tracer** browser plugin, and as a global administrator set the
-  SAML module to DEBUG in the **Settings > Logs** tab, reproduce, and download the log archive.
-  TRACE and ALL "may expose sensitive information, including passwords"; switch back to DEBUG
-  before generating an archive for support ([Admin Guide 15.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)).
+  SAML module to DEBUG on **Settings > Application Settings > Logs** tab, reproduce, and click
+  **Download Logs Archive (ZIP)**. "The TRACE or ALL modes may expose sensitive information,
+  including passwords." Change the mode to DEBUG before generating an archive for support
+  ([Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) 9.7.1). The files are in `/var/log/wabam` (AG 9.7); log levels
+  are stored in `wabam.properties` and do not replicate, so set them on the node that serves the
+  test ([Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) 6).
 
 Source: [WALLIX Access Manager page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager).

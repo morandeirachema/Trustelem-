@@ -10,9 +10,11 @@ worksheets, verification steps and the vendor's own debug guidance. The Bastion 
 Manager material exists to make the Trustelem integration precise.
 
 Last updated: 2026-09-24. Verified against the Trustelem documentation portal as read on
-2026-09-23, WALLIX Bastion 12.3.2 and WALLIX Access Manager 5.2.4.0 (public guides dated
-2026-03-12). Minimum versions assumed because of the July 2026 advisories: Bastion 12.3.7 or
-12.4.1, Access Manager 5.2.7 or 6.0.4.
+2026-09-24, the public WALLIX Bastion 12.3.2 and Access Manager 5.2.4.0 guides (dated
+2026-03-12), and the customer guides for WALLIX Bastion 12.4.3 and Access Manager 6.0.5 (dated
+2026-08, behind the doc.wallix.com login). Target versions: Bastion 12.4.3 and Access Manager
+6.0.5, both above the July 2026 advisory minimums (Bastion 12.3.7 or 12.4.1, Access Manager 5.2.7
+or 6.0.4).
 
 ## Start here
 
@@ -151,8 +153,14 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
   [Access Manager](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)
 - WALLIX security advisories: <https://www.wallix.com/support-services/alerts/>
 
+- Customer guides (login at <https://doc.wallix.com/>): Bastion 12.4.3 and 12.0.25 administration,
+  deployment, system operations, SIEM logs, user and auditor guides; Access Manager 6.0.5
+  administration, deployment, user and auditor guides. They are cited by title and section; the
+  PDFs are not stored in this public repository.
+
 The WALLIX HTML documentation site at <https://doc.wallix.com/> sits behind a Trustelem SAML
-login, itself a live example of the IdP in this design; the PDF guides above are public.
+login, itself a live example of the IdP in this design; the PDF guides listed above with links
+are public.
 
 ## Working on the documents
 

@@ -15,7 +15,8 @@ are Markdown reports with Mermaid diagrams and links to vendor documentation.
 - Every technical claim must carry a link to its external source (vendor guide, release notes, KB article).
   Prefer primary WALLIX sources over blogs.
 - Put today's date (ISO format) in the header of each report and state which product versions it was
-  verified against (currently Bastion 12.3.2 and Access Manager 5.2.4.0).
+  verified against (currently the public Bastion 12.3.2 and Access Manager 5.2.4.0 guides plus the
+  customer guides for Bastion 12.4.3 and Access Manager 6.0.5; target versions 12.4.3 and 6.0.5).
 - Diagrams are Mermaid only. One source per diagram in `tools/diagrams/*.mmd`, embedded verbatim as a fenced
   `mermaid` code block; never edit a diagram inline, edit the source and re-paste. Use `{placeholder}` rather
   than `<placeholder>` inside sequence diagrams.
@@ -34,7 +35,10 @@ are Markdown reports with Mermaid diagrams and links to vendor documentation.
 - Access Manager Administration Guide (PDF): https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf
 - Bastion release notes: https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html
 - Access Manager release notes: https://pam.wallix.one/documentation/release-notes/am-rn-en.html
-- The HTML doc site https://doc.wallix.com/ requires a WALLIX Trustelem SSO login; use the PDFs above instead.
+- The HTML doc site https://doc.wallix.com/ requires a WALLIX Trustelem SSO login. The user downloaded
+  the customer PDFs (Bastion 12.4.3 and 12.0.25, Access Manager 6.0.5) to ~/Descargas/WallixDoc;
+  extract them to the scratchpad, cite them as "[Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 5.1",
+  and never commit the PDFs or long excerpts to this public repository.
 - Useful workflow: download the PDFs to the scratchpad and run `pdftotext -layout` to grep chapters.
 
 ## Git

@@ -1,11 +1,11 @@
 flowchart TB
     USERS["Privileged users<br/>browser HTTPS 443, HTML5 RDP/SSH, WebSocket"]
-    LB["L7 load balancer<br/>HTTPS 443, WebSocket, source-IP affinity<br/>X-Forwarded-For + trusted proxies"]
+    LB["L7 load balancer<br/>HTTPS 443, WebSocket, sticky sessions<br/>X-Forwarded-For + Proxyma trusted_proxies"]
     subgraph AM1["Access Manager node 1"]
-        AM1A["Debian appliance, Docker, Jetty 11<br/>FreeRDP + xterm.js, MariaDB, Elasticsearch<br/>eth0 users + admin (since 5.2), eth1 HA"]
+        AM1A["Appliance, systemd service wabam<br/>Proxyma front proxy, MySQL database<br/>interface 1 admin + replication, interface 2 users"]
     end
     subgraph AM2["Access Manager node 2"]
-        AM2A["Same image and version<br/>crypto.install.key and db settings<br/>copied from node 1"]
+        AM2A["Same version; configuration set up<br/>by the replication installation;<br/>wabam.properties and Proxyma per node"]
     end
     BC["Bastion cluster<br/>(AM Cluster object, identical mode on)"]
     TR["Trustelem cloud (SAML/OIDC IdP)"]
@@ -13,10 +13,10 @@ flowchart TB
     USERS --> LB
     LB --> AM1
     LB --> AM2
-    AM1A <-->|MariaDB replication on the HA NIC| AM2A
+    AM1A <-->|wallix-replication Master/Master<br/>autossh tunnel over SSH 2242| AM2A
     AM1 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
     AM2 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
     AM1 & AM2 -->|OIDC discovery, token, JWKS 443;<br/>SAML via the browser| TR
     AM1 & AM2 -->|RADIUS 2812/udp, local admins| TC
-    NOTE["Uninstall replication before a cluster upgrade<br/>(required for 5.2.3, kept as a precaution)<br/>purge.audit.active on one node only"]
+    NOTE["Minor upgrade: replication --stop, wallix-upgrade<br/>on both nodes, reboot, --dump-resync, --start;<br/>5.x to 6: backup and restore into new nodes"]
     AM2 -.- NOTE

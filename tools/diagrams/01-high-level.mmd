@@ -11,7 +11,7 @@ flowchart TB
         subgraph AMC["Access Manager farm"]
             AM1["Access Manager node 1"]
             AM2["Access Manager node 2"]
-            DB[("shared / replicated MariaDB")]
+            DB[("replicated database<br/>(Master/Master, SSH 2242)")]
         end
         subgraph BC["Bastion cluster: HA Database Replication"]
             B1["Bastion 1<br/>proxies + vault"]
@@ -30,7 +30,7 @@ flowchart TB
     AM1 & AM2 -->|REST API 443, RDP 3389, SSH 22| B1 & B2
     USER -->|native RDP 3389 / SSH 22, direct or via L4 LB| B1 & B2
     AM1 & AM2 -->|RADIUS 2812/udp, local admins| CONNECT
-    B1 <-->|MariaDB over autossh tunnel| B2
+    B1 <-->|MariaDB over autossh tunnel, SSH 2242| B2
     B1 & B2 -->|RADIUS 1812/udp secondary factor| CONNECT
     B1 & B2 -->|LDAP/AD 389/636| AD
     CONNECT -->|WSS 443 outbound only| RAD

@@ -32,8 +32,8 @@ with a WALLIX Bastion cluster and a WALLIX Access Manager cluster. Start in `tru
 
 | Document | Content |
 |----------|---------|
-| [Bastion HA Database Replication](runbooks/bastion-ha-replication.md) | node initialisation, replication install, commands, failover, upgrades, certificates, what replicates from the Trustelem integration |
-| [Access Manager farm](runbooks/access-manager-farm.md) | node install, farm replication, load balancer settings, `wabam.properties`, backup, upgrade, monitoring |
+| [Bastion HA Database Replication](runbooks/bastion-ha-replication.md) | Bastion 12.4.3: node initialisation, replication install, commands, daily checks, failover and restore, minor upgrades in HA, backups, certificates, disk, what replicates |
+| [Access Manager farm](runbooks/access-manager-farm.md) | Access Manager 6.0.5 (with 5.2 differences): node install, replication, load balancer and Proxyma settings, backup, migration and upgrade, monitoring |
 | [Terraform for the Bastion side](reference/iac-terraform-bastion.md) | codifying the AD, RADIUS, SAML, mappings and API key objects |
 | [Logging and SIEM](reference/logging-and-siem.md) | sources, formats, correlation keys, detection rules |
 | [Trustelem API export](reference/trustelem-api-export.md) | nightly export of permissions, identities, logs and alerts as the substitute for a tenant backup |

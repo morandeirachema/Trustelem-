@@ -1,10 +1,14 @@
 # Trustelem integration with WALLIX Bastion
 
-Date: 2026-09-23. Sources: the Trustelem application pages
+Date: 2026-09-24. Sources: the Trustelem application pages
 [WALLIX Bastion](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion)
 and [WALLIX Bastion SAML](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
 the [Bastion 12.3.2 Functional Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)
 and the [Trustelem access rules page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/access-rules).
+Verified against Bastion 12.4.3: the Functional Administration Guide, the Deployment Guide and the
+System Operations Guide (customer documentation behind the [doc.wallix.com](https://doc.wallix.com/)
+login). The Administration Guide sections cited here have the same numbers and text in 12.3.2 and
+12.4.3; "Admin Guide 7.2.5.4" below means both versions.
 Quotes are verbatim from those pages; everything else is the author's structuring.
 
 ## 1. Which integration for which population
@@ -88,15 +92,39 @@ Trustelem side: RADIUS access rule **2nd factor only** for the groups that must 
 "If you want to skip the 2nd factor step for some users, you can select for them the rule
 Always allow instead on Trustelem."
 
-Bastion behaviour to know (Admin Guide 7.2.5.4): only PAP is supported (known limitation
-WAB-16237 in the [release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)); challenge-response is supported; attributes
-sent are User-Name, User-Password, State, NAS-Identifier `WAB` and Framed-IP-Address; no
-vendor-specific attributes. "Use primary domain name for two-factor authentication (2FA)"
-forces `user@domain` in the RADIUS User-Name, which matters when the Trustelem login is the
-UPN rather than the sAMAccountName. Bastion 12.3 fixed the two RADIUS 2FA options interfering
-with each other ([release notes WAB-16173](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html):
-"Fix the 2FA options in the RADIUS form so that each option is independent and applied
-correctly"); on older builds test both options.
+Bastion behaviour to know:
+
+- Only PAP is supported: "Only the PAP protocol is supported for RADIUS authentication" (known
+  limitation WAB-16237 in the [release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)).
+  The Administration Guide itself (12.0.25, 12.3.2 and 12.4.3) does not name PAP, CHAP or
+  Message-Authenticator.
+- Challenge-response is supported; attributes sent are User-Name, User-Password, State,
+  NAS-Identifier `WAB` and Framed-IP-Address; no vendor-specific attributes
+  ([Admin Guide 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+  12.3.2 and 12.4.3).
+- "Use primary domain name for two-factor authentication (2FA)" "forces the domain name to be
+  mentioned in the login (for example, user@domain) during the second authentication" (Admin
+  Guide 7.2.5.4). The guide does not say which domain is appended. *Inference:* it is the
+  Bastion Authentication domain name, so the option gives the Trustelem UPN only when that name
+  equals the UPN suffix; check the RADIUS User-Name in the Trustelem Logs during the pilot.
+- Bastion 12.3 fixed the two RADIUS 2FA options interfering with each other
+  ([release notes WAB-16173](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html):
+  "Fix the 2FA options in the RADIUS form so that each option is independent and applied
+  correctly"); on older builds test both options.
+- Ports: the Bastion port table lists RADIUS as "1812/TCP and 1812/UDP", "Configurable per
+  authentication method" ([Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 2.2). The
+  Trustelem Connect listener in this design is UDP; open 1812/udp from the Bastion nodes, and
+  1812/tcp only if a test shows it is used.
+- Framed-IP-Address carries the client address, and the guide explains why: "RADIUS servers can
+  use the Framed-IP-Address attribute in their configuration. For example, to allow users to
+  reconnect from the same IP address without re-entering their credentials if they authenticated
+  recently" (Admin Guide 7.2.5.4). Bastion 12.4.3 adds a warning for load balancers: "when a
+  load balancer sits in front of WALLIX Bastion, the address displayed is not the user's own"
+  ([Bastion 12.4.3 Administration Guide](https://doc.wallix.com/) 12.16.1.6). *Inference:* if the
+  L4 load balancer in front of the proxies rewrites the source address, the Framed-IP-Address
+  sent to Trustelem is the load balancer's address, and the Trustelem "same network" MFA session
+  (section 8) can no longer tell users' networks apart. Keep the client address (no source NAT
+  on the balancer) or test the MFA session through the balancer before relying on it.
 
 ## 4. Scenario B: Bastion local users authenticated only by Trustelem RADIUS
 
@@ -143,7 +171,13 @@ sAMAccountName".
 
 Mappings: select a Bastion user group and profile and enter the Trustelem group DN
 `CN=[Trustelem Group Name],OU=Groups,DC=[Trustelem Domain],DC=trustelem,DC=com`, with the
-warning "if you don't respect the case, the authentication won't work".
+warning "if you don't respect the case, the authentication won't work". The Bastion guide says
+the opposite for the mapping field: "In Group, enter the Distinguished Name (DN) for the Active
+Directory group that you want to match. The input is case insensitive"
+([Admin Guide 7.2.1.3](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+12.3.2 and 12.4.3). *Inference:* the case may matter on the Trustelem LDAP side rather than in
+the Bastion comparison. Copy the DN with its exact case anyway and observe the result in the
+pilot.
 
 Access rules: "you need a LDAP access rule set to 1 factor if it will be conbined with a Radius
 authentication or 2 factors if not." Then add the RADIUS secondary authentication on this
@@ -161,6 +195,11 @@ bind DN `cn=trustelem,DC=<tenant>,DC=trustelem,DC=com`, base DN
 Source: [Trustelem applications export, OpenVPN chapter](https://trustelem-doc.wallix.com/books/trustelem-applications/export/html).
 
 ## 6. Scenario D: SAML 2.0 to the Bastion (with or without Access Manager)
+
+The Bastion lists Trustelem among its supported SAML identity providers: "WALLIX IDaaS (ex
+Trustelem)" ([Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 8.1, "Supported SAML
+identity providers"; same entry in 12.0.25). The Administration Guide gives "WALLIX IDaaS" as an
+example provider for "SAML Generic with any Identity Provider" (Admin Guide 7.3.1.1).
 
 Step 1, Trustelem: create an application from the **generic SAML2 model**, save it unchanged,
 download the metadata file.
@@ -202,7 +241,8 @@ SAML procedure. Skipping the Bastion SAML app in the Access Manager design is an
 the flow (the Bastion never receives the assertion); question 6.6 of the vendor meeting
 script and gap B7 cover it.
 
-Bastion-side constraints from the Admin Guide 7.3.1: only "SAML Generic" is compatible with
+Bastion-side constraints from the [Admin Guide 7.3.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)
+(12.3.2 and 12.4.3): only "SAML Generic" is compatible with
 Access Manager; once SAML is configured with Access Manager, direct SAML login to the Bastion
 is impossible; the IdP NameID format should be e-mail and its domain should equal the
 authentication domain name; the SP entity ID can be changed to a load balancer FQDN.
@@ -222,7 +262,7 @@ Fill this in before the change window; every value appears in one of the scenari
 | LDAP port | Service page | 2001 |
 | Bastion RADIUS timeout | Bastion | 45 to 60 s |
 | "Use mobile device for 2 factor authentication(2FA)" | Bastion | ON for scenarios A and C, OFF for B |
-| "Use primary domain name for two-factor authentication (2FA)" | Bastion | ON if Trustelem logins are UPNs |
+| "Use primary domain name for two-factor authentication (2FA)" | Bastion | ON if Trustelem logins are UPNs and the appended domain matches the UPN suffix (check in the pilot, section 3) |
 | AD domain with secondary authentication | Bastion | |
 | Trustelem group DNs for mappings | Trustelem Groups | `CN=...,OU=Groups,DC=<tenant>,DC=trustelem,DC=com` |
 | SAML SP entity ID and ACS | Bastion SAML external auth | |
@@ -241,13 +281,31 @@ Fill this in before the change window; every value appears in one of the scenari
   network, he will not be asked to provide his 2nd factor again"; the example given is a user
   logging in to the Bastion GUI then SSH within one hour; it requires the "Use mobile device"
   option. Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustelem-news/page/new-features).
+  The Bastion side of this mechanism is the Framed-IP-Address attribute, which the Bastion guide
+  says RADIUS servers can use "to allow users to reconnect from the same IP address without
+  re-entering their credentials if they authenticated recently" ([Admin Guide 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+  12.3.2 and 12.4.3). *Inference:* Trustelem's "same network" test uses that address; behind a
+  load balancer that rewrites the source address it becomes the balancer's address (see the
+  load-balancer note in section 3), so test the MFA session through the production front end.
 - Native RDP clients see the Bastion RDP proxy login screen; SSH clients get keyboard-interactive
   prompts. With Kerberos enabled on the RDP proxy, non-Kerberos users need
   `enablecredsspsupport:i:0` and `authentication level:i:2` in the `.rdp` file or `/sec:tls`
   with FreeRDP, and NLA enabled. Sources: [Bastion Users Guide 9.3](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf),
-  [Bastion Admin Guide 7.2.5.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
-- Passkeys cannot be used over RADIUS or LDAP; users on the native path need the WALLIX
-  Authenticator app or a TOTP. Source: [MFA methods](https://trustelem-doc.wallix.com/books/trustelem-administration/page/multi-factors-authentication).
+  [Bastion Admin Guide 7.2.5.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)
+  (12.3.2 and 12.4.3).
+- Passkeys cannot be used over RADIUS or LDAP; the Trustelem second factor on the native path is
+  the WALLIX Authenticator app or a TOTP. Source: [MFA methods](https://trustelem-doc.wallix.com/books/trustelem-administration/page/multi-factors-authentication).
+- A phishing-resistant option exists for native SSH outside Trustelem: "WALLIX Bastion supports
+  user authentication via SSH using a hardware key (such as a Yubikey) that uses the FIDO2
+  secure authentication standard" ([Bastion 12.4.3 Administration Guide](https://doc.wallix.com/)
+  2.5; the feature exists since Bastion 12.2, WAB-13752 in the
+  [release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)). The
+  administrator allows the SK key types ("SK ED25519 (FIDO2)", "SK ECDSA NIST p256 (FIDO2)") in
+  Configuration > Local password policy; for AD users the public key is stored in the directory,
+  in `altSecurityIdentities` with the `sshKey:` prefix (Admin Guide 7.2.5.6). The key is a
+  primary authentication method. *Gap:* the guides do not say whether the RADIUS secondary
+  authentication of the domain still runs after an SSH key login, so whether a key login also
+  triggers the Trustelem push must be tested before this path is offered to administrators.
 
 ## 9. Verification checklist
 
@@ -268,7 +326,8 @@ Fill this in before the change window; every value appears in one of the scenari
 
 - "Trustelem users will not be found by the Bastion before having an access rule (1 or 2
   factors)".
-- Group DN case: "if you don't respect the case, the authentication won't work".
+- Group DN case: "if you don't respect the case, the authentication won't work" (Trustelem
+  page; the Bastion guide calls the mapping input case-insensitive, see section 5).
 - "Use mobile device" must be ON for AD users (scenario A) and OFF for RADIUS-only local users
   (scenario B); both mistakes produce a password prompt loop or an immediate failure.
 - A local user in scenario B with both a local password and RADIUS selected authenticates with
@@ -278,3 +337,21 @@ Fill this in before the change window; every value appears in one of the scenari
   (see `08-troubleshooting.md`).
 
 Sources: [WALLIX Bastion page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion).
+
+## 11. Bastion 12.0 branch (BSI-certified 12.0.14)
+
+The 12.0.25 Administration and System Operations guides lack four features this chapter and the
+architecture report rely on. Everything else used here (RADIUS 7.2.5.4, the SAML rules for
+Access Manager in 7.3.1, the MFA model in 7.1.3, group mappings) reads the same in 12.0.25 and
+12.4.3. Sources: the 12.0.25 and 12.4.3 customer guides on [doc.wallix.com](https://doc.wallix.com/).
+
+| Feature | 12.4.3 | 12.0.25 |
+|---------|--------|---------|
+| Generic OpenID Connect | Admin Guide 7.3.2 | no 7.3.2 section and no OIDC row in the 7.1.1 matrix: the OIDC alternative is unavailable |
+| SAML dynamic flow (SP entity ID changed to a load balancer FQDN) | Admin Guide 7.3.1.1.1 step 9 | absent: the SP entity ID points at the Bastion itself |
+| API keys bound to a profile (`wallix_access_manager_session_audit`) | Admin Guide 6.1 and 6.1.2; System Operations Guide 12.1 | absent: no profile on the key and no Access Manager profiles; the Operation Guide 12.1 procedure has only a name and the allowed IP addresses, so restrict the key by IP |
+| Kerberos on the RDP proxy (TERMSRV, NLA, `.rdp` parameters) | Admin Guide 7.2.5.2 | absent (RDP Kerberos arrived in 12.3.1, WAB-208 in the [release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)); Kerberos covers the web UI and the SSH proxy only |
+
+*Inference:* a deployment on the certified branch keeps the SAML and RADIUS design of this
+chapter but must drop the OIDC alternative, the load-balancer SP entity ID and the profile-scoped
+Access Manager API key.
