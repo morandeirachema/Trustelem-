@@ -212,6 +212,6 @@ the GUI after each apply until the provider documents it.
 1. `terraform plan` against the primary master in a change window.
 2. Apply; the objects replicate to the second node through HA Database Replication.
 3. Paste the SP outputs into Trustelem, download the metadata again if the SP entity ID
-   changed, and run the acceptance tests in the architecture report section 7.5.
+   changed, and run the [test plan](../trustelem/10-test-plan.md), sections B and A.
 4. Keep the state file in a backend with encryption; it contains the RADIUS secret and the AD
    bind password.

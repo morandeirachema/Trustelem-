@@ -9,7 +9,7 @@ Every chapter quotes the vendor documentation verbatim and links to it, field by
 worksheets, verification steps and the vendor's own debug guidance. The Bastion and Access
 Manager material exists to make the Trustelem integration precise.
 
-Last updated: 2026-09-23. Verified against the Trustelem documentation portal as read on
+Last updated: 2026-09-24. Verified against the Trustelem documentation portal as read on
 2026-09-23, WALLIX Bastion 12.3.2 and WALLIX Access Manager 5.2.4.0 (public guides dated
 2026-03-12). Minimum versions assumed because of the July 2026 advisories: Bastion 12.3.7 or
 12.4.1, Access Manager 5.2.7 or 6.0.4.
@@ -121,13 +121,16 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 |   +-- runbooks/                 Bastion HA replication, Access Manager farm
 |   +-- reference/                Terraform for the Bastion side, logging and SIEM,
 |   |                             SAML assertion and naming, Trustelem API export,
-|   |                             standards and compliance, open questions and gaps
+|   |                             standards and compliance, open questions and gaps,
+|   |                             vendor meeting script
 |   +-- archive/research-notes/   archived working notes (superseded by the chapters)
 +-- CHANGELOG.md
 +-- tools/
     +-- diagrams/*.mmd            Mermaid source of every diagram, embedded verbatim in the docs
     +-- check_docs.py             structural checks, also run by GitHub Actions
     +-- check_mermaid.mjs         parses every diagram with the Mermaid library (CI)
+    +-- check_links.py            fetches every external URL (weekly CI)
++-- .github/workflows/            docs-check.yml (push and PR), link-check.yml (Mondays)
 ```
 
 ## Primary sources
@@ -162,8 +165,8 @@ login, itself a live example of the IdP in this design; the PDF guides above are
   re-checked against a newer release; `CHANGELOG.md` records what changed.
 - `python3 tools/check_docs.py` runs the structural checks locally and `node tools/check_mermaid.mjs`
   parses the diagrams (after `npm install --no-save mermaid@11 jsdom@24`); GitHub Actions runs both
-  on every push.
-- `python3 tools/check_links.py` fetches every external URL in the documents and fails on a dead
+  on every push to main and on pull requests.
+- `python3 tools/check_links.py` fetches every external URL in the documents (archive excluded) and fails on a dead
   one; login-gated WALLIX pages and bot-blocking hosts are reported as warnings. GitHub Actions runs
   it every Monday and on demand, not on every push, because the result depends on third-party sites.
 
@@ -191,6 +194,6 @@ npm install --no-save mermaid@11 jsdom@24        # optional, for the diagram par
 node tools/check_mermaid.mjs
 ```
 
-The repository is public and holds only Markdown, Mermaid sources and the two check scripts.
+The repository is public and holds only Markdown, Mermaid sources and the three check scripts.
 Vendor PDFs downloaded for research are ignored by `.gitignore` and are not needed to read the
 documents.

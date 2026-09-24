@@ -149,7 +149,7 @@ What is already known:
 | 1.1 | Is there any on-premise or private-cloud edition of Trustelem / WALLIX One IDaaS, or is SaaS the only form? | Decides whether "fully on-premise" is even an option with WALLIX | |
 | 1.2 | If we must stay fully on-premise, what is WALLIX's supported way to get TOTP on Bastion and Access Manager? Do they endorse a third-party RADIUS TOTP server, and which ones have they tested? | Bastion and Access Manager both delegate MFA to RADIUS; a supported server list avoids an unsupported design | |
 | 1.3 | With a third-party RADIUS TOTP server, does WALLIX support still cover the Bastion RADIUS integration, or only the Trustelem path? | Support boundary | |
-| 1.4 | If Trustelem's SaaS is unreachable (Internet outage), what is the recommended break-glass: local Bastion accounts, RADIUS failover to a second server, or an MFA session? | Outage handling, chapter 07 | |
+| 1.4 | If Trustelem's SaaS is unreachable (Internet outage), what is the recommended break-glass: local Bastion accounts, RADIUS failover to a second server, or an MFA session? (T12) | Outage handling, chapter 07 | |
 | 1.5 | Where exactly is the tenant hosted (provider, country), and what are the SecNumCloud, HDS and ISO 27001 scope statements? (gap T9) | Compliance and data-residency review | |
 | 1.6 | Can the tenant data (users, factors, rules, logs) be exported or backed up by the customer, and how is a tenant deleted at contract end? (gap T1) | Exit strategy | |
 
@@ -210,8 +210,8 @@ What is already known:
 | 4.1 | Contractual availability SLA for the tenant, planned maintenance windows and how customers are notified of incidents. (T1) | Risk acceptance | |
 | 4.2 | Support hours, response times per severity, and whether Trustelem, Bastion and Access Manager are one support contract or three. | Operations | |
 | 4.3 | Can we get customer-portal access now to read the Bastion 12.4 and Access Manager 6.0 release notes and the System Operations Guide? (B1, B2, A1, A6) | Closes several gaps | |
-| 4.4 | End-of-support dates for Bastion 12.3 and Access Manager 5.2, and the upgrade path to 12.4 / 6.0 (Debian 12). | Lifecycle | |
-| 4.5 | Roadmap: RadSec, number matching or push rate limiting in WALLIX Authenticator, browser "remember this device", PKCE on the OIDC clients. (T4, T7, T8, A5) | Design assumptions | |
+| 4.4 | End-of-support dates for Bastion 12.3 and Access Manager 5.2, and the upgrade path to 12.4 / 6.0 (Debian 12). (B1, A1) | Lifecycle | |
+| 4.5 | Roadmap: RadSec, number matching or push rate limiting in WALLIX Authenticator, browser "remember this device", PKCE and exact redirect URI matching on the OIDC clients. (T4, T7, T8, A5) | Design assumptions | |
 | 4.6 | Certification coverage: is Bastion 12.3 or 12.4 covered by the BSI certificate held by 12.0.14, and what is the ANSSI qualification plan? (S3) | Compliance | |
 
 ## 5. Bastion integration
@@ -227,10 +227,10 @@ What is already known:
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
 | 5.1 | Does Trustelem Connect answer CHAP or only PAP, which attributes come back in Access-Accept, and is Message-Authenticator enforced (BlastRADIUS, CVE-2024-3596)? (T4) | RADIUS security | |
-| 5.2 | What happens to a pending push when the Bastion RADIUS timeout expires first? Recommended timeout values on both sides. | User experience on native clients | |
+| 5.2 | What happens to a pending push when the Bastion RADIUS timeout expires first? Recommended timeout values on both sides. (T4) | User experience on native clients | |
 | 5.3 | RADIUS MFA session: where is the duration set, allowed values, and is it per source IP or per user? (T2) | Rule design | |
-| 5.4 | Automation and service accounts: confirmed pattern is a separate AD domain object without secondary authentication. Any better option? | Scripted transfers | |
-| 5.5 | Sizing of Trustelem Connect and ADConnect for our RADIUS request rate; is a second Connect instance active-active? | HA of the agents | |
+| 5.4 | Automation and service accounts: confirmed pattern is a separate AD domain object without secondary authentication. Any better option? (design confirmation, chapter 04) | Scripted transfers | |
+| 5.5 | Sizing of Trustelem Connect and ADConnect for our RADIUS request rate; is a second Connect instance active-active? (T13) | HA of the agents | |
 | 5.6 | Latency limit for cross-site Master/Slaves replication and the supported DR failover procedure. (B3, B2) | DR design | |
 | 5.7 | SCIM from Trustelem into the Bastion: supported, payload, deprovisioning semantics, cluster behaviour. (T5, B4; full list in [chapter 12 section 6](../trustelem/12-scim-provisioning.md)) | Provisioning | |
 | 5.8 | OIDC instead of SAML: is there a WALLIX OIDC app template in Trustelem and guidance for a groups claim, or does WALLIX only support the SAML templates? (T11) | Keeps OIDC as a fallback | |
@@ -247,27 +247,27 @@ What is already known:
 | 6.1 | Does push (not only TOTP) work in the Access Manager RADIUS factor chain? (A4) | Admin experience | |
 | 6.2 | SAML clock-skew tolerance and replay protection on Access Manager and Bastion; assertion validity Trustelem issues. (A4) | Time sync requirements | |
 | 6.3 | Farm: replication port, maximum node count, recommended load-balancer health-check URL, TLS versions and ciphers. (A2, A3) | HA build | |
-| 6.4 | Access Manager clusters cannot display target passwords; what is WALLIX's recommended pattern for password checkout? | Feature gap | |
-| 6.5 | Is Access Manager a SCIM target? | Provisioning | |
+| 6.4 | Access Manager clusters cannot display target passwords; what is WALLIX's recommended pattern for password checkout? (design confirmation, report 3.3) | Feature gap | |
+| 6.5 | Is Access Manager a SCIM target? (T5) | Provisioning | |
 
 ## 7. MFA and user experience
 
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
 | 7.1 | Any device-trust or "remember this browser" beyond the internal zone and the RADIUS MFA session? (T8) | Prompt fatigue | |
-| 7.2 | Hardware TOTP tokens: which are supported, and how are they seeded and assigned in bulk? | Users without smartphones | |
-| 7.3 | Lost-phone flow: rescue codes, 24-hour help-desk reset, and can the help desk be delegated without full admin rights? | Help desk, chapter 11 | |
-| 7.4 | Passkey policy: can we require hardware-bound keys for administrators only (policy Strict) while others use synced passkeys? | Chapter 06 design | |
-| 7.5 | Is there a customer-facing status or health API for the tenant and the agents that we can poll from our monitoring? | Monitoring | |
+| 7.2 | Hardware TOTP tokens: which are supported, and how are they seeded and assigned in bulk? (T15) | Users without smartphones | |
+| 7.3 | Lost-phone flow: rescue codes, 24-hour help-desk reset, and can the help desk be delegated without full admin rights? (design confirmation, chapters 06, 07 and 11) | Help desk, chapter 11 | |
+| 7.4 | Passkey policy: can we require hardware-bound keys for administrators only (policy Strict) while others use synced passkeys? (design confirmation, chapter 06) | Chapter 06 design | |
+| 7.5 | Is there a customer-facing status or health API for the tenant and the agents that we can poll from our monitoring? (T1) | Monitoring | |
 
 ## 8. Logging, API and compliance
 
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
-| 8.1 | Log retention beyond the 30 days in the console and API; is a longer retention available contractually? | NIS2 / DORA evidence | |
+| 8.1 | Log retention beyond the 30 days in the console and API; is a longer retention available contractually? (T14) | NIS2 / DORA evidence | |
 | 8.2 | API rate limits and how *Always allow* and *2nd factor only* are represented in the API. (T6) | Automation | |
 | 8.3 | ADConnect synchronisation frequency values and the log file locations of both agents. (T3) | Operations | |
-| 8.4 | Statement of applicability for the ISO 27001 certificate and any SOC 2 or pentest summary available under NDA. | Vendor risk assessment | |
+| 8.4 | Statement of applicability for the ISO 27001 certificate and any SOC 2 or pentest summary available under NDA. (T9) | Vendor risk assessment | |
 | 8.5 | Access Manager has no native syslog forwarder: which agent or method does WALLIX recommend to ship its log files to a SIEM? (A7) | SIEM coverage | |
 
 ## 9. Close of meeting

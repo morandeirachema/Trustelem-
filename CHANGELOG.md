@@ -4,6 +4,12 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-24
 
+- Deep audit and sync, cross-references: every meeting question now cites its register row or
+  is marked as a design confirmation; new rows T14 (log retention) and T15 (hardware TOTP
+  tokens); T1, T4, T5, A5, B1 and A1 extended; closed rows S1, S2 and B5 moved to a *Closed*
+  section; register rows put in numeric order; report 9.1 and 7.5 point to the register and the
+  test plan; README tree, dates, counts and CI wording corrected; archive notes indexed; stale
+  `tools/__pycache__` file removed from git.
 - Added the vendor meeting script (`docs/reference/vendor-meeting-script.md`): platform brief
   with components, integration order, hardware requirements and an indicative timeline, then
   eight question blocks (deployment model and on-premise TOTP, licensing, effort, support and
@@ -21,6 +27,8 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-23
 
+- Mermaid labels shortened so boxes no longer overlap text (six diagram sources, README, report,
+  SAML reference).
 - Gap closure pass: official texts of Implementing Regulation 2024/2690 and DORA RTS 2024/1774
   read and quoted (an earlier row had attributed recital wording to point 11.7.1); eth1 HA note
   from the Bastion release notes; Terraform RADIUS resource verified from source; absence of a

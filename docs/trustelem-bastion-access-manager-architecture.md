@@ -1,7 +1,7 @@
 # WALLIX Trustelem MFA for a Bastion cluster and an Access Manager cluster
 
 Architecture report for a PAM architect.
-Date: 2026-09-22.
+Date: 2026-09-24.
 Verified against WALLIX Bastion 12.3.2 (Functional Administration Guide dated 2026-03-12),
 WALLIX Access Manager 5.2.4.0 (Administration Guide dated 2026-03-12), the public release
 notes of both products, and the WALLIX Trustelem documentation portal as read on the same day.
@@ -12,6 +12,11 @@ report says so.
 Revision 2 (same day): added access-path coverage, administrator access model, OIDC
 alternative, disaster recovery, sizing, hardening, rollout plan, vendor questions and glossary,
 and corrected the advisory scope after re-reading the advisories page.
+
+Revision 3 (2026-09-23 and 2026-09-24): quotations re-verified against the vendor texts,
+certification facts and RADIUS transport note added, Mermaid labels shortened, cross-references
+synchronised with the [gaps register](reference/open-questions-and-gaps.md) and the
+[vendor meeting script](reference/vendor-meeting-script.md).
 
 Every factual statement links to its source. Statements marked *inference* are the author's
 deduction from the sources; statements marked *gap* could not be confirmed publicly.
@@ -892,6 +897,9 @@ then federation, then MFA enforcement. Test after each block.
 
 ### 7.5 Acceptance tests
 
+The full test plan with IDs, preconditions, steps and the evidence to keep is
+[chapter 10](trustelem/10-test-plan.md); the table below is the sign-off summary.
+
 | Test | Expected result |
 |------|-----------------|
 | AD user opens Access Manager | redirect to Trustelem, AD password, push approval, portal shows Bastion authorizations of `user@TRUSTELEM` |
@@ -998,6 +1006,10 @@ Source: [Trustelem new features](https://trustelem-doc.wallix.com/books/trustele
   pricing for the Bastion plus Trustelem bundle.
 
 ### 9.1 Questions to put to WALLIX before sign-off
+
+The maintained list is the [open questions and gaps register](reference/open-questions-and-gaps.md)
+and the questions are put to WALLIX with the [vendor meeting script](reference/vendor-meeting-script.md);
+the items below are the sign-off subset and keep their original numbering.
 
 1. Contractual SLA and support hours for WALLIX One IDaaS, and the incident notification
    channel (the public pages give history, not commitments).

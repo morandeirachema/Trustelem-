@@ -7,7 +7,7 @@ with a WALLIX Bastion cluster and a WALLIX Access Manager cluster. Start in `tru
 
 | Document | Content |
 |----------|---------|
-| [trustelem/README.md](trustelem/README.md) | index and reading order of the eight Trustelem chapters |
+| [trustelem/README.md](trustelem/README.md) | index and reading order of the twelve Trustelem chapters |
 | [01 Tenant setup](trustelem/01-tenant-setup.md) | tenant, console, identity-source decision, hardening, agent network flows |
 | [02 ADConnect](trustelem/02-directory-sync-adconnect.md) | Active Directory synchronisation agent |
 | [03 Trustelem Connect](trustelem/03-trustelem-connect.md) | LDAP and RADIUS agent, listeners, `connect check`, SIEM/SCIM targets |

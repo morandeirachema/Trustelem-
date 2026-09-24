@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 A documentation and architecture workspace for a WALLIX Privileged Access Management (PAM) design:
 WALLIX Trustelem (now sold as WALLIX One IDaaS) providing MFA/SSO for a WALLIX Bastion cluster and a
 WALLIX Access Manager cluster. The main concern is Trustelem setup, configuration and integration;
-Bastion and Access Manager content supports that. Trustelem-specific documents live in `docs/trustelem/`. There is no application code, build, lint or test tooling. Deliverables
+Bastion and Access Manager content supports that. Trustelem-specific documents live in `docs/trustelem/`. There is no application code; the only tooling is the three check scripts in `tools/` and two GitHub Actions workflows. Deliverables
 are Markdown reports with Mermaid diagrams and links to vendor documentation.
 
 ## Conventions for documents in this repo
