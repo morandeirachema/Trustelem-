@@ -4,6 +4,11 @@ Dates are ISO. Product versions verified are stated in each document header.
 
 ## 2026-09-24
 
+- Remaining audit items: Kerberos-Password marked deprecated, RDP CredSSP condition restated,
+  LUKS re-encryption and API key IP limitation re-cited, the Access Manager challenge-response
+  statement added to A4, runbook defaults cited to the install guide, test-plan expectations
+  and help-desk screen wording marked as expected rather than documented, the Bastion RADIUS
+  timeout caution after upgrades added to chapter 04; PCI DSS row marked as not re-read.
 - Audit and source verification ("fuentes"): every cited claim, not only quotations, checked
   against the Bastion 12.3.2 and Access Manager 5.2.4.0 guides, the 4.0.6.1 install guide, the
   12.0.2 deployment guide, both public release notes, the four Trustelem books and 69 third-party

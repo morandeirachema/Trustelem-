@@ -10,13 +10,14 @@ the help-desk actions follow [06 MFA and access rules](06-mfa-and-access-rules.m
 1. Install **WALLIX Authenticator** on the phone (iOS or Android; a Windows desktop version
    exists in the Microsoft Store).
 2. Open `https://<tenant>.trustelem.com`, log in with the Active Directory password. If an
-   enrollment campaign is running, a window asks to enrol a factor; scan the QR code with the
-   app. The window returns at every login until it is done.
+   enrollment campaign is running, a window asks to enrol a factor; follow it in the app (the
+   exact enrollment screens are not described in the Trustelem books). The window returns at every login until it is done.
 3. Optional, for administrators on the web path: a passkey (YubiKey, Windows Hello, Touch ID)
    enrolled by campaign, or re-enrolled from `https://<tenant>.trustelem.com/#security` when
    "User can reset token" allows it.
 4. From then on, keep the phone at hand: it receives a push at each privileged login, and
-   shows a six-digit code when there is no network.
+   shows a TOTP code when there is no network ("if the network is up the user receives a push
+   notification, otherwise he can use a TOTP", [MFA](https://trustelem-doc.wallix.com/books/trustelem-administration/page/multi-factors-authentication)).
 
 Help desk: administrators can enrol a user manually or send an enrollment link by e-mail from
 the user's entry; a user cannot reset a factor unless the "User can reset token" switch
@@ -36,7 +37,7 @@ Symptoms and causes:
 
 | The user says | Likely cause | Action |
 |---------------|--------------|--------|
-| "The page says Forbidden after the password" | user not in a group with an access rule | check group membership and the app's access rules |
+| "The page says access is refused after the password" (wording varies) | user not in a group with an access rule | check group membership and the app's access rules |
 | "No push arrives" | phone offline, app not enrolled, notifications blocked | use the code from the app; re-enrol if needed |
 | "After Trustelem I land on an error page" | SAML mismatch (domain name, attributes, certificate) or clock skew | escalate to the PAM team with the time of the attempt |
 | "The portal is empty, no sessions" | login does not match a Bastion user (Strip Domain, mapping) | escalate; check `login@DOMAIN` on the Bastion |
@@ -47,8 +48,8 @@ RDP (`mstsc`):
 
 1. Connect to the Bastion address (or its load-balanced name) on port 3389.
 2. The Bastion login screen appears: enter `login@domain` and the AD password.
-3. The screen announces a push notification; approve it on the phone (or, if the screen asks
-   for a code, type the six digits from the app).
+3. With "Use mobile device" enabled the Bastion expects a push; approve it on the phone (or, if
+   the screen asks for a code, type the TOTP from the app).
 4. Pick the target from the list.
 5. If the connection fails before the login screen because Kerberos is enabled on the Bastion
    RDP proxy and the user does not log in with Kerberos, add

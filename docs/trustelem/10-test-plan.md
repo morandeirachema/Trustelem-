@@ -60,8 +60,8 @@ audit log entry.
 | A-06 | A-02 | SAML tracer capture | assertion signed by `acme-saml-2026`; attributes `uid`, `displayname`, `email`, `lang`, `profile`, `groups` | capture (signature redacted) |
 | A-07 | skew test on a lab node with the clock 10 minutes off | login | fails; restores after NTP fix | AM SAML DEBUG log |
 | A-08 | Signed Assertion switched OFF in a lab | login with a tampered assertion | must be refused on 5.2.7 / 6.0.4 and later; switch back ON | AM log |
-| A-09 | stop `am-1` | new login through the load balancer | lands on `am-2`; sessions on `am-1` dropped | LB health log |
-| A-10 | Strip Domain switched ON by mistake | login | authorizations empty (login without `@TRUSTELEM` does not match); switch OFF | AM, WA |
+| A-09 | stop `am-1` | new login through the load balancer | lands on `am-2`; sessions on `am-1` expected to drop (not documented, observe) | LB health log |
+| A-10 | Strip Domain switched ON by mistake | login | expected: authorizations empty, because the login without `@TRUSTELEM` does not match (AM 10.3.2 requires Strip Domain OFF to map users); switch OFF | AM, WA |
 | A-11 | Access Manager RADIUS server | local administrator logs in | password then TOTP in the second "Password" field | AM login entry, TL |
 
 ## 5. Trustelem operations
@@ -82,7 +82,7 @@ audit log entry.
 | H-01 | Bastion replication installed | `bastion-replication --monitoring` on `bastion-1` | both nodes in sync | command output |
 | H-02 | H-01 | add a mapping on `bastion-1` | visible on `bastion-2` shortly after (no replication delay is documented) | WD on both nodes |
 | H-03 | H-01 | `bastion-2` unreachable | logins via the load balancer continue on `bastion-1`; AM cluster stops using `bastion-2` after `bastion.connection.timeout` | AM log, LB log |
-| H-04 | AM replication installed | create a SAML IdP on `am-1` | present on `am-2` | AM audit on both |
+| H-04 | AM replication installed | create a SAML IdP on `am-1` | expected present on `am-2` (configuration data, *inference*) | AM audit on both |
 
 ## 7. Exit criteria
 

@@ -204,7 +204,7 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
   Source: [Bastion Admin Guide 5.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - **Services.** SSH/SFTP/SCP/Telnet/rlogin proxy on TCP 22; RDP/VNC proxy on TCP 3389; web UI
   and REST API on 443 (`/ui`, `/api`); SSH administration console on 2242; raw TCP through
-  Universal Tunneling (WAMUT client). No HTML5 gateway inside Bastion; HTML5 comes from Access
+  Universal Tunneling (WAMUT client). *Inference:* no HTML5 gateway inside Bastion (none is documented); HTML5 comes from Access
   Manager. Sources: [Deployment Guide 2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf),
   [Admin Guide 12.1 and 12.16.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - **Authorization model.** Users belong to user groups, target accounts to target groups, and
@@ -222,7 +222,8 @@ Source: [Access rules](https://trustelem-doc.wallix.com/books/trustelem-administ
 - **MFA model.** "you can setup a single-factor authentication (SFA) and a two-factor
   authentication (2FA). However, it is not possible to directly configure a multifactor
   authentication (MFA)." A primary authentication is set on the authentication domain and a
-  *secondary authentication* (RADIUS, TACACS+, PingID, Kerberos-Password) is attached to it.
+  *secondary authentication* (RADIUS, TACACS+, PingID, or the deprecated Kerberos-Password, 7.1.4
+  and 7.2.5.x) is attached to it.
   WALLIX recommends putting richer MFA in the IdP.
   Source: [Admin Guide 7.1.3](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - **RADIUS client.** RFC 2865 and RFC 8044, challenge-response supported, standard attributes
@@ -424,7 +425,8 @@ sequenceDiagram
   [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 - SSH clients receive the challenge as keyboard-interactive prompts; this breaks automation
   such as VS Code Remote-SSH. RDP clients see the Bastion RDP proxy login screen. When Kerberos
-  is enabled on the RDP proxy, RADIUS and OTP users must set `enablecredsspsupport:i:0` and
+  is enabled on the RDP proxy, users of other methods (for example SAML, OTP or RADIUS) without
+  Bastion connection files must enable NLA and set `enablecredsspsupport:i:0` and
   `authentication level:i:2` in the `.rdp` file (or `/sec:tls` with FreeRDP).
   Sources: [VS Code issue](https://github.com/microsoft/vscode-remote-release/issues/11461),
   [Bastion Users Guide](https://pam.wallix.one/documentation/user-doc/bastion_en_user_guide.pdf).
@@ -483,7 +485,7 @@ including passkeys.
 | Bastion auditors and approvers | Bastion web UI or Access Manager | same as users (SAML through AM, or AD plus RADIUS on the Bastion) | none needed |
 | Bastion appliance operators | SSH console 2242 (`wabadmin`, `wabsuper`) and hypervisor console | passwords changed at initialisation, no MFA available | `wabbootadmin` GRUB user and hypervisor console; restrict 2242 to a jump host ([Deployment Guide 2.1](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf)) |
 | Access Manager global organization administrator | `https://<am>/wabam/global?domain=local` | local password, optionally RADIUS chained as factor 2 on the local domain (X.509 is "not possible on the administration interface", AM 10.2.4); restricted source IPs per user | `wabam` command-line reset of the baseline organization password ([AM 8, 10.1, 12.2, 22.1](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)) |
-| Access Manager organization administrators | organization URL | SAML domain with a `profile` attribute of `Administrator`, or a Bastion domain | global administrator |
+| Access Manager organization administrators | organization URL | SAML domain with a `profile` attribute naming an administrator profile (AM 10.3.1 Profile Attribute), or a Bastion domain (*design choice*) | global administrator |
 | Trustelem administrators | `https://admin-<tenant>.trustelem.com` | admin console access level set to 2 factors; delegated administrators through `groupManager` | one local Trustelem administrator not linked to AD; rescue codes ([Local users](https://trustelem-doc.wallix.com/books/trustelem-administration/page/trustelem-local-users), [Delegated administration](https://trustelem-doc.wallix.com/books/trustelem-administration/page/delegated-administration)) |
 | Trustelem Connect and ADConnect hosts | OS administration | OS controls (not WALLIX) | *inference:* manage these VMs through the Bastion itself once it is live |
 
@@ -703,7 +705,7 @@ flowchart TB
 | AM profile | `profile` attribute set by script, matched by name to AM profiles; Default Profile = User | [AM 10.3.1](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | AM Entity ID | `WALLIX-AM` (Trustelem template) or `https://<am-fqdn>/wabam/<org>?domain=TRUSTELEM` | [AM app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager), [TrustBuilder guide](https://docs.trustbuilder.com/mfa/wallix-access-manager-saml-2-0-configuration) |
 | Bastion SP Entity ID | load balancer FQDN when native SAML is used through an LB | [Bastion 7.3.1.1.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
-| Bastion API key for AM | profile `wallix_access_manager_session_audit`, IP-restricted to the AM nodes | [AM 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
+| Bastion API key for AM | profile `wallix_access_manager_session_audit`, IP limitation to the AM nodes | profile per [AM 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf); IP limitation set on the Bastion ([Bastion 6.1](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)) |
 | RADIUS NAS-Identifier | `WAB` from Bastion; AM sets its own NAS Identifier field | [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf), [AM 11](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 
 ### 6.2 Certificates, keys and secrets
@@ -796,7 +798,7 @@ is a node loss, not a capacity share.
 | Control | Where | Source |
 |---------|-------|--------|
 | Run Bastion 12.3.7 / 12.4.1 or later and Access Manager 5.2.7 / 6.0.4 or later | both clusters | [WALLIX advisories](https://www.wallix.com/support-services/alerts/) |
-| Change all factory credentials (`admin`, `wabadmin`, `wabsuper`, `wabupgrade`, GRUB) and re-encrypt the LUKS disk passphrase | Bastion | [Deployment Guide 2.1 and 3](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
+| Change all factory credentials (`admin`, `wabadmin`, `wabsuper`, `wabupgrade`, GRUB) and re-encrypt the LUKS disk passphrase (`bastion-luks-update`) | Bastion | [Deployment Guide 2.1, 4.1 and 4.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Keep Signed Response and Signed Assertion on; Encrypt Messages off; import only the Trustelem signing certificate | Access Manager SAML | [AM 10.3.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |
 | Restrict API keys by profile and source IP; one key per consumer | Bastion | [Bastion 6.1 and 6.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf) |
 | Enable `web.proxy.trusted-proxies` so only the load balancer may set forwarded headers | Access Manager | [AM 21.5](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) |

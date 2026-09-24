@@ -44,7 +44,7 @@ to the customer documentation site; "lab" means it can be closed by testing.
 | A1 | Access Manager 6.0 release notes and Debian 12 changes (doc.wallix.com answers 303 to the Trustelem SSO login for both the 6.0 and the Bastion 12.4 notes, checked 2026-09-23; the [public release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html) stop at 5.2.4.0, checked 2026-09-24); end-of-support date for 5.2 and the upgrade path to 6.0 on Debian 12 | report, runbook | vendor login |
 | A2 | Replication script name and invocation beyond `--prerequisite-check` and `/root/sqlreplication/servers_list`; replication port; maximum node count | runbook | vendor login |
 | A3 | Health-check URL for the load balancer; TLS versions and cipher list | runbook | vendor, lab |
-| A4 | SAML clock-skew tolerance and assertion replay cache; ACS URL pattern (only in the generated SP metadata); whether push (not only TOTP) works in the RADIUS factor chain | 05, standards | vendor, lab |
+| A4 | SAML clock-skew tolerance and assertion replay cache; ACS URL pattern (only in the generated SP metadata); whether push (not only TOTP) works in the RADIUS factor chain (AM Admin Guide 11 states that "Access Manager supports the challenge-response mechanism", which covers TOTP; push-wait is not stated) | 05, standards | vendor, lab |
 | A5 | PKCE and exact redirect URI matching on the Bastion and Access Manager OIDC clients and on the Trustelem provider | standards | vendor |
 | A6 | `wabam-config-database`, `wabam-init-database` and `wabam-certificate-update` full syntax; hotfix procedure | runbook | vendor login |
 | A7 | No native syslog forwarder on Access Manager: log files under `/var/log/wallix/wabam` need an agent to reach the SIEM | logging | vendor, lab |

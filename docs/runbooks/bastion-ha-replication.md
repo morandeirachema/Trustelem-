@@ -174,7 +174,7 @@ publicly.
 
 ## 7. Failover and failback
 
-Master/Master: both nodes accept logins at all times, so a node loss is handled by the front
+Master/Master: *inference:* both masters accept logins at all times, so a node loss is handled by the front
 end (load balancer, DNS or Access Manager cluster). Keep administration, password rotation and
 API provisioning on the surviving node only; when the failed node returns, check
 `--monitoring` and use `--resync` (or `--dump-resync` if the data diverged) from the primary

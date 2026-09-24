@@ -172,5 +172,6 @@ replication has completed.
   for Trustelem Connect or for the Bastion AD bind.
 - Prefer LDAPS with `?tls_verify` (or the Windows Log On tab on a domain-joined host).
 - The connector pins the Trustelem server certificate; exclude `*.trustelem.com`,
-  `relay-fr-01.wallix.com` and `relay-fr-02.wallix.com` from TLS inspection.
+  `relay-fr-01.wallix.com` and `relay-fr-02.wallix.com` from TLS inspection
+  ([connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows)).
 - Two connectors on different hosts, patched on the vendor's rolling procedure above.

@@ -23,10 +23,11 @@ replication procedure (SAML identity providers are configuration data and replic
   updates" (IG 3.1.2).
 - Application runs in Docker: `docker restart access-manager_access_manager_1`; Apache in
   front: `systemctl restart apache2` (IG 3.4.1, AG 21.9).
-- SSH administration on 2242: `ssh wabadmin@<admin_ip> -p 2242`, then `super`, then `sudo -i`.
+- SSH administration on 2242: `ssh wabadmin@<admin_ip> -p 2242`, then `super`, then `sudo -i`
+  (IG 3.5).
 - Default accounts: `wabadmin` (SecureWabAdmin), `wabsuper`, `wabupgrade`, GRUB `wabbootadmin`
   (SecureWabBoot), Access Manager global administrator `admin` / `admin` ("recommended to create a
-  new global administrator and delete the default global administrator").
+  new global administrator and delete the default global administrator") (IG 3.3 and 3.4.2).
 
 ## 2. Install node 1
 
@@ -111,7 +112,7 @@ auto-filled with the administration URL (known issue WAB-4968).
 | `web.max.requests.perSec` | 60 | DoS filter |
 | `web.sni.host.check` | true | SNI verification |
 | `web.header.X-Frame-Options` | DENY | clickjacking protection |
-| `rdp.clientName` | hostname | RDP client name per node |
+| `rdp.clientName` | hostname | RDP client name per node (AG 21.1) |
 
 Application settings (Settings > Application Settings > Application tab, AG 15.1.1 and 20.2):
 

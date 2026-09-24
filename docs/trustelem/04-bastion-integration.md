@@ -71,7 +71,9 @@ Bastion side, verbatim from the vendor page:
 2. **Server / Port**: the Trustelem Connect host and "the port defined on the Trustelem Service
    previously setup (should be 1812 or 2812)".
 3. **Timeout**: "let the default value, unless you have latency on your network". The Bastion
-   default is 5 s; raise it to cover push approval (see section 8).
+   default is 5 s; raise it to cover push approval (see section 8). "The RADIUS external
+   authentications inherited from an earlier version of WALLIX Bastion keep the former timeout
+   value defined" (Admin Guide 7.2.5.4), so check entries after an upgrade.
 4. **New secret / Confirm secret**: "This secret can be found in the Trustelem Bastion app model."
 5. **Check** "Use mobile device for 2 factor authentication(2FA)". The page explains the real
    effect: "This option has be designed for MFA with push authentication. But the real effect
