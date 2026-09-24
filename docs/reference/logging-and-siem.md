@@ -11,8 +11,8 @@ Date: 2026-09-23. Sources: [WALLIX Splunk add-on](https://github.com/wallix/Splu
 
 | Source | Transport | Format | Retention at source |
 |--------|-----------|--------|---------------------|
-| Trustelem | push through Trustelem Connect to an on-premise target, every 30 s, queued on error | JSON (recommended) or syslog | 30 days in the console and API |
-| Bastion nodes | System > SIEM integration: syslog UDP or TCP, RFC 3164 with ISO timestamps; categories configuration changes, authentication logs, account activities, SSH proxy events, RDP proxy events, SSH, RDP and VNC sessions; "only displayed when the SIEM functionality is associated with the license key" | key=value inside a bracketed event tag | local audit logs in the GUI; audit tables are not replicated between nodes |
+| Trustelem | push through Trustelem Connect to an on-premise target, every 30 s, queued on error | JSON (recommended) or syslog | 30 days through the API ("List all the logs of the 30 previous days"); console retention not documented |
+| Bastion nodes | System > SIEM integration: syslog UDP or TCP, RFC 3164 with ISO timestamps; categories configuration changes, authentication logs, account activities, SSH proxy events, RDP proxy events, SSH, RDP and VNC sessions; the field-level detail is in the separate SIEM Logs guide, which is not public | key=value inside a bracketed event tag | local audit logs in the GUI; audit tables are not replicated between nodes |
 | Access Manager nodes | no native forwarder; ship `/var/log/wallix/wabam/{access,error,tech}.log` with an OS agent | Apache-style access log, application logs | rotation on the appliance |
 | Agents (ADConnect, Trustelem Connect) | OS logs only | | |
 
@@ -73,7 +73,7 @@ Keep NTP on every node; SAML validation and correlation both depend on it.
 | MFA silently disabled | Bastion `wabaudit` edit on type `Ldapdomain` whose `infos` no longer lists the RADIUS secondary authentication; Trustelem permission change to *Always allow* |
 | Break-glass use | Bastion `wabauth` success for the local emergency account |
 | Federation tampering | Access Manager audit entries for SAML identity provider changes; Bastion `wabaudit` on type `UserAuth` with `wabAuthType [SAML]` |
-| API key misuse | `wabauth` success "authentified with: API key" from an address outside the Access Manager farm |
+| API key misuse | `wabauth` success entries for API-key authentication (exact wording to confirm in the lab, gap B6) from an address outside the Access Manager farm |
 | Connector outage | absence of Trustelem RADIUS log records for more than five minutes during business hours while Bastion reports authentication failures with timeouts |
 | Session anomalies | `RDP Session` `NEW_PROCESS` or `KBD_INPUT` matching restriction patterns; `SSH Session` `SESSION_DISCONNECTION` with very short `duration` |
 

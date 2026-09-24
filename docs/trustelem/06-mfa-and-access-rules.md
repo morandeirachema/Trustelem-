@@ -13,8 +13,8 @@ Quotes are verbatim.
 | WALLIX Authenticator (push + TOTP) | "if the network is up the user receives a push notification, otherwise he can use a TOTP"; desktop version "in the Microsoft store only" and uses WNS | yes | yes (push-wait or TOTP) |
 | TOTP authenticator (any app, NFC hardware token) | standard TOTP | yes | yes (Access-Challenge or code appended to the password) |
 | Second-step passkey (FIDO2/WebAuthn) | "previously named Security key"; YubiKey, Feitian, Windows Hello, Touch ID/Face ID, password managers, cross-device QR with a 5-minute window | yes | no |
-| SMS | "additional cost, not available by default" | yes | yes |
-| E-mail OTP | "disable by default"; weak | yes | yes |
+| SMS | "additional cost, not available by default" | yes | not documented (the Trustelem Connect page describes push-wait and TOTP only; gap T16) |
+| E-mail OTP | "disable by default"; weak | yes | not documented (gap T16) |
 
 For a PAM tenant: WALLIX Authenticator for everyone (the only factor that gives push on the
 native RDP/SSH path), passkeys for administrators on the web path, TOTP as the fallback, SMS

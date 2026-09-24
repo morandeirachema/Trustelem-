@@ -72,7 +72,7 @@ Source: [architecture report section 4](../trustelem-bastion-access-manager-arch
 | Trustelem (WALLIX One IDaaS) | SaaS identity provider: SAML 2.0 / OIDC for the web path, RADIUS and LDAP through Trustelem Connect for native clients; MFA by push, TOTP, passkey | browsers, the two agents | [Trustelem summary](https://trustelem-doc.wallix.com/books/trustelem-administration/page/summary) |
 | ADConnect (two VMs) | syncs AD users and groups into the tenant and validates AD passwords; outbound 443 only | domain controllers, Trustelem | [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect) |
 | Trustelem Connect (two VMs) | on-premise RADIUS listeners (1812 for the Bastion app, 2812 for the Access Manager app) and LDAP 2001 listener; SIEM push; SCIM; outbound 443 only | Bastion, Access Manager, Trustelem | [Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect) |
-| Bastion cluster (two appliances) | session proxies (RDP, SSH, VNC, HTTPS, Telnet), vault, recordings; HA Database Replication over an SSH tunnel on 2242, no VIP, failover by `--elevate-master` | AD, Trustelem Connect (RADIUS secondary factor), targets | [Bastion Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
+| Bastion cluster (two appliances) | session proxies (RDP, SSH, VNC, HTTPS, Telnet), vault, recordings; HA Database Replication over an autossh SSH tunnel (port not stated in the guide, 2242 assumed); no VIP or heartbeat documented; Master/Master fails over by front-end rerouting, Master/Slaves by `--elevate-master` | AD, Trustelem Connect (RADIUS secondary factor), targets | [Bastion Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Access Manager farm (two appliances) | HTML5 web portal in front of one or more Bastions; SAML SP toward Trustelem; RADIUS factor chain for local admins; shared or replicated MariaDB; needs a WebSocket-capable L7 load balancer | users, Bastion REST API 443 and proxies, Trustelem | [AM Install Guide 2.4](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf) |
 
 Integration order, from the [setup runbook](../trustelem-bastion-access-manager-architecture.md)
@@ -100,7 +100,7 @@ federation, then MFA enforcement. Test after each block."
 | Bastion, per node, minimum | 4 GB RAM, 50 GB disk, IPv4; vSphere: one socket, CPU and memory reservation, because "The number of concurrent sessions can only be guaranteed if the appropriate numbers of CPU Mhz and the appropriate memory size are reserved" | [Quick Start 3.3](https://marketplace-wallix.s3.amazonaws.com/Bastion-quickstart-en.pdf), [Deployment Guide 3.2.2](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Bastion, per node, by load | 25 RDP / 110 SSH sessions: 4 vCPU, 8 GB. 40 / 240: 8 vCPU, 16 GB. 50 / 480: 8 vCPU, 32 GB. 75 / 480: 16 vCPU, 32 GB | [Quick Start 3.3](https://marketplace-wallix.s3.amazonaws.com/Bastion-quickstart-en.pdf) |
 | Bastion recordings | extend the disk or use remote storage (NFS/CIFS); recordings and audit data are local to each node and are not replicated | [Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
-| Access Manager, per node | 2 vCPU, 4 GB RAM, 50 GB disk, three NICs (users, HA, admin); legacy table 6 vCPU / 4 GB for 1000 registered users and 100 concurrent sessions; raise the Java heap above the 2373 MB default for more than a few hundred users | [AM Install Guide 2.1.3 and 3.2](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf) |
+| Access Manager, per node | 2 vCPU, 4 GB RAM, 50 GB disk (40 GB in the 4.0.6.1 install guide), one required interface (administration tied to the first interface since 5.2) plus an HA interface (three in the install guide); legacy table 6 vCPU / 4 GB for 1000 registered users and 100 concurrent sessions; raise the Java heap above the 2373 MB default for more than a few hundred users | [AM Install Guide 2.1.3 and 3.2](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf) |
 | Load balancer for Access Manager | L7, WebSocket support, source-IP affinity (Citrix ADC cookie persistence is incompatible with Universal Tunneling) | [AM release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html) |
 | ADConnect and Trustelem Connect | four small VMs, Windows Server or Linux, outbound TCP 443 to the Trustelem relay FQDNs and IPs, no TLS inspection, HTTP CONNECT proxy allowed | [Connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows) |
 | Versions to order | Bastion 12.3.7 or 12.4.1 and later, Access Manager 5.2.7 or 6.0.4 and later (security advisories) | [WALLIX advisories](https://www.wallix.com/support-services/alerts/) |
@@ -112,7 +112,7 @@ Full port matrix: [architecture report section 6.3](../trustelem-bastion-access-
 
 *Inference.* WALLIX publishes no deployment durations; the figures below are the repo's estimate
 for a two-site, two-node-per-product design with one AD forest, to be confirmed in block 3.
-The only vendor-derived duration is the pilot exit criterion of two weeks without incidents.
+The two-week pilot exit criterion is also the repo's own (report section 7.6).
 
 | Phase | Content | Estimate | Depends on |
 |-------|---------|----------|------------|
@@ -120,7 +120,7 @@ The only vendor-derived duration is the pilot exit criterion of two weeks withou
 | 1. Tenant and agents | tenant, ADConnect, Trustelem Connect, pilot group synced | 2 to 3 days | phase 0 |
 | 2. Bastion cluster | install, replication, AD domain, RADIUS secondary factor, first targets | 3 to 5 days | phase 0 |
 | 3. Access Manager farm | install, replication, load balancer, Bastion link, SAML, RADIUS factor | 3 to 5 days | phase 2 |
-| 4. Pilot | one administrator group on MFA, acceptance tests, SIEM dashboards | 2 weeks (vendor exit criterion) | phases 1 to 3 |
+| 4. Pilot | one administrator group on MFA, acceptance tests, SIEM dashboards | 2 weeks (repo exit criterion, report 7.6) | phases 1 to 3 |
 | 5. Native clients and everyone | RADIUS on all groups, web path *2 factors*, enrollment campaign | 2 to 4 weeks, driven by enrollment | phase 4 |
 | 6. Hardening and handover | default accounts, passkey policy, runbooks, help-desk training | 1 week | phase 5 |
 
@@ -131,7 +131,7 @@ engineering. Rollout phases and rollback steps: [architecture report section 7.6
 
 What is already known:
 
-- Trustelem is "multi-tenant SaaS in EU datacenters"; there is no on-premise edition of the
+- Trustelem is a SaaS service "Hosted in European Data Centers" ([product page](https://www.wallix.com/products/idaas/)); there is no on-premise edition of the
   identity provider in the public documentation. The only on-premise components are the agents
   ADConnect (directory sync) and Trustelem Connect (LDAP/RADIUS listener, SIEM push, SCIM).
   Sources: [connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows),
@@ -184,7 +184,7 @@ What is already known:
 - The repo's rollout plan has five phases: build, pilot (one AD group, two weeks without
   incidents), native clients, everyone on the web path, hardening.
   Source: [architecture report section 7.6](../trustelem-bastion-access-manager-architecture.md).
-- ADConnect needs a domain-joined Windows or a Linux host; Trustelem Connect needs an outbound
+- ADConnect needs a Windows Server (domain-joined only if IWA is wanted) or a Linux host; Trustelem Connect needs an outbound
   443 websocket to the relay and no TLS inspection. Sources: [chapter 02](../trustelem/02-directory-sync-adconnect.md),
   [chapter 03](../trustelem/03-trustelem-connect.md).
 
@@ -235,6 +235,7 @@ What is already known:
 | 5.6 | Latency limit for cross-site Master/Slaves replication and the supported DR failover procedure. (B3, B2) | DR design | |
 | 5.7 | SCIM from Trustelem into the Bastion: supported, payload, deprovisioning semantics, cluster behaviour. (T5, B4; full list in [chapter 12 section 6](../trustelem/12-scim-provisioning.md)) | Provisioning | |
 | 5.8 | OIDC instead of SAML: is there a WALLIX OIDC app template in Trustelem and guidance for a groups claim, or does WALLIX only support the SAML templates? (T11) | Keeps OIDC as a fallback | |
+| 5.9 | Bastion backup key: chapter 2 of the Deployment Guide says at least 16 characters, chapters 6 and 7 exactly 16. Which is right? (B8) | Backup and DR runbook | |
 
 ## 6. Access Manager integration
 
@@ -261,12 +262,13 @@ What is already known:
 | 7.3 | Lost-phone flow: rescue codes, 24-hour help-desk reset, and can the help desk be delegated without full admin rights? (design confirmation, chapters 06, 07 and 11) | Help desk, chapter 11 | |
 | 7.4 | Passkey policy: can we require hardware-bound keys for administrators only (policy Strict) while others use synced passkeys? (design confirmation, chapter 06) | Chapter 06 design | |
 | 7.5 | Is there a customer-facing status or health API for the tenant and the agents that we can poll from our monitoring? (T1) | Monitoring | |
+| 7.6 | Do SMS and e-mail OTP work as the second factor over RADIUS and LDAP, or only push and TOTP? (T16) | Fallback factors for native clients | |
 
 ## 8. Logging, API and compliance
 
 | # | Question | Why it matters | Answer |
 |---|----------|----------------|--------|
-| 8.1 | Log retention beyond the 30 days in the console and API; is a longer retention available contractually? (T14) | NIS2 / DORA evidence | |
+| 8.1 | Log retention: the API returns the 30 previous days; what does the console keep, and is a longer retention available contractually? (T14) | NIS2 / DORA evidence | |
 | 8.2 | API rate limits and how *Always allow* and *2nd factor only* are represented in the API. (T6) | Automation | |
 | 8.3 | ADConnect synchronisation frequency values and the log file locations of both agents. (T3) | Operations | |
 | 8.4 | Statement of applicability for the ISO 27001 certificate and any SOC 2 or pentest summary available under NDA. (T9) | Vendor risk assessment | |

@@ -40,6 +40,7 @@ are invented; the field names and rules come from the vendor pages cited in the 
 | Service account | `svc-trustelem-ad@corp.acme.example`, read-only |
 | Groups synchronised | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors`, `PAM-Automation` |
 | Custom attributes | `sAMAccountName`, `userPrincipalName`, `memberOf` |
+| Login attribute | `sAMAccountName`, so the RADIUS User-Name and the SAML `uid` are both `jdoe`; with UPN logins set the Bastion primary-domain option ON instead (chapter 04) |
 | Frequency | the shortest interval the domain controllers tolerate |
 
 `config.ini` on `adconnect-1` (Linux):
@@ -119,7 +120,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | Name | Type | Values |
 |------|------|--------|
 | `CORP-AD` | Active Directory | server `dc1.corp.acme.example`, port 389, StartTLS with the corporate CA, bind `svc-bastion-ldap@corp.acme.example`, base DN `dc=corp,dc=acme,dc=example`, login attribute `sAMAccountName`, user name attribute `sAMAccountName`, timeout 30 |
-| `Trustelem-RADIUS-1` | RADIUS | server 10.10.21.41, port 1812, timeout 50, secret `R1`, "Use mobile device for 2 factor authentication(2FA)" ON, "Use primary domain name for two-factor authentication (2FA)" ON |
+| `Trustelem-RADIUS-1` | RADIUS | server 10.10.21.41, port 1812, timeout 50, secret `R1`, "Use mobile device for 2 factor authentication(2FA)" ON, "Use primary domain name for two-factor authentication (2FA)" OFF (logins are sAMAccountName, section 2) |
 | `Trustelem-RADIUS-2` | RADIUS | server 10.10.21.42, same values |
 | `Trustelem-LDAP` | Active Directory | server 10.10.21.41, port 2001, StartTLS, bind method simple, user `trustelem`, password from the Bastion app model, base DN `DC=acme,DC=trustelem,DC=com`, login and user name attribute `mail` |
 | `Trustelem-SAML` | SAML | IdP metadata from the `Acme Access Manager` app; claims Username `uid`, Display name `displayname`, Email `email`, Group `groups`; SP entity ID left as generated (Access Manager is the front door); timeout 900 |
@@ -187,7 +188,8 @@ Settings > Application Settings: `bastion.cluster.identical.mode` on,
 
 ### RADIUS server `Trustelem` (fallback path for local administrators)
 
-Host 10.10.21.41 (and a second entry for 10.10.21.42), Protocol PAP, port 2812, timeout 50,
+Host 10.10.21.41 (and a second entry for 10.10.21.42), Protocol PAP, port 2812, timeout at the
+default (raise to 45 to 60 s only if push in the factor chain is confirmed, gap A4),
 Login type simple login, secret `R2`, NAS Identifier empty. Local domain: Local database
 Factor 1, RADIUS Factor 2.
 
@@ -204,7 +206,7 @@ Factor 1, RADIUS Factor 2.
 | `jdoe` in `PAM-Operators` | browser to `https://pam.acme.example/wabam/acme` | redirect to `acme.trustelem.com`, AD password via ADConnect, push on the phone (passkey offered on the web), portal shows the `pam-operators` authorizations of `jdoe@TRUSTELEM`, RDP launches without a prompt |
 | `jdoe` | `mstsc` to `bastion.corp.acme.example` | login `jdoe@corp.acme.example`, AD password checked by the Bastion, RADIUS request to `tconnect-1` with an empty password, push approved, session; next connection within 8 h on the same network is not prompted |
 | `svc-backup` in `PAM-Automation` | scripted SFTP to the Bastion | AD password only, because its group rule is *Always allow* |
-| `p.martin@partner.example` in `Partners` | browser to the portal | Trustelem password (local user), push, Login attribute `email`; on the Bastion the `PARTNERS` domain maps the Trustelem group DN |
+| `p.martin@partner.example` in `Partners` | browser to the portal | Trustelem password (local user) and push. Not covered by sections 2 and 4, which configure the AD path only: the vendor procedure for Trustelem local users is a second Access Manager app with Domain `partners` and Login `email` and a second Access Manager SAML identity provider (chapter 05 section 3). Native RDP/SSH: the Bastion `PARTNERS` LDAP domain (scenario C) with the Trustelem group DN mapping |
 | `bg-admin` | Bastion web UI from the admin network | local password, no MFA, used only when Trustelem is unreachable |
 
 ## 6. Consistency checks before go-live

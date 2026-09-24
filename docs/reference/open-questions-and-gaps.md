@@ -21,8 +21,9 @@ to the customer documentation site; "lab" means it can be closed by testing.
 | T11 | No WALLIX OIDC application template and no groups-claim guidance in the Trustelem books, so OIDC stays the alternative to SAML | report 4.1, 4.7 | vendor |
 | T12 | Behaviour when the Trustelem cloud is unreachable: no documented offline mode for Trustelem Connect (RADIUS, LDAP) or cached factors; break-glass relies on local Bastion and Access Manager accounts | report 5.3, 07 | vendor |
 | T13 | Throughput and sizing figures for ADConnect and Trustelem Connect ("minimal resources" and two VMs each is all that is published) | report 6.5 | vendor |
-| T14 | Log retention beyond the 30 days of the console and API: whether a longer retention is available contractually or only through the on-premise SIEM push and the API export | 07, logging | vendor |
+| T14 | Log retention: the API returns "the 30 previous days"; the console retention is not documented; whether a longer retention is available contractually or only through the on-premise SIEM push and the API export | 07, logging | vendor |
 | T15 | Hardware TOTP tokens: supported models, seed import and bulk assignment to users | 06, 11 | vendor |
+| T16 | Whether SMS and e-mail OTP work as the second factor over RADIUS and LDAP (the Trustelem Connect page describes push-wait and TOTP only) | 06 | vendor, lab |
 
 ## Bastion
 
@@ -32,8 +33,9 @@ to the customer documentation site; "lab" means it can be closed by testing.
 | B2 | Sample output of `bastion-replication --status`, `--monitoring`, `--prerequisite-check`; step-by-step `--elevate-master` failover and failback; restore on a replicated node; HA e-mail template names (System Operations Guide) | runbook | vendor login, lab |
 | B3 | Closed for the NIC: eth1 may be used for replication like any other interface, and "When the eth1 interface is used for HA database replication, the associated administration features must be manually enabled from the System > Service control page for replication to work" ([Bastion release notes WAB-7947, WAB-17651](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)). Still open: latency limits for cross-site Master/Slaves | runbook, DR | vendor |
 | B4 | SCIM API base path on the appliance, required attributes for user creation, Bearer support, cluster behaviour (scim.wallix.com timed out again on both 80 and 443 on 2026-09-23) | 12 | vendor |
-| B6 | Whether RADIUS accounting (1813) is used; `wabauth` diagnostic text for a RADIUS second factor and for SAML users through Access Manager | logging, test plan | lab |
+| B6 | Whether RADIUS accounting (1813) is used; `wabauth` diagnostic text for a RADIUS second factor, for SAML users through Access Manager and for API-key authentication; the SIEM Logs guide (field-level detail of System > SIEM integration) is not public | logging, test plan | lab, vendor login |
 | B7 | Which Bastion domain the Access Manager SAML Domain Name must match: the Trustelem [Access Manager app page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager) says "the Authentication domain name of your Active Directory Authentication domain", the Trustelem [Bastion SAML page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml) says "AM Domain Name = Bastion Authentication domain name" of the SAML domain; this design binds `TRUSTELEM` to a separate SAML *Other IdPs* domain (report 7.3 step 7) | 05, SAML reference | vendor, lab |
+| B8 | Backup key length: the Deployment Guide says "at least 16 characters" in chapter 2 and "must be exactly 16 characters long" in chapters 6 and 7; the runbook uses 16 | runbook | vendor, lab |
 
 ## Access Manager
 
@@ -71,9 +73,9 @@ Kept for the record; the answer is written into the chapter named in "Depends".
 
 | # | Gap | Depends | Close by |
 |---|-----|---------|----------|
+| B5 | Closed: the provider source `resource_externalauth_radius.go` has only `authentication_name`, `host`, `port`, `secret`, `timeout`, `description`, `use_primary_auth_domain`, so the "Use mobile device" option must be set in the GUI after apply; no OIDC resources exist | IaC | provider issue tracker |
 | S1 | Closed 2026-09-23: the official text of Implementing Regulation (EU) 2024/2690 was read (points 3.2.3, 11.3.1, 11.3.2, 11.4.1, 11.6.1, 11.7.1, 11.7.2) and the standards mapping now quotes it; an earlier paraphrase had attributed recital 23 wording to point 11.7.1 | standards | done |
 | S2 | Closed 2026-09-23: DORA RTS 2024/1774 Article 21(1)(e)(ii) and (f)(ii) quoted from the official text | standards | done |
-| B5 | Closed: the provider source `resource_externalauth_radius.go` has only `authentication_name`, `host`, `port`, `secret`, `timeout`, `description`, `use_primary_auth_domain`, so the "Use mobile device" option must be set in the GUI after apply; no OIDC resources exist | IaC | provider issue tracker |
 
 ## How this register is maintained
 

@@ -5,7 +5,9 @@ Date: 2026-09-23. Source: the WALLIX Terraform provider documentation
 [resources](https://github.com/wallix/terraform-provider-wallix-bastion/tree/main/docs/resources))
 and the [Bastion 12.3.2 Functional Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
 The HCL below is illustrative and follows the documented arguments; validate it against the
-provider version you deploy.
+provider version you deploy. Placeholder values (`corp.example.local`, node addresses) are
+illustrative and are not those of the [worked example](../trustelem/09-worked-example.md),
+whose object names this file reuses.
 
 ## 1. Why
 

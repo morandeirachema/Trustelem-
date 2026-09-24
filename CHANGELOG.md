@@ -18,6 +18,18 @@ Dates are ISO. Product versions verified are stated in each document header.
   must equal the Access Manager domain name is the Authentication domain name (Domain server name
   set identical); new gap B7 and meeting question 6.6 on which Bastion domain the Access Manager
   domain name matches; Access Manager to Trustelem 443 back-channel row added to the port matrix.
+- Deep audit and sync, sources: every quotation re-checked against the Bastion and Access
+  Manager guides, the public release notes and the four Trustelem books (about 160 Bastion, 26
+  Access Manager and 300 Trustelem strings). Four paraphrases lost their quotation marks and are
+  now stated with their real source (user rule priority, EU hosting, local users and SAML, API-key
+  log wording); the HA tunnel port 2242 and the absence of a VIP are marked as inferences; the
+  console log retention is marked undocumented; two section citations corrected (AM 10.1/10.2.1
+  and 21.5); the 12.4.3 build is sourced to the AWS Marketplace listing; the legacy ADConnect page
+  slug replaced. Cross-document facts synced: worked-example partner flow and B-14 login,
+  Trustelem login attribute, Access Manager interface count since 5.2, TLS-inspection exclusion
+  list with the relay FQDNs, relay IPs in the port matrix, timeline labelled as the repo's own;
+  new gaps T16 (SMS and e-mail over RADIUS) and B8 (backup key length), B6 extended; WAB-16173
+  note in chapter 04.
 - Added the vendor meeting script (`docs/reference/vendor-meeting-script.md`): platform brief
   with components, integration order, hardware requirements and an indicative timeline, then
   eight question blocks (deployment model and on-premise TOTP, licensing, effort, support and

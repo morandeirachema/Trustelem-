@@ -90,6 +90,8 @@ Verbatim rules from the
   `relay-fr-01.wallix.com`, `relay-fr-02.wallix.com`.
 - IP fallback list: 185.4.44.22, 185.4.46.20, 185.4.46.21, 185.4.46.22; relays 98.66.169.89 and
   20.39.241.157.
+- The older ADConnect and Trustelem Connect pages still list only `admin.trustelem.com`
+  (185.4.44.22); the connectors network flows page is the complete list and takes precedence.
 - New addresses for `*.trustelem.com` "active on 29 September 2026": 185.4.44.114 and
   185.4.44.117. "Authorize them now, in addition to the addresses already in place: add them, do
   not replace the existing ones".

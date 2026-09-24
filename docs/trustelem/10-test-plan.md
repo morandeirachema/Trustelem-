@@ -45,7 +45,7 @@ audit log entry.
 | B-11 | Kerberos enabled on the RDP proxy | `mstsc` without the `.rdp` parameters, then with `enablecredsspsupport:i:0` and `authentication level:i:2` | first attempt fails, second reaches the login screen | client screenshots |
 | B-12 | scenario B local user with RADIUS only | login with the Trustelem password and TOTP | success; with both local password and RADIUS selected the password alone succeeds (documented behaviour) | WA |
 | B-13 | scenario C `PARTNERS` domain | Bastion "Test authentication" on `Trustelem-LDAP` | "Authentication success" | screenshot |
-| B-14 | B-13 | `p.martin@partners` logs in | Trustelem password, push, mapped to `partners` | WA, TL LDAP bind and RADIUS |
+| B-14 | B-13 | `p.martin@partner.example@partners` logs in (login attribute `mail`) | Trustelem password, push, mapped to `partners` | WA, TL LDAP bind and RADIUS |
 | B-15 | B-13 | mapping DN with wrong case | login fails | WA failure (then fix the case) |
 
 ## 4. Access Manager SAML (web path)
@@ -53,7 +53,7 @@ audit log entry.
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
 | A-01 | chapter 05 section 2 configured | open `https://pam.acme.example/wabam/acme?domain=TRUSTELEM` | redirect to `acme.trustelem.com/app/<ID>/sso` | browser address bar, SAML tracer |
-| A-02 | A-01 | AD password and push (or passkey) | portal shows the authorizations of `jdoe@TRUSTELEM` | AM login entry; WA success "identified with" the SAML domain |
+| A-02 | A-01 | AD password and push (or passkey) | portal shows the authorizations of `jdoe@TRUSTELEM` | AM login entry; WA success entry naming the SAML domain (exact wording to confirm in the lab, gap B6) |
 | A-03 | A-02 | launch RDP and SSH from the portal | sessions open without a Bastion prompt; audit shows the AM node address as client | Bastion session audit |
 | A-04 | A-02 | user in `PAM-Admins` | lands with the Administrator profile | AM audit |
 | A-05 | A-02 | log out | browser reaches the `on_logout` endpoint | address bar |

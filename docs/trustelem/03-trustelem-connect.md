@@ -137,7 +137,9 @@ the console are pushed to the agent.
 
 ## 8. Connectivity test
 
-`./connect check <your sync id>` or `./connect check <your sync id> http://proxy.example.local:3128`.
+`./connect check <your sync id>` or `./connect check <your sync id> http://proxy.example.local:3128`
+(`<your sync id>` is the vendor's generic name; for Trustelem Connect it is the `service_id` of
+section 3).
 Output fields:
 
 | Field | Meaning (verbatim) |

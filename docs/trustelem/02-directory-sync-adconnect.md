@@ -1,7 +1,7 @@
 # Active Directory synchronisation with Trustelem ADConnect
 
 Date: 2026-09-23. Source: [Active Directory users - Trustelem ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect)
-and [Active Directory synchronization](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-synchronization).
+and [Active Directory synchronization](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect).
 Quotes are verbatim.
 
 ## 1. How it works
@@ -168,6 +168,6 @@ replication has completed.
 - The service account is read-only; do not reuse it for Trustelem Connect or for the Bastion
   AD bind.
 - Prefer LDAPS with `?tls_verify` (or the Windows Log On tab on a domain-joined host).
-- The connector pins the Trustelem server certificate; exclude `*.trustelem.com` from TLS
-  inspection.
+- The connector pins the Trustelem server certificate; exclude `*.trustelem.com`,
+  `relay-fr-01.wallix.com` and `relay-fr-02.wallix.com` from TLS inspection.
 - Two connectors on different hosts, patched on the vendor's rolling procedure above.

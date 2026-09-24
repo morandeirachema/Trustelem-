@@ -83,7 +83,7 @@ Per-node settings after replication:
 
 | Item | Value | Source |
 |------|-------|--------|
-| Listener | HTTPS 443 with WebSocket upgrade; HTTP 80 redirects | IG 2.4, RN |
+| Listener | HTTPS 443 with WebSocket upgrade; HTTP 80 also listed (IG 2.4.2 "HTTP/HTTPS: 80/443"; whether it redirects is not stated) | IG 2.4.2, RN |
 | Persistence | source-IP affinity; cookie persistence on Citrix ADC "incompatible with Universal Tunneling for clusters" | RN WAB-6600 |
 | Forwarded headers | `X-Forwarded-For/-Host/-Port/-Proto`, or RFC 7239 `Forwarded` (`web.proxy.header.forward.useRFC7239only`) | AG 21.6 |
 | Trust | `web.proxy.trusted-proxies` = load balancer addresses; `web.proxy.trusted-proxies.enabled=true` ("On new installations, this parameter is enabled by default ... for upgrades, it remains disabled by default") | AG 21.5 |
@@ -182,7 +182,7 @@ documented; ship the log directory with an OS-level agent.
 ## 10. Bastion objects and the Trustelem SAML domain
 
 Checklist per Bastion object (AG 13): Host = Bastion user-interface address; API key with
-profile `wallix_access_manager_session_audit` (Bastion 12.1+, "allows the use of only one API
-key"); custom ports if changed; Cluster membership; Strip Domain OFF for federated users;
+profile `wallix_access_manager_session_audit` (Bastion 12.1 and later; "For versions prior to 12.1, a single API key covered all
+features", Bastion Admin Guide 13); custom ports if changed; Cluster membership; Strip Domain OFF for federated users;
 Approval Time Zone; Allow Session Search with the auditor login; Test Connection. SAML identity
 provider settings are in `docs/trustelem/05-access-manager-integration.md`.

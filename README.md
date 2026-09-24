@@ -97,8 +97,8 @@ Access Manager farm give appliance failover. Full detail, flows and diagrams are
 - **Trustelem users are invisible to the Bastion until an access rule exists** ("Trustelem
   users will not be found by the Bastion before having an access rule (1 or 2 factors)").
 - **New Trustelem IPs 185.4.44.114 and 185.4.44.117 come into service on 2026-09-29**; add them
-  to egress rules now, keep the existing ones, and exclude `*.trustelem.com` from TLS
-  inspection ([network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows)).
+  to egress rules now, keep the existing ones, and exclude `*.trustelem.com`, `relay-fr-01.wallix.com` and
+  `relay-fr-02.wallix.com` from TLS inspection ([network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows)).
 - **No cloud, no MFA**: Trustelem Connect only relays to the tenant. Keep a local, IP-restricted
   Bastion administrator as break-glass.
 - **Patch levels**: WSA-2026-07-0001 (Bastion 12.3.0 to 12.3.6 and 12.4.0, CVSS 10) and

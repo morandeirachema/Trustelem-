@@ -90,7 +90,10 @@ Bastion behaviour to know (Admin Guide 7.2.5.4): challenge-response is supported
 sent are User-Name, User-Password, State, NAS-Identifier `WAB` and Framed-IP-Address; no
 vendor-specific attributes. "Use primary domain name for two-factor authentication (2FA)"
 forces `user@domain` in the RADIUS User-Name, which matters when the Trustelem login is the
-UPN rather than the sAMAccountName.
+UPN rather than the sAMAccountName. Bastion 12.3 fixed the two RADIUS 2FA options interfering
+with each other ([release notes WAB-16173](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html):
+"Fix the 2FA options in the RADIUS form so that each option is independent and applied
+correctly"); on older builds test both options.
 
 ## 4. Scenario B: Bastion local users authenticated only by Trustelem RADIUS
 
@@ -187,6 +190,12 @@ names sent in `groups`.
 With Access Manager: "the Access Manager should be > 5.0", "AM Domain Name = Bastion
 Authentication domain name", "AM Login = Bastion Username", and the same `groups` script on the
 Access Manager application.
+
+Behind Access Manager (chapter 05) the Bastion imports the Access Manager app metadata instead
+of a Bastion SAML app, and the Username claim equals the Access Manager Login attribute (`uid`
+for AD users, per "AM Login = Bastion Username"); the `email` claim above belongs to the native
+SAML procedure. Skipping the Bastion SAML app in the Access Manager design is an inference from
+the flow (the Bastion never receives the assertion), recorded with gap B7.
 
 Bastion-side constraints from the Admin Guide 7.3.1: only "SAML Generic" is compatible with
 Access Manager; once SAML is configured with Access Manager, direct SAML login to the Bastion

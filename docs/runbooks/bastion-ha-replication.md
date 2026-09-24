@@ -94,7 +94,8 @@ bastion-luks-update --reencrypt
 and `WABSecurityLevel` to select "SOG-IS CES 1.3 Agreed Cryptographic Mechanisms up to 2030".
 GUI (4.3): change `admin`, initialise encryption (passphrase of at least 12 characters, cannot
 be removed later), licence via Configuration > License > Download context file, time service,
-a named `product_administrator`, first backup with a backup key of at least 16 characters,
+a named `product_administrator`, first backup with a backup key of exactly 16 characters (chapter 2 of the guide says "at
+least 16", chapters 6 and 7 "must be exactly 16 characters long"; use 16, gap B8),
 delete the default `admin`, run `WABChangeDbRootPassword`.
 
 Ports to open between nodes and to the outside are in the architecture report, section 6.3.

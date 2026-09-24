@@ -86,8 +86,9 @@ managed.
   reversible but is not confirmed.
 - **Duplicate identities.** People already resolved through the `PARTNERS` LDAP domain
   (scenario C) or the AD domain would exist twice, once as directory users and once as SCIM-
-  created local users, with different group mappings and the "local user cannot use SAML"
-  limitation.
+  created local users, with different group mappings, and local users cannot authenticate by
+  SAML (the Admin Guide 7.4.3 lists password, SSH key and X.509 as local and RADIUS, TACACS+
+  and PingID as external methods for local users; SAML is absent).
 - **Reconciliation scope.** The five-minute full reconciliation "lists the resources already
   present on the SCIM server"; whether it would touch Bastion local users it did not create
   (break-glass, `am-auditor`) is not documented.
