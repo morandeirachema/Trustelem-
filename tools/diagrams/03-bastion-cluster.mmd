@@ -5,13 +5,13 @@ flowchart TB
         B1A["eth0 user + admin services<br/>eth1 HA / replication NIC"]
         B1B["MariaDB (all configuration tables)<br/>SSH admin console 2242<br/>proxies, vault, recordings<br/>local only: audit + session data"]
     end
-    subgraph B2["Bastion node 2: secondary master (M/M) or passive slave (M/S)"]
+    subgraph B2["Bastion node 2: secondary master (M/M) or slave (M/S, no changes allowed)"]
         B2A["eth0 user + admin services<br/>eth1 HA / replication NIC"]
         B2B["MariaDB replica<br/>SSH admin console 2242<br/>proxies, vault, recordings<br/>local only: audit + session data"]
     end
-    USERS -->|RDP 3389, SSH 22, HTTPS 443 UI + REST API| FE
+    USERS -->|"RDP 3389, SSH 22 (native clients);<br/>HTTPS 443 UI, REST API (AM per node)"| FE
     FE --> B1
     FE --> B2
     B1B <-->|MariaDB replication in an autossh tunnel<br/>3307 to 3306| B2B
-    NOTE["No VIP or heartbeat: failover by --elevate-master<br/>or front-end rerouting"]
+    NOTE["No VIP or heartbeat: M/M = front-end rerouting;<br/>M/S = --elevate-master on the slave, then reroute"]
     B2 -.- NOTE

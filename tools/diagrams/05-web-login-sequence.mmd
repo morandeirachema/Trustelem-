@@ -2,7 +2,7 @@ sequenceDiagram
     autonumber
     participant B as Browser
     participant AM as LB + Access Manager
-    participant T as Trustelem IdP
+    participant T as Trustelem cloud (IdP)
     participant BA as Bastion
     B->>AM: GET /wabam/{org}?domain={DOMAIN}
     AM-->>B: 302 SAML AuthnRequest (HTTP-Redirect binding)

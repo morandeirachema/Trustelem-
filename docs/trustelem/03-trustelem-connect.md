@@ -21,14 +21,14 @@ Default ports: "usually tcp port 2001 for LDAP, and udp port 1812 for Radius".
 ```mermaid
 flowchart LR
     CL["Bastion nodes and<br/>Access Manager nodes<br/>(RADIUS + LDAP clients)"]
-    subgraph TC["Trustelem Connect VM"]
+    subgraph TC["Trustelem Connect (one VM)"]
         L1[":1812/udp RADIUS, Bastion app"]
         L2[":2812/udp RADIUS, Access Manager app"]
         L3[":2001/tcp LDAP, Bastion app"]
     end
     T["Trustelem cloud<br/>access rules, factors"]
     CL -->|Access-Request / Access-Challenge| L1
-    CL -->|Access-Request| L2
+    CL -->|Access-Request / Access-Challenge| L2
     CL -->|LDAP bind and search| L3
     TC -->|WebSocket 443 outbound, decision returned| T
     NOTE["One listener per protocol per application;<br/>secrets come from the application model in the console."]

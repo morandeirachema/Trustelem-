@@ -41,23 +41,23 @@ The full index is in [docs/README.md](docs/README.md).
 
 ```mermaid
 flowchart TB
-    subgraph CLOUD["WALLIX Trustelem cloud tenant (SaaS, EU datacenters)"]
+    subgraph CLOUD["Trustelem cloud (WALLIX One IDaaS), EU datacenters"]
         direction LR
         CONSOLE["Admin console<br/>users, groups, directories, apps, services,<br/>access rules, security settings, logs, API"]
         SVC["Identity services<br/>SAML 2.0 IdP, OIDC provider,<br/>RADIUS and LDAP backend"]
     end
-    APP["WALLIX Authenticator app<br/>push and TOTP"]
+    APP["WALLIX Authenticator<br/>push and TOTP"]
     ADC["Trustelem ADConnect (2 VMs)<br/>AD user and group sync,<br/>AD password check, IWA"]
-    TC["Trustelem Connect (2 VMs)<br/>RADIUS 1812/udp, LDAP 2001/tcp,<br/>SCIM client, SIEM push"]
+    TC["Trustelem Connect (2 VMs)<br/>RADIUS 1812/udp Bastion, 2812/udp AM,<br/>LDAP 2001/tcp, SCIM client, SIEM push"]
     AD["Active Directory"]
     BAST["Bastion nodes"]
     AM["Access Manager nodes"]
     SVC <-->|push, TOTP| APP
     ADC -->|WSS 443, outbound only| SVC
     TC -->|WSS 443, outbound only| SVC
-    ADC -->|LDAPS 636| AD
+    ADC -->|LDAP/LDAPS 389/636| AD
     BAST -->|RADIUS 1812/udp| TC
-    AM -->|RADIUS 1812/udp| TC
+    AM -->|RADIUS 2812/udp| TC
 ```
 
 | Trustelem service | Consumed by | Path protected | Chapter |

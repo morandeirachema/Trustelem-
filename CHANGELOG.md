@@ -10,6 +10,14 @@ Dates are ISO. Product versions verified are stated in each document header.
   section; register rows put in numeric order; report 9.1 and 7.5 point to the register and the
   test plan; README tree, dates, counts and CI wording corrected; archive notes indexed; stale
   `tools/__pycache__` file removed from git.
+- Deep audit and sync, diagrams: the Access Manager RADIUS listener is port 2812 everywhere (it
+  was 1812 in three diagrams, the port matrix and the runbook); component names unified across
+  the eleven diagrams; the TOTP path drawn through the client and the Access-Challenge instead of
+  the app; Master/Master failover by front-end rerouting and `--elevate-master` only for
+  Master/Slaves; DR diagram per-node settings moved off the storage box; the Bastion field that
+  must equal the Access Manager domain name is the Authentication domain name (Domain server name
+  set identical); new gap B7 and meeting question 6.6 on which Bastion domain the Access Manager
+  domain name matches; Access Manager to Trustelem 443 back-channel row added to the port matrix.
 - Added the vendor meeting script (`docs/reference/vendor-meeting-script.md`): platform brief
   with components, integration order, hardware requirements and an indicative timeline, then
   eight question blocks (deployment model and on-premise TOTP, licensing, effort, support and

@@ -51,14 +51,15 @@ Source for all four steps: [WALLIX Bastion page](https://trustelem-doc.wallix.co
 flowchart LR
     B["Bastion node<br/>AD auth domain + Secondary authentication = RADIUS<br/>'Use mobile device for 2 factor authentication(2FA)' = ON<br/>timeout 45-60 s"]
     AD["Active Directory<br/>(primary factor)"]
-    TC["Trustelem Connect<br/>RADIUS 1812/udp<br/>relays to the cloud"]
-    T["Trustelem cloud tenant<br/>(access rule: 2nd factor only)"]
+    TC["Trustelem Connect<br/>RADIUS 1812/udp (Bastion listener)<br/>relays to the cloud"]
+    T["Trustelem cloud<br/>(access rule: 2nd factor only)"]
     A["WALLIX Authenticator"]
     B -->|1. LDAP bind, groups back| AD
     B -->|2. Access-Request with empty password| TC
     TC -->|WSS 443| T
     T -->|push| A
-    A -->|3. user approves, or types a TOTP in the Access-Challenge| T
+    A -->|3a. user approves| T
+    B -->|3b. or the TOTP typed at the client,<br/>sent in the Access-Challenge reply| TC
     T -->|OK| TC
     TC -->|Access-Accept| B
 ```
@@ -218,7 +219,8 @@ Fill this in before the change window; every value appears in one of the scenari
 ## 8. Timeouts, sessions and user experience
 
 - Bastion RADIUS timeout defaults to 5 s; a push needs time to reach the phone and be approved.
-  A WALLIX-published RADIUS guide for another push vendor recommends 45 to 50 s.
+  A WALLIX-published RADIUS guide for another push vendor recommends 45 to 50 s; this design
+  uses 45 to 60 s.
   Source: [HID RADIUS guide](https://www.wallix.com/wp-content/uploads/2020/07/HID_ActivID_Appliance_Wallix_RADIUS_ConfigGuide_FINAL.pdf).
 - MFA session: "for the duration defined on Trustelem and as long as he remains on the same
   network, he will not be asked to provide his 2nd factor again"; the example given is a user

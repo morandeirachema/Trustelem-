@@ -1,7 +1,7 @@
 flowchart LR
-    T["Trustelem<br/>Access Manager app<br/><br/>Domain = TRUSTELEM<br/>Login attribute = uid<br/>script: profile, groups<br/>metadata to AM and Bastion"]
-    AM["Access Manager<br/>SAML Identity Provider<br/><br/>Domain Name = TRUSTELEM<br/>Login = uid<br/>Profile = profile<br/>Strip Domain OFF"]
-    B["Bastion<br/>SAML authentication domain<br/><br/>Domain server name = TRUSTELEM<br/>Username claim = uid<br/>Group claim = groups<br/>mappings on group values"]
+    T["Trustelem<br/>Access Manager app<br/><br/>Domain = TRUSTELEM<br/>Login attribute = uid<br/>script: profile, groups<br/>metadata to AM; the Bastion imports the AM app metadata"]
+    AM["Access Manager<br/>SAML Identity Provider<br/><br/>Domain Name = TRUSTELEM<br/>Login = uid<br/>Profile = profile<br/>Strip Domain OFF (Bastions page)"]
+    B["Bastion<br/>SAML authentication domain (Other IdPs)<br/><br/>Authentication domain name = TRUSTELEM<br/>(Domain server name set identical)<br/>SAML external authentication:<br/>Username claim = uid, Group claim = groups<br/>mappings on group values"]
     T <-->|Domain and Login must be identical| AM
     AM <-->|Domain and Login must be identical| B
     NOTE["Assertion goes only to Access Manager;<br/>AM calls the Bastion REST API for login@TRUSTELEM;<br/>a mismatch gives an empty authorization list"]

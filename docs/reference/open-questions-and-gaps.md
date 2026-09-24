@@ -33,6 +33,7 @@ to the customer documentation site; "lab" means it can be closed by testing.
 | B3 | Closed for the NIC: eth1 may be used for replication like any other interface, and "When the eth1 interface is used for HA database replication, the associated administration features must be manually enabled from the System > Service control page for replication to work" ([Bastion release notes WAB-7947, WAB-17651](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)). Still open: latency limits for cross-site Master/Slaves | runbook, DR | vendor |
 | B4 | SCIM API base path on the appliance, required attributes for user creation, Bearer support, cluster behaviour (scim.wallix.com timed out again on both 80 and 443 on 2026-09-23) | 12 | vendor |
 | B6 | Whether RADIUS accounting (1813) is used; `wabauth` diagnostic text for a RADIUS second factor and for SAML users through Access Manager | logging, test plan | lab |
+| B7 | Which Bastion domain the Access Manager SAML Domain Name must match: the Trustelem [Access Manager app page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager) says "the Authentication domain name of your Active Directory Authentication domain", the Trustelem [Bastion SAML page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml) says "AM Domain Name = Bastion Authentication domain name" of the SAML domain; this design binds `TRUSTELEM` to a separate SAML *Other IdPs* domain (report 7.3 step 7) | 05, SAML reference | vendor, lab |
 
 ## Access Manager
 

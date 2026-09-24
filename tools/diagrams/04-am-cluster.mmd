@@ -2,20 +2,21 @@ flowchart TB
     USERS["Privileged users<br/>browser HTTPS 443, HTML5 RDP/SSH, WebSocket"]
     LB["L7 load balancer<br/>HTTPS 443, WebSocket, source-IP affinity<br/>X-Forwarded-For + trusted proxies"]
     subgraph AM1["Access Manager node 1"]
-        AM1A["Debian appliance, Docker, Jetty 11<br/>FreeRDP + xterm.js, MariaDB, Elasticsearch<br/>eth0 users, eth1 HA, eth2 admin"]
+        AM1A["Debian appliance, Docker, Jetty 11<br/>FreeRDP + xterm.js, MariaDB, Elasticsearch<br/>eth0 users + admin (since 5.2), eth1 HA"]
     end
     subgraph AM2["Access Manager node 2"]
         AM2A["Same image and version<br/>crypto.install.key and db settings<br/>copied from node 1"]
     end
     BC["Bastion cluster<br/>(AM Cluster object, identical mode on)"]
-    TR["Trustelem (SAML/OIDC IdP)<br/>and Trustelem Connect RADIUS"]
+    TR["Trustelem cloud (SAML/OIDC IdP)"]
+    TC["Trustelem Connect<br/>RADIUS 2812/udp"]
     USERS --> LB
     LB --> AM1
     LB --> AM2
     AM1A <-->|MariaDB replication on the HA NIC| AM2A
     AM1 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
     AM2 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
-    AM1 -->|SAML/OIDC 443, RADIUS 1812| TR
-    AM2 -->|SAML/OIDC 443, RADIUS 1812| TR
+    AM1 & AM2 -->|OIDC back-channel 443, metadata import;<br/>SAML via the browser| TR
+    AM1 & AM2 -->|RADIUS 2812/udp, local admins| TC
     NOTE["Uninstall replication before a cluster upgrade<br/>purge.audit.active on one node only"]
     AM2 -.- NOTE

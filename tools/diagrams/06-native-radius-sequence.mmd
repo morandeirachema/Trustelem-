@@ -5,14 +5,23 @@ sequenceDiagram
     participant AD as Active Directory
     participant TC as Trustelem Connect
     participant T as Trustelem cloud
-    participant A as Authenticator app
+    participant A as WALLIX Authenticator
     C->>B: TCP 3389 / 22, login user@AD + AD password
     B->>AD: LDAP bind (primary factor)
     AD-->>B: bind OK + group membership
-    B->>TC: RADIUS Access-Request (User-Name, NAS-Identifier WAB, Framed-IP-Address)
+    B->>TC: RADIUS Access-Request (User-Name, empty User-Password,<br/>NAS-Identifier WAB, Framed-IP-Address)
     TC->>T: relayed over WebSocket 443 (outbound only)
-    T->>A: push notification
-    A-->>T: approve (or TOTP typed in the Access-Challenge)
+    alt push
+        T->>A: push notification
+        A-->>T: approve
+    else TOTP
+        T-->>TC: challenge
+        TC-->>B: RADIUS Access-Challenge (State)
+        B->>C: prompt for the code
+        C->>B: TOTP
+        B->>TC: RADIUS Access-Request (State, TOTP)
+        TC->>T: relayed
+    end
     T-->>TC: accept
     TC-->>B: RADIUS Access-Accept
     Note over B: authorization check, target selection, recording

@@ -13,9 +13,9 @@ OASIS SAML 2.0 core schema; it is not a capture from a live tenant.
 
 ```mermaid
 flowchart LR
-    T["Trustelem<br/>Access Manager app<br/><br/>Domain = TRUSTELEM<br/>Login attribute = uid<br/>script: profile, groups<br/>metadata to AM and Bastion"]
-    AM["Access Manager<br/>SAML Identity Provider<br/><br/>Domain Name = TRUSTELEM<br/>Login = uid<br/>Profile = profile<br/>Strip Domain OFF"]
-    B["Bastion<br/>SAML authentication domain<br/><br/>Domain server name = TRUSTELEM<br/>Username claim = uid<br/>Group claim = groups<br/>mappings on group values"]
+    T["Trustelem<br/>Access Manager app<br/><br/>Domain = TRUSTELEM<br/>Login attribute = uid<br/>script: profile, groups<br/>metadata to AM; the Bastion imports the AM app metadata"]
+    AM["Access Manager<br/>SAML Identity Provider<br/><br/>Domain Name = TRUSTELEM<br/>Login = uid<br/>Profile = profile<br/>Strip Domain OFF (Bastions page)"]
+    B["Bastion<br/>SAML authentication domain (Other IdPs)<br/><br/>Authentication domain name = TRUSTELEM<br/>(Domain server name set identical)<br/>SAML external authentication:<br/>Username claim = uid, Group claim = groups<br/>mappings on group values"]
     T <-->|Domain and Login must be identical| AM
     AM <-->|Domain and Login must be identical| B
     NOTE["Assertion goes only to Access Manager;<br/>AM calls the Bastion REST API for login@TRUSTELEM;<br/>a mismatch gives an empty authorization list"]
@@ -24,14 +24,21 @@ flowchart LR
 
 | Value | Trustelem | Access Manager | Bastion |
 |-------|-----------|----------------|---------|
-| Federated domain | Access Manager app > Domain | SAML Identity Provider > Domain tab > Domain Name | Authentication domain > Domain server name (and Authentication domain name) |
+| Federated domain | Access Manager app > Domain | SAML Identity Provider > Domain tab > Domain Name | Authentication domain > Authentication domain name (Domain server name set identical; it has "no impact on the setup") |
 | Login attribute | sends `uid` (AD users) or `email` (local users) | Domain tab > Login = `uid` or `email` | SAML external authentication > claim Username = same attribute |
-| Groups | script `msg.addAttr("groups", g)` on both the Access Manager app and the Bastion SAML app | not consumed (profiles come from `profile`) | claim Group = `groups`; mappings match the values |
+| Groups | script `msg.addAttr("groups", g)` on the Access Manager app (and on a Bastion SAML app only in the standalone design; behind Access Manager the Bastion imports the Access Manager app metadata and no Bastion app is created) | not consumed (profiles come from `profile`) | claim Group = `groups`; mappings match the values |
 | Profile | script `msg.setAttr("profile", ...)` | Domain tab > Profile Attribute = `profile`, matched by name to AM profiles | not consumed |
 | SP identity | EntityID `WALLIX-AM` (AM template); for the Bastion generic app, the Bastion SP entity ID and ACS | WALLIX-AM Entity ID = `WALLIX-AM` | SP entity ID and ACS shown after Apply |
 | Signing | application certificate | Signed Response and Signed Assertion ON; Encrypt OFF | IdP metadata imported |
 | Logout | `/app/<ID>/on_logout` | Redirect Logout Uri = SSO URI with `sso` replaced by `on_logout` | `sp_single_logout_service` in SP metadata |
 | Strip Domain | | Bastions page > Strip Domain OFF | keeps `login@DOMAIN` |
+
+Which Bastion domain the Access Manager domain name must match is stated differently on two
+vendor pages: the Access Manager app page names the Active Directory authentication domain, the
+Bastion SAML page names the SAML authentication domain. This design follows the Bastion SAML
+page and binds `TRUSTELEM` to a separate SAML *Other IdPs* domain, so that SAML users and their
+group mappings live in one object; gap B7 in the
+[register](open-questions-and-gaps.md) records the question for WALLIX.
 
 ## 2. Illustrative assertion sent by Trustelem to Access Manager
 
@@ -98,3 +105,5 @@ API key for the user `jdoe@TRUSTELEM`; the Bastion finds the user in the `TRUSTE
 domain (declared in external authentication mode) and applies the group mappings. That is why
 the domain name and the login attribute must match on all three sides and why Strip Domain
 must be off ([AM Admin Guide 10.3.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)).
+A mismatch does not fail the login: the portal opens with an empty authorization list (test
+A-10 in the [test plan](../trustelem/10-test-plan.md)).

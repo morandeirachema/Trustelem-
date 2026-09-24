@@ -1,7 +1,7 @@
 flowchart LR
-    CLOUD["Trustelem cloud<br/>admin.trustelem.com (WSS 443)"]
-    A1["ADConnect VM 1 (priority 1)<br/>read-only AD account"]
-    A2["ADConnect VM 2 (priority 2)<br/>read-only AD account"]
+    CLOUD["Trustelem cloud<br/>*.trustelem.com and relay FQDNs (WSS 443)"]
+    A1["Trustelem ADConnect VM 1 (priority 1)<br/>read-only AD account"]
+    A2["Trustelem ADConnect VM 2 (priority 2)<br/>read-only AD account"]
     DC["Domain controllers<br/>LDAP/LDAPS 389/636"]
     A1 -->|outbound WebSocket 443| CLOUD
     A2 -->|outbound WebSocket 443| CLOUD

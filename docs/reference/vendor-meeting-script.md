@@ -25,7 +25,7 @@ Verified facts carry a source; the timeline is the repo's own estimate and is la
 
 ```mermaid
 flowchart TB
-    subgraph CLOUD["WALLIX Trustelem / WALLIX One IDaaS (SaaS, EU datacenters)"]
+    subgraph CLOUD["Trustelem cloud (WALLIX One IDaaS), EU datacenters"]
         SAML["SAML 2.0 IdP"]
         OIDC["OIDC provider"]
         RAD["RADIUS + LDAP backend"]
@@ -43,18 +43,19 @@ flowchart TB
             B1["Bastion 1<br/>proxies + vault"]
             B2["Bastion 2<br/>proxies + vault"]
         end
-        CONNECT["Trustelem Connect VMs<br/>RADIUS 1812, LDAP 2001"]
-        ADC["ADConnect VMs"]
+        CONNECT["Trustelem Connect (2 VMs)<br/>RADIUS 1812 Bastion, 2812 AM, LDAP 2001"]
+        ADC["Trustelem ADConnect (2 VMs)"]
         AD["Active Directory"]
         TGT["Targets"]
     end
     USER -->|HTTPS 443| LB
-    USER -->|SAML / OIDC redirect, MFA| SAML
+    USER -->|SAML or OIDC redirect, MFA| SAML & OIDC
     LB --> AM1 & AM2
     AM1 --- DB
     AM2 --- DB
     AM1 & AM2 -->|REST API 443, RDP 3389, SSH 22| B1 & B2
-    USER -->|native RDP 3389 / SSH 22| B1 & B2
+    USER -->|native RDP 3389 / SSH 22, direct or via L4 LB| B1 & B2
+    AM1 & AM2 -->|RADIUS 2812/udp, local admins| CONNECT
     B1 <-->|MariaDB over autossh tunnel| B2
     B1 & B2 -->|RADIUS 1812/udp secondary factor| CONNECT
     B1 & B2 -->|LDAP/AD 389/636| AD
@@ -70,7 +71,7 @@ Source: [architecture report section 4](../trustelem-bastion-access-manager-arch
 |-----------|--------------------|----------|--------|
 | Trustelem (WALLIX One IDaaS) | SaaS identity provider: SAML 2.0 / OIDC for the web path, RADIUS and LDAP through Trustelem Connect for native clients; MFA by push, TOTP, passkey | browsers, the two agents | [Trustelem summary](https://trustelem-doc.wallix.com/books/trustelem-administration/page/summary) |
 | ADConnect (two VMs) | syncs AD users and groups into the tenant and validates AD passwords; outbound 443 only | domain controllers, Trustelem | [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect) |
-| Trustelem Connect (two VMs) | on-premise RADIUS 1812 and LDAP listener for Bastion and Access Manager; SIEM push; SCIM; outbound 443 only | Bastion, Access Manager, Trustelem | [Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect) |
+| Trustelem Connect (two VMs) | on-premise RADIUS listeners (1812 for the Bastion app, 2812 for the Access Manager app) and LDAP 2001 listener; SIEM push; SCIM; outbound 443 only | Bastion, Access Manager, Trustelem | [Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect) |
 | Bastion cluster (two appliances) | session proxies (RDP, SSH, VNC, HTTPS, Telnet), vault, recordings; HA Database Replication over an SSH tunnel on 2242, no VIP, failover by `--elevate-master` | AD, Trustelem Connect (RADIUS secondary factor), targets | [Bastion Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf) |
 | Access Manager farm (two appliances) | HTML5 web portal in front of one or more Bastions; SAML SP toward Trustelem; RADIUS factor chain for local admins; shared or replicated MariaDB; needs a WebSocket-capable L7 load balancer | users, Bastion REST API 443 and proxies, Trustelem | [AM Install Guide 2.4](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf) |
 
@@ -249,6 +250,7 @@ What is already known:
 | 6.3 | Farm: replication port, maximum node count, recommended load-balancer health-check URL, TLS versions and ciphers. (A2, A3) | HA build | |
 | 6.4 | Access Manager clusters cannot display target passwords; what is WALLIX's recommended pattern for password checkout? (design confirmation, report 3.3) | Feature gap | |
 | 6.5 | Is Access Manager a SCIM target? (T5) | Provisioning | |
+| 6.6 | Which Bastion domain must the Access Manager SAML Domain Name match: the Trustelem Access Manager app page says the Active Directory authentication domain, the Trustelem Bastion SAML page says the SAML authentication domain name. This design uses a separate SAML "Other IdPs" domain named TRUSTELEM. (B7) | Federation naming, chapter 05 | |
 
 ## 7. MFA and user experience
 
