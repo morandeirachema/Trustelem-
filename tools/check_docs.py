@@ -24,7 +24,7 @@ warnings = []
 
 
 def md_files():
-    return [p for p in ROOT.rglob("*.md") if ".scratch" not in p.parts and ".git" not in p.parts]
+    return [p for p in ROOT.rglob("*.md") if not {".scratch", ".git", "node_modules"} & set(p.parts)]
 
 
 def check_markdown(path: pathlib.Path):

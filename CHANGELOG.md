@@ -2,6 +2,14 @@
 
 Dates are ISO. Product versions verified are stated in each document header.
 
+## 2026-09-24
+
+- Added the vendor meeting script (`docs/reference/vendor-meeting-script.md`): platform brief
+  with components, integration order, hardware requirements and an indicative timeline, then
+  eight question blocks (deployment model and on-premise TOTP, licensing, effort, support and
+  roadmap, Bastion, Access Manager, MFA, logging) cross-referenced to the gaps register.
+- `tools/check_docs.py` now skips `node_modules`, which the Mermaid check installs locally.
+
 ## 2026-09-23
 
 - Gap closure pass: official texts of Implementing Regulation 2024/2690 and DORA RTS 2024/1774

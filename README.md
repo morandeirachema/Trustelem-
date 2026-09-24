@@ -32,6 +32,7 @@ Last updated: 2026-09-23. Verified against the Trustelem documentation portal as
 | decide whether to provision Trustelem users into the Bastion over SCIM | [12 SCIM provisioning](docs/trustelem/12-scim-provisioning.md) |
 | see the whole design, clusters, ports, sizing, rollout | [Architecture report](docs/trustelem-bastion-access-manager-architecture.md) |
 | know what is still unverified and who can answer it | [Open questions and gaps](docs/reference/open-questions-and-gaps.md) |
+| prepare a meeting with WALLIX | [Vendor meeting script](docs/reference/vendor-meeting-script.md) |
 
 Reading order for a new deployment: 01, 02, 06 (enrollment), 03, 04, 05, 06 (rules), 07.
 The full index is in [docs/README.md](docs/README.md).
