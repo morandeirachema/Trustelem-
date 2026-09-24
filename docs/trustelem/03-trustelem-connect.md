@@ -4,7 +4,9 @@ Date: 2026-09-23. Sources: [LDAP-Radius - Trustelem Connect](https://trustelem-d
 [SCIM client](https://trustelem-doc.wallix.com/books/trustelem-administration/page/scim-client),
 [connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows),
 [on-premise SIEM](https://trustelem-doc.wallix.com/books/trustelem-administration/page/on-premise-siem),
-[access rules](https://trustelem-doc.wallix.com/books/trustelem-administration/page/access-rules).
+[access rules](https://trustelem-doc.wallix.com/books/trustelem-administration/page/access-rules),
+[MFA](https://trustelem-doc.wallix.com/books/trustelem-administration/page/multi-factors-authentication),
+[Bastion app page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion).
 Quotes are verbatim.
 
 ## 1. Role
@@ -37,8 +39,9 @@ flowchart LR
 
 ## 2. Create the service in the console
 
-**Services** tab: "Click on the button + Create a service and copy the service ID." One service
-per VM; "The recommendation is 2 VM at least, to have a failover system" (same rule as
+**Services** tab: "Click on the button + Create a service and copy the service ID." Whether both VMs
+share one service ID or each has its own is not stated (*inference:* one per VM, as here); "The
+recommendation is 2 VM at least, to have a failover system" (same rule as
 ADConnect).
 
 ## 3. Install on Windows
@@ -77,7 +80,8 @@ tls_cert_key = run/connector.key
 4. `systemctl start trustelem-connect.service`; "The service will run with the user trustelem".
 
 Config keys documented: `service_id`, `state_dir`, `proxy`, `tls_cert`, `tls_cert_key`,
-`outgoing_allowed`, `[target.<name>]` with `addr` and `port`. Listen addresses and ports are
+`outgoing_allowed`, `[target.<name>]` with `addr` and `port` (SIEM page; that page spells the
+section `[targert.choose_a_name]` [sic]) or `addr = host:port` alone (SCIM page). Listen addresses and ports are
 not in the file; they are set per application in the console.
 
 ## 5. Add the applications (listeners)
@@ -96,8 +100,8 @@ The secrets (LDAP bind DN, bind password, base DN, RADIUS shared secret) "are pr
 setup of the Trustelem application" and can be shown later with the eye button on the service
 page.
 
-Restart the service after adding a target or changing `config.ini`; listener changes made in
-the console are pushed to the agent.
+Restart the service after adding a target or changing `config.ini`; *inference:* listener changes made
+in the console reach the agent without a restart.
 
 ## 6. What the LDAP listener exposes
 
@@ -118,8 +122,8 @@ the console are pushed to the agent.
 ## 7. What the RADIUS listener does
 
 - Two-step: "If the application supports Radius in 2 steps (Access Request then Challenge
-  request) you can provide login + password then MFA." The Bastion and Access Manager support
-  challenge-response.
+  request) you can provide login + password then MFA." The Bastion (Admin Guide 7.2.5.4) and
+  Access Manager ("supports the challenge-response mechanism", AM Admin Guide 11) support it.
 - One-step: "If the application doesn't support Radius in 2 steps, you can provide login +
   password and code sticked together".
 - Push-wait: "login + password then no answer from Trustelem before the validation of a push
@@ -185,8 +189,8 @@ addresses. Details and the vendor questions are in
 ## 11. Placement and sizing guidance
 
 - Two VMs on separate hosts, ideally one per site; listeners bound to `*` on a dedicated VM.
-- Put the VMs on the same network segment as the Bastion and Access Manager nodes so RADIUS
-  (UDP) does not cross stateful devices that time out challenge exchanges.
-- The vendor gives no throughput numbers ("minimal resources"). Each pending push occupies a
-  request for up to the client timeout; keep timeouts at 45 to 60 s and count concurrent logins.
+- Recommendation: put the VMs on the same network segment as the Bastion and Access Manager
+  nodes so RADIUS (UDP) does not cross stateful devices that could time out challenge exchanges.
+- The vendor gives no throughput numbers ("minimal resources"). *Inference:* each pending push
+  holds a request for up to the client timeout, so count concurrent logins when sizing.
 - Manage the VMs through the Bastion once it is live, and log their OS events to the SIEM.

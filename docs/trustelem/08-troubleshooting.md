@@ -28,7 +28,7 @@ because it is not a bug".
 |---------|-------------------------------|
 | Connector not listed in the console | "verify the synchronization ID", "verify the proxy setup", on Windows "verify that you clicked on Validate"; run `./connect check <sync id> [http://proxy:3128]` |
 | `Network: false` | "The connection could not be opened at all: the traffic is blocked or not routed." |
-| `Network: true`, `CanTLS: false` | "The connection reaches the server but the TLS session fails: proxy or TLS inspection." The connector pins the server certificate; exclude `*.trustelem.com` from inspection |
+| `Network: true`, `CanTLS: false` | "The connection reaches the server but the TLS session fails: proxy or TLS inspection." The connector pins the server certificate; exclude every listed destination (`*.trustelem.com`, `relay-fr-01.wallix.com`, `relay-fr-02.wallix.com`) from inspection |
 | `CommOK: true` but service shows off | turn the service on in the console ("Turn on the service by clicking on No") |
 | Worked yesterday, fails today | DNS or IP change; "After changing a firewall, proxy or DNS rule, restart the connector service"; check the new 185.4.44.114 and .117 addresses active from 2026-09-29 |
 | Listener not reachable from the Bastion | "verify if the listen address is correct (should be * if the VM is dedicated to Trustelem)"; "see the port defined and the setup information clicking on the eye button"; local firewall on the VM |
@@ -50,7 +50,7 @@ because it is not a bug".
 | Password prompt loops or immediate failure for AD users | "verify if you checked the option Use mobile device on the Radius external authentication" (must be ON for AD users, scenario A) |
 | Local user authenticates without MFA | both local password and RADIUS selected: "the Bastion will try the first method (local password)"; select only RADIUS |
 | Local user fails with logs in Trustelem | "if the login of the local user is unknown by Trustelem the authentication won't work" (login must be the Trustelem e-mail) |
-| Push never arrives, Bastion times out | RADIUS timeout too short (default 5 s); user has no enrolled WALLIX Authenticator; access rule missing |
+| Push never arrives, Bastion times out | RADIUS timeout too short for a push (Bastion default 5 s, [Bastion 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf); the Trustelem Bastion page says "let the default value, unless you have latency on your network", a third-party guide uses 45 to 50 s; test and raise it); user has no enrolled WALLIX Authenticator; access rule missing |
 | User never prompted | user or group rule *Always allow*, or inside the MFA session window on the same network |
 | mstsc fails before the login screen | Kerberos enabled on the RDP proxy: add `enablecredsspsupport:i:0` and `authentication level:i:2` to the `.rdp` file, or `/sec:tls` with FreeRDP |
 
@@ -107,5 +107,6 @@ Additional checks from the Access Manager guide and release notes:
 3. Access Manager: log archive with SAML at DEBUG, the SAML Identity Provider settings, a SAML
    tracer capture (redact the assertion signature if shared outside the team).
 4. Timestamps from all three systems and their NTP status.
-5. WALLIX support case at https://support.wallix.com; Trustelem theme or feature requests go
-   to support-trustelem@wallix.com.
+5. WALLIX support case at https://support.wallix.com; themes are enabled by
+   support-trustelem@wallix.com, the delegated administration tool through "your WALLIX sales
+   contact".

@@ -16,7 +16,7 @@ flowchart TB
     AM1A <-->|MariaDB replication on the HA NIC| AM2A
     AM1 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
     AM2 -->|REST API 443 with API key, RDP 3389, SSH 22| BC
-    AM1 & AM2 -->|OIDC back-channel 443, metadata import;<br/>SAML via the browser| TR
+    AM1 & AM2 -->|OIDC discovery, token, JWKS 443;<br/>SAML via the browser| TR
     AM1 & AM2 -->|RADIUS 2812/udp, local admins| TC
-    NOTE["Uninstall replication before a cluster upgrade<br/>purge.audit.active on one node only"]
+    NOTE["Uninstall replication before a cluster upgrade<br/>(required for 5.2.3, kept as a precaution)<br/>purge.audit.active on one node only"]
     AM2 -.- NOTE

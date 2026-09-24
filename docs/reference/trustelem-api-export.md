@@ -84,9 +84,10 @@ function handler(req: Request, w: ResponseWriter): void {
 }
 ```
 
-The `User` datatype has no field describing enrolled factors, so "users without a second
-factor" cannot be listed from this export; use the enrollment dashboard or the Logs page for
-that (chapter 06). Keep only the attributes you need; the export contains personal data.
+The `User` datatype has no field describing enrolled factors, but the API lists them per user:
+`listAuthTokens(args: { id: UserID; })` returns `AuthToken { id, userID, kind, name }` ("List the
+second factors of a user"). Calling it for each user in the export lists the users without a
+second factor before an access rule requires one (chapter 06). Keep only the attributes you need; the export contains personal data.
 
 ## 4. Script: export logs and alerts (rolling window)
 
@@ -111,7 +112,7 @@ function handler(req: Request, w: ResponseWriter): void {
 ```bash
 # run from the allowed IP; the key is stored in the secret manager
 TOKEN='<api key>'
-BASE='https://admin.trustelem.com/api/script/<key-id>'
+BASE='https://admin.trustelem.com/api/script/{script-path-id}'   # copied from the sample command
 DATE=$(date -u +%F)
 curl -sS -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{}' "$BASE/export_perms"      > "trustelem-perms-$DATE.json"
@@ -122,7 +123,9 @@ curl -sS -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $
 ```
 
 The endpoint pattern and headers are the documented ones:
-`https://admin.trustelem.com/api/script/<key>/<script>` with `Authorization: Bearer`.
+`https://admin.trustelem.com/api/script/{script-path-id}/<script>` with `Authorization: Bearer`;
+the path segment is the opaque value shown in the script's "sample command" (for example
+`46e3xi...gtea`), not the API key.
 
 ## 6. Nightly job and checks
 
@@ -140,7 +143,8 @@ The endpoint pattern and headers are the documented ones:
 
 - Rate limits are not documented; keep the job nightly.
 - The API cannot export application settings (SAML certificates, connector definitions,
-  passkey policy) or enrolled factors; record those in the worked example table and in the
+  passkey policy); enrolled factors are readable with `listAuthTokens` but cannot be recreated
+by the API; record those in the worked example table and in the
   change log.
 - Restoring is manual: `createUser`, `createGroup`, `addUsersToGroup`, `setGroupPerm` and
   `setUserPerm` exist, but there is no bulk import.

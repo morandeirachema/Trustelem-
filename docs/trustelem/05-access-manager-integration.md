@@ -73,7 +73,8 @@ Trustelem access rule for the Access Manager app: "you need internal and externa
 Why these SP settings matter (Admin Guide 10.3.2): Encrypt Messages "is required to disabled"
 for the Bastion workflow, and "By disabling the attributes Signed Response and Signed
 Assertion, any user will be able to connect to Access Manager as an administrator." Keep both
-ON. A known issue in 5.2.x drops the `SigAlg` parameter when Sign Messages is ON, which is
+ON. A known issue (WAB-11153) drops the `SigAlg` parameter when Sign Messages is ON with the
+Redirect binding, which is
 another reason to leave it OFF ([release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html)).
 
 ## 3. SAML for Trustelem local users
@@ -184,9 +185,9 @@ SAML:
   have an uid set to email".
 - "Verify if the domain used in the SAML setup is the same used on the Bastion for the
   Authentication domain name".
-- Then: install the **SAML tracer** browser plugin, and enable Access Manager logs at
-  **Settings > Application Settings > Configuration > SAML** at DEBUG level, reproduce, and
-  download the log archive from the Logs settings page. Never leave TRACE or ALL enabled in
-  production ([Admin Guide 15.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)).
+- Then: install the **SAML tracer** browser plugin, and as a global administrator set the
+  SAML module to DEBUG in the **Settings > Logs** tab, reproduce, and download the log archive.
+  TRACE and ALL "may expose sensitive information, including passwords"; switch back to DEBUG
+  before generating an archive for support ([Admin Guide 15.2](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)).
 
 Source: [WALLIX Access Manager page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager).

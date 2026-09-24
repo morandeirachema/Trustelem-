@@ -41,7 +41,7 @@ The full index is in [docs/README.md](docs/README.md).
 
 ```mermaid
 flowchart TB
-    subgraph CLOUD["Trustelem cloud (WALLIX One IDaaS), EU datacenters"]
+    subgraph CLOUD["Trustelem cloud (WALLIX One IDaaS), European data centers"]
         direction LR
         CONSOLE["Admin console<br/>users, groups, directories, apps, services,<br/>access rules, security settings, logs, API"]
         SVC["Identity services<br/>SAML 2.0 IdP, OIDC provider,<br/>RADIUS and LDAP backend"]

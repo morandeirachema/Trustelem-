@@ -25,7 +25,7 @@ Verified facts carry a source; the timeline is the repo's own estimate and is la
 
 ```mermaid
 flowchart TB
-    subgraph CLOUD["Trustelem cloud (WALLIX One IDaaS), EU datacenters"]
+    subgraph CLOUD["Trustelem cloud (WALLIX One IDaaS), European data centers"]
         SAML["SAML 2.0 IdP"]
         OIDC["OIDC provider"]
         RAD["RADIUS + LDAP backend"]
@@ -251,7 +251,7 @@ What is already known:
 | 6.3 | Farm: replication port, maximum node count, recommended load-balancer health-check URL, TLS versions and ciphers. (A2, A3) | HA build | |
 | 6.4 | Access Manager clusters cannot display target passwords; what is WALLIX's recommended pattern for password checkout? (design confirmation, report 3.3) | Feature gap | |
 | 6.5 | Is Access Manager a SCIM target? (T5) | Provisioning | |
-| 6.6 | Which Bastion domain must the Access Manager SAML Domain Name match: the Trustelem Access Manager app page says the Active Directory authentication domain, the Trustelem Bastion SAML page says the SAML authentication domain name. This design uses a separate SAML "Other IdPs" domain named TRUSTELEM. (B7) | Federation naming, chapter 05 | |
+| 6.6 | The Access Manager and Bastion guides say the Access Manager domain name must equal the Bastion "Domain server name" of the SAML domain; the Trustelem Access Manager app page says the Authentication domain name of the Active Directory domain. Is a separate SAML "Other IdPs" domain with both fields set to TRUSTELEM the supported design? (B7) | Federation naming, chapter 05 | |
 
 ## 7. MFA and user experience
 

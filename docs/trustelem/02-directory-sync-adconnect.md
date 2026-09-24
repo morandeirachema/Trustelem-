@@ -1,7 +1,7 @@
 # Active Directory synchronisation with Trustelem ADConnect
 
 Date: 2026-09-23. Source: [Active Directory users - Trustelem ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect)
-and [Active Directory synchronization](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect).
+and the [SSPR page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/self-service-password-reset).
 Quotes are verbatim.
 
 ## 1. How it works
@@ -23,7 +23,7 @@ flowchart LR
     A2 -->|outbound WebSocket 443| CLOUD
     A1 -->|LDAP bind, search| DC
     A2 -->|LDAP bind, search| DC
-    NOTE["Outbound only: each agent opens the websocket;<br/>the cloud uses the first healthy connector in priority order."]
+    NOTE["Outbound only: each agent opens the websocket;<br/>priority order decides which connector is used (failover is an inference)."]
     CLOUD -.- NOTE
 ```
 
@@ -124,11 +124,12 @@ Config keys: `sync_id`, `state_dir`, `ldap_addr` (with optional `?tls_verify`), 
 3. "Select the groups to be synchronized." Scope by AD group; "Domain users" cannot be used
    ("it is not a real group").
 4. Optional: "By checking Advanced options, you can define a list of Custom attributes (title,
-   memberOf,objectGUID,userPrincipalName...) to import with the users." Import
-   `userPrincipalName` and `sAMAccountName` when the Bastion or Access Manager login must be
-   one of them; the SAML `uid` attribute sent to Access Manager comes from the imported login.
-5. Repeat the install on the second VM with the same synchronization ID; in the directory's
-   connector list order them by priority.
+   memberOf,objectGUID,userPrincipalName...) to import with the users." The login
+   itself needs no custom attribute: "A user synchronized from Active Directory can have the login
+   sets to sAMAccountName, userPrincipalName or mail" (Trustelem Connect page). *Inference to test:*
+   the SAML `uid` sent to Access Manager is that login.
+5. Repeat the install on the second VM (*inference:* with the same synchronization ID, as the
+   upgrade procedure implies); in the directory's connector list order them by priority.
 
 ## 7. Upgrades without interruption
 
@@ -148,7 +149,8 @@ name, service account, usage statistics and a Server Link status behind the "i" 
 Connector not visible in the console:
 
 - "ping admin.trustelem.com on the machine running the connector to verify the outgoing flows"
-  (the network-flows page adds that ping alone is not a valid test; use `connect check`).
+  (the network-flows page adds that ping alone is not a valid test: on Windows "use the connection
+  test" of the configuration tool, on Linux `./connect check <your sync id>`).
 - "verify the synchronization ID", "verify the proxy setup".
 - "if the VM is a Windows machine, verify that you clicked on Validate on Trustelem ADConnect
   program".
@@ -165,8 +167,9 @@ replication has completed.
 
 ## 9. Security notes
 
-- The service account is read-only; do not reuse it for Trustelem Connect or for the Bastion
-  AD bind.
+- The service account is read-only unless self-service password reset is used (then it also
+  holds the reset delegation and "Password recovery" is enabled on the directory); do not reuse it
+  for Trustelem Connect or for the Bastion AD bind.
 - Prefer LDAPS with `?tls_verify` (or the Windows Log On tab on a domain-joined host).
 - The connector pins the Trustelem server certificate; exclude `*.trustelem.com`,
   `relay-fr-01.wallix.com` and `relay-fr-02.wallix.com` from TLS inspection.

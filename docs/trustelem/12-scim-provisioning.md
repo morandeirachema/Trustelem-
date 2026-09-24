@@ -39,8 +39,9 @@ managed.
 - Deprovisioning: "If a user loses the access-rule, Trustelem deletes (or deactivates) the user
   on the SCIM server." Whether it sends DELETE or `active=false` is not documented.
 - Not documented: the attribute payload (which value becomes `userName`, `externalId`,
-  `emails`, `name`), PATCH versus PUT, whether the Groups resource is pushed, per-app
-  attribute mapping, extension attributes.
+  `emails`, `name`), PATCH versus PUT, the Groups payload and membership format (groups
+  are pushed: the connector "computes the users and groups that should exist on the
+  application"), per-app attribute mapping, extension attributes.
 - The WALLIX Bastion and WALLIX Access Manager app pages mention only LDAP, RADIUS and SAML;
   neither mentions SCIM.
 
@@ -89,8 +90,9 @@ managed.
   created local users, with different group mappings, and local users cannot authenticate by
   SAML (the Admin Guide 7.4.3 lists password, SSH key and X.509 as local and RADIUS, TACACS+
   and PingID as external methods for local users; SAML is absent).
-- **Reconciliation scope.** The five-minute full reconciliation "lists the resources already
-  present on the SCIM server"; whether it would touch Bastion local users it did not create
+- **Reconciliation scope.** The full synchronization that "lists the resources already present
+  on the SCIM server" is described for Force SCIM Sync; the five-minute cycle "computes the users
+  and groups that should exist" and prepares requests, so its listing scope is not documented; whether it would touch Bastion local users it did not create
   (break-glass, `am-auditor`) is not documented.
 - **Cluster.** Which node should receive SCIM writes and whether created users replicate is not
   documented; the Master/Master rule that "API provisioning must not be performed

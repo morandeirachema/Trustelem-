@@ -7,7 +7,7 @@ Quotes are verbatim.
 
 Supporting role in this repository: Access Manager is the SAML service provider that Trustelem
 authenticates for the web path. The farm settings that matter for that integration are the
-trusted proxies (so the SAML redirect URL and audit logs carry the real client address), the
+trusted proxies (so the audit logs carry the real client address rather than the proxy's), the
 node-shared `crypto.install.key` (SAML keys and secrets are encrypted with it), and the
 replication procedure (SAML identity providers are configuration data and replicate).
 
@@ -66,7 +66,8 @@ db.connections parameters." Restart the service after editing. Later administrat
 changes are made on node 1 and copied.
 
 Appliance database replication (release notes): script added in 5.0.0 (WAB-6124), with
-`--prerequisite-check` (WAB-11782), a mandatory HA interface (WAB-11783), the node list in
+`--prerequisite-check` (WAB-11782), a message asking to configure an HA interface first
+(WAB-11783), the node list in
 `/root/sqlreplication/servers_list` (WAB-12957), fixes for offsets between nodes (WAB-15150)
 and Azure (WAB-15457). "Before upgrading an Access Manager cluster to version 5.2.3,
 replication must be uninstalled. Replication can be reinstalled after the upgrade."
@@ -83,7 +84,7 @@ Per-node settings after replication:
 
 | Item | Value | Source |
 |------|-------|--------|
-| Listener | HTTPS 443 with WebSocket upgrade; HTTP 80 also listed (IG 2.4.2 "HTTP/HTTPS: 80/443"; whether it redirects is not stated) | IG 2.4.2, RN |
+| Listener | HTTPS 443 with WebSocket upgrade; HTTP 80 "is redirected to the HTTPS one" (IG 2.2.3, web-application install mode; the appliance lists 80/443 in IG 2.4.2) | IG 2.2.3, 2.4.2, RN |
 | Persistence | source-IP affinity; cookie persistence on Citrix ADC "incompatible with Universal Tunneling for clusters" | RN WAB-6600 |
 | Forwarded headers | `X-Forwarded-For/-Host/-Port/-Proto`, or RFC 7239 `Forwarded` (`web.proxy.header.forward.useRFC7239only`) | AG 21.6 |
 | Trust | `web.proxy.trusted-proxies` = load balancer addresses; `web.proxy.trusted-proxies.enabled=true` ("On new installations, this parameter is enabled by default ... for upgrades, it remains disabled by default") | AG 21.5 |
@@ -91,35 +92,43 @@ Per-node settings after replication:
 | Rate limits | `web.max.requests.perSec` (60), `web.rate.ipWhitelist` for many WAMUT tunnels | AG 21.5 |
 | SNI | `web.sni.host.check` (true); certificate SAN must match the FQDN | AG 21.4 |
 
-Why trusted proxies matter for SAML: the SAML URLs and audit logs use the client address seen
-by Access Manager; without trusted proxies the load balancer's address is recorded, and on a
-three-interface appliance the SAML URL may be auto-filled with the administration URL
-(known issue WAB-4968).
+Why trusted proxies matter: without them "the information contained in the audit logs is that
+of the proxy" (AG 21.6). Separately, on a three-interface appliance the SAML URL may be
+auto-filled with the administration URL (known issue WAB-4968).
 
-## 5. wabam.properties parameters used by this design
+## 5. Parameters used by this design
+
+`wabam.properties` (AG 13, 20.1, 21.x; edit the file, then restart):
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `crypto.install.key` | generated | encryption key, identical on all nodes |
+| `crypto.install.key` | generated at install | encryption key, identical on all nodes |
 | `db.connections.*` | | database connection |
 | `user.admin.*` | | installation administrator |
-| `bastion.cluster.identical.mode` | off | Bastion cluster with identical configuration and proxy certificates: sync from one node only |
-| `bastion.connection.timeout` | 10 s | lower it to fail over faster inside a Bastion cluster |
-| `restapi.connection.timeout` | 10 s | same for the REST API |
-| `session.maxInactiveInterval` | | inactivity disconnect (minutes) |
-| `session.keepAlive` | 0 | WebSocket ping (seconds, max 3600) |
-| `sa.session.retention.days` | 30 | session audit retention in Elasticsearch |
 | `purge.audit.active` | false | audit purge, one node only |
 | `web.proxy.activated` | true | honour proxy headers |
 | `web.proxy.trusted-proxies` | | allowed proxy addresses |
 | `web.max.requests.perSec` | 60 | DoS filter |
 | `web.sni.host.check` | true | SNI verification |
 | `web.header.X-Frame-Options` | DENY | clickjacking protection |
-| `ut.port.range` | | local ports for Universal Tunneling towards the Bastion |
-| `approval.time.zone` | server TZ | approval workflow synchronisation |
 | `rdp.clientName` | hostname | RDP client name per node |
 
-Every change needs an Access Manager restart (AG, repeated warning). JVM heap: `-Xmx` in
+Application settings (Settings > Application Settings > Application tab, AG 15.1.1 and 20.2):
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `bastion.cluster.identical.mode` | not stated ("it is recommended to enable") | Bastion cluster with identical configuration and proxy certificates: sync from one node only |
+| `bastion.connection.timeout` | 10 s | lower it to fail over faster inside a Bastion cluster |
+| `restapi.connection.timeout` | 10 s | same for the REST API |
+| `session.maxInactiveInterval` | | inactivity disconnect (minutes) |
+| `session.keepAlive` | 0 | WebSocket ping (seconds, max 3600) |
+| `sa.session.retention.days` | 30 | session audit retention in Elasticsearch (AG 16) |
+| `ut.port.range` | | local ports for Universal Tunneling towards the Bastion |
+| `approval.time.zone` | server TZ | approval workflow synchronisation |
+
+A `wabam.properties` edit needs an Access Manager restart (AG, repeated warning); among the
+application settings only `session.keepAlive` needs one, and `session.maxInactiveInterval`
+"requires logging out". JVM heap: `-Xmx` in
 `/var/wab/etc/wabam/wabam.vmoptions` (default 2373 MB on the appliance), verified in `tech.log`.
 
 ## 6. Backup and restore
@@ -131,7 +140,8 @@ wabam-restore-admin -f /var/wab/etc/wabam/wabam.properties   # reset the global 
 ```
 
 `wabam-backup` produces an AES-256 zip with the database, keystore and `wabam.properties`, and
-"can be used in cron" since 5.1.4 (WAB-14534). A GUI restore with a different encryption key
+runs from cron since 5.1.4 (WAB-14534: "Fix the `wabam-backup` command that could not be
+executed in a cron"). A GUI restore with a different encryption key
 broke SAML in an earlier release (WAB-14912): always restore with the same `crypto.install.key`.
 
 ## 7. Upgrade
@@ -147,7 +157,8 @@ wabsuper@wab:~$ sudo -i
 ```
 
 "Access Manager can be updated to version 5.2.4.0 from any version with a release date earlier
-than the release date of version 5.2.4.0." Uninstall replication before upgrading a cluster,
+than the release date of version 5.2.4.0." Uninstall replication before upgrading a cluster (required for 5.2.3, WAB-17588; kept as a
+precaution),
 upgrade node by node, reinstall replication, then re-test the SAML login and the WAMUT
 tunnel. Minimum target because of WSA-2026-07-0002: 5.2.7 or 6.0.4.
 
@@ -174,15 +185,14 @@ docker exec -it access-manager_access_manager_1 /opt/wallix/wabam/bin/wabam-audi
 snmpget -v3 -l authPriv -u wabsnmp -a SHA -A <authpass> -x AES -X <privpass> <ip> system.sysUpTime.0
 ```
 
-SNMP v2c/v3 with disk and CPU traps (AG ch. 5). Logs in `/var/log/wallix/wabam` (`access.log`,
-`error.log`, `tech.log`); per-module log levels in Settings > Logs; "The TRACE or ALL modes may
+SNMP v2c/v3 with disk and CPU traps (AG ch. 5). `access.log` in `/var/log/wallix/wabam`; `error.log` and `tech.log` in the log archive; per-module log levels in Settings > Logs; "The TRACE or ALL modes may
 expose sensitive information, including passwords" (AG 15.2). No native syslog forwarder is
 documented; ship the log directory with an OS-level agent.
 
 ## 10. Bastion objects and the Trustelem SAML domain
 
 Checklist per Bastion object (AG 13): Host = Bastion user-interface address; API key with
-profile `wallix_access_manager_session_audit` (Bastion 12.1 and later; "For versions prior to 12.1, a single API key covered all
-features", Bastion Admin Guide 13); custom ports if changed; Cluster membership; Strip Domain OFF for federated users;
+profile `wallix_access_manager_session_audit` (profile keys from Bastion 12.1 per AM AG 13, "For versions prior to 12.1, a single API key
+covered all features"; the release notes, WAB-11577, say 12.2); custom ports if changed; Cluster membership; Strip Domain OFF for federated users;
 Approval Time Zone; Allow Session Search with the auditor login; Test Connection. SAML identity
 provider settings are in `docs/trustelem/05-access-manager-integration.md`.

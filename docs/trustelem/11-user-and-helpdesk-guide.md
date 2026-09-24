@@ -12,8 +12,9 @@ the help-desk actions follow [06 MFA and access rules](06-mfa-and-access-rules.m
 2. Open `https://<tenant>.trustelem.com`, log in with the Active Directory password. If an
    enrollment campaign is running, a window asks to enrol a factor; scan the QR code with the
    app. The window returns at every login until it is done.
-3. Optional, for administrators on the web path: add a passkey (YubiKey, Windows Hello,
-   Touch ID) from `https://<tenant>.trustelem.com/#security`.
+3. Optional, for administrators on the web path: a passkey (YubiKey, Windows Hello, Touch ID)
+   enrolled by campaign, or re-enrolled from `https://<tenant>.trustelem.com/#security` when
+   "User can reset token" allows it.
 4. From then on, keep the phone at hand: it receives a push at each privileged login, and
    shows a six-digit code when there is no network.
 
@@ -76,18 +77,21 @@ Scripts and automation must not use accounts subject to MFA; the PAM team assign
 3. An administrator opens **Alerts** in the admin console and clicks "Rescue code".
 4. The user has 24 hours to use the one-time code, then enrols the new phone.
 
-## 5. Forgotten Trustelem password (local users only)
+## 5. Forgotten Trustelem password
 
 `https://<tenant>.trustelem.com/forgot`, with the factors configured under Security settings >
-Password management. AD users reset their password through the normal AD process unless
-AD writeback was enabled.
+Password management. Self-service password reset "allows Trustelem users to reset a lost password, even if they are
+from Active Directory" once "Password recovery" is enabled on the directory and the connector
+account has the reset delegation ([SSPR](https://trustelem-doc.wallix.com/books/trustelem-administration/page/self-service-password-reset));
+otherwise AD users go through the normal AD process.
 
 ## 6. Help-desk checklist per call
 
 1. Which path: portal, RDP client, SSH client?
 2. Exact time and the address the user connected from.
 3. Trustelem Logs page: is there an entry for the user at that time? If not, the request never
-   reached Trustelem (connector or firewall).
+   reached Trustelem (connector or firewall), or it was an LDAP search for a user without an
+   access rule, which "you will not see any logs" for (chapter 08).
 4. If there is an entry: user not found, no access rule, no second factor, or rejected push.
 5. Bastion `[wabauth]` line for the same time: `status` and `infos`.
 6. Escalate to the PAM team with items 1 to 5 and [08 Troubleshooting](08-troubleshooting.md).

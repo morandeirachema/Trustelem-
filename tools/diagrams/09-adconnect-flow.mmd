@@ -7,5 +7,5 @@ flowchart LR
     A2 -->|outbound WebSocket 443| CLOUD
     A1 -->|LDAP bind, search| DC
     A2 -->|LDAP bind, search| DC
-    NOTE["Outbound only: each agent opens the websocket;<br/>the cloud uses the first healthy connector in priority order."]
+    NOTE["Outbound only: each agent opens the websocket;<br/>priority order decides which connector is used (failover is an inference)."]
     CLOUD -.- NOTE

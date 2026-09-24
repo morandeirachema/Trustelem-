@@ -15,7 +15,7 @@ OASIS SAML 2.0 core schema; it is not a capture from a live tenant.
 flowchart LR
     T["Trustelem<br/>Access Manager app<br/><br/>Domain = TRUSTELEM<br/>Login attribute = uid<br/>script: profile, groups<br/>metadata to AM; the Bastion imports the AM app metadata"]
     AM["Access Manager<br/>SAML Identity Provider<br/><br/>Domain Name = TRUSTELEM<br/>Login = uid<br/>Profile = profile<br/>Strip Domain OFF (Bastions page)"]
-    B["Bastion<br/>SAML authentication domain (Other IdPs)<br/><br/>Authentication domain name = TRUSTELEM<br/>(Domain server name set identical)<br/>SAML external authentication:<br/>Username claim = uid, Group claim = groups<br/>mappings on group values"]
+    B["Bastion<br/>SAML authentication domain (Other IdPs)<br/><br/>Domain server name = TRUSTELEM<br/>(Authentication domain name identical)<br/>SAML external authentication:<br/>Username claim = uid, Group claim = groups<br/>mappings on group values"]
     T <-->|Domain and Login must be identical| AM
     AM <-->|Domain and Login must be identical| B
     NOTE["Assertion goes only to Access Manager;<br/>AM calls the Bastion REST API for login@TRUSTELEM;<br/>a mismatch gives an empty authorization list"]
@@ -24,7 +24,7 @@ flowchart LR
 
 | Value | Trustelem | Access Manager | Bastion |
 |-------|-----------|----------------|---------|
-| Federated domain | Access Manager app > Domain | SAML Identity Provider > Domain tab > Domain Name | Authentication domain > Authentication domain name (Domain server name set identical; it has "no impact on the setup") |
+| Federated domain | Access Manager app > Domain | SAML Identity Provider > Domain tab > Domain Name | Authentication domain > Domain server name (AM 10.3.2 and Bastion 7.3.1); Authentication domain name set identical, as WALLIX recommends and as the Trustelem page expects |
 | Login attribute | sends `uid` (AD users) or `email` (local users) | Domain tab > Login = `uid` or `email` | SAML external authentication > claim Username = same attribute |
 | Groups | script `msg.addAttr("groups", g)` on the Access Manager app (and on a Bastion SAML app only in the standalone design; behind Access Manager the Bastion imports the Access Manager app metadata and no Bastion app is created) | not consumed (profiles come from `profile`) | claim Group = `groups`; mappings match the values |
 | Profile | script `msg.setAttr("profile", ...)` | Domain tab > Profile Attribute = `profile`, matched by name to AM profiles | not consumed |
@@ -33,12 +33,14 @@ flowchart LR
 | Logout | `/app/<ID>/on_logout` | Redirect Logout Uri = SSO URI with `sso` replaced by `on_logout` | `sp_single_logout_service` in SP metadata |
 | Strip Domain | | Bastions page > Strip Domain OFF | keeps `login@DOMAIN` |
 
-Which Bastion domain the Access Manager domain name must match is stated differently on two
-vendor pages: the Access Manager app page names the Active Directory authentication domain, the
-Bastion SAML page names the SAML authentication domain. This design follows the Bastion SAML
-page and binds `TRUSTELEM` to a separate SAML *Other IdPs* domain, so that SAML users and their
-group mappings live in one object; gap B7 in the
-[register](open-questions-and-gaps.md) records the question for WALLIX.
+The vendor texts name the Bastion side differently. The Access Manager guide (10.3.2) and the
+Bastion guide (7.3.1) name the *Domain server name* of the SAML authentication domain and
+recommend the same value for the Authentication domain name. The Trustelem Bastion SAML page
+names the Authentication domain name, and the Trustelem Access Manager app page names "the
+Authentication domain name of your Active Directory Authentication domain". This design follows
+the two product guides: a separate SAML *Other IdPs* domain with both fields set to `TRUSTELEM`,
+which satisfies every wording at once. Gap B7 in the [register](open-questions-and-gaps.md)
+keeps the Active Directory reading as the open question.
 
 ## 2. Illustrative assertion sent by Trustelem to Access Manager
 

@@ -23,8 +23,9 @@ Quotes are verbatim.
   Note: killing a Trustelem session doesn't mean users will be disconnected from their
   applications." A Bastion or Access Manager session already opened stays open; terminate it on
   the Bastion.
-- Retention shown in the API: logs and alerts for "the 30 previous days", sessions up to
-  10 000 entries. Export to a SIEM for longer retention.
+- Retention shown in the API: logs and alerts for "the 30 previous days"; sessions are paged
+  ("By default, a page contains maximum 10000 sessions") and deleted sessions are listed for the
+  30 previous days. Export to a SIEM for longer retention.
 
 ## 2. SIEM export through Trustelem Connect
 
@@ -55,17 +56,18 @@ port = "5514"
 Test receiver: `nc -l -k <vm_ip> <port>` on Linux or `.\ncat.exe -l -k --allow <vm_ip> <port>`
 from `C:\Program Files (x86)\Nmap\` on Windows.
 
-Record schema (from the API Log type): `id, date, level, msg, details, userID, userEmail, ip,
-useragent`. Second-factor events, including `webauthn_duplicate_credential`, are included.
+Record schema: *inference*, the SIEM page does not document the JSON fields; they are expected
+to follow the API `Log` type (`id, date, level, msg, details, userID, userEmail, ip, useragent`).
+Check against a captured record. Second-factor events, including `webauthn_duplicate_credential`, are included.
 
 SIEM use cases for the PAM design:
 
 | Detection | Signal |
 |-----------|--------|
 | push fatigue attack | repeated RADIUS second-factor requests for one user with rejections or timeouts |
-| MFA bypass attempt | a user switched to *Always allow* (permission change events) |
+| MFA bypass attempt | a user switched to *Always allow* (the event name is not documented; compare nightly `listPerms` exports, reference API export) |
 | factor reset abuse | rescue code issued, factor reset, then login from a new IP |
-| connector outage | directory or service LED off in the dashboard and no LDAP/RADIUS logs while the Bastion reports RADIUS timeouts |
+| connector outage | directory LED not green in the dashboard (the LED is documented for directories only) and no LDAP/RADIUS logs while the Bastion reports RADIUS timeouts |
 | SAML certificate expiry | expiry e-mail from Trustelem and Access Manager SAML errors |
 
 ## 3. API and scripts
@@ -80,7 +82,7 @@ allowed IPs and select the new script 5-Click on the script to see a sample comm
 curl -X POST -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <api-key>' \
   -d '{"email":"jdoe@test.com","firstname":"John","lastname":"Doe"}' \
-  https://admin.trustelem.com/api/script/<key-id>/create_user
+  https://admin.trustelem.com/api/script/{script-path-id}/create_user
 ```
 
 Scripts are TypeScript handlers:
@@ -98,7 +100,7 @@ Objects: Users (create, get, update, delete, search, attributes, resetPassword),
 Applications, Permissions (`listPerms`, `setGroupPerm`, user permissions; zones
 `internalZone, externalZone, ldapZone, radiusZone` with values `'' | 'default' | '1_factor' |
 '2_factors' | 'forbidden'`), Logs (`listLogs`, 30 days, page size 1000, RFC 3339 dates),
-Alerts, Sessions, AuthToken (`issueAuthToken`, `verifyAuthToken` with status
+Alerts, Sessions, AuthToken (`listAuthTokens`, `issueAuthToken`, `verifyAuthToken` with status
 `success | waiting | rejected | timeout | failed`). Rate limits are not documented.
 
 Useful automations for this design:
@@ -129,7 +131,8 @@ the certificate- that has expired on...". Renewal:
    change on the application." Schedule it and keep the RADIUS path as the fallback for
    administrators.
 
-Track the expiry date in the operations calendar; the e-mail arrives at expiry, not before.
+Track the expiry date in the operations calendar: the e-mail says the certificate "will expired
+soon or has already expired" [sic], so it can arrive late.
 
 ## 5. Self-service password reset (Trustelem and AD passwords)
 
@@ -144,9 +147,10 @@ off for privileged accounts and keeping the reset in the help-desk process.
 
 "To enable this tool, you need to send an email to your WALLIX sales contact". Delegates are
 granted through access rules and the user attribute `groupManager`, for example
-`Supplier1;max:10`, `regexp:.*`, `Supplier2;assignableGroups:Google,SalesForce;max:10`. A
-"Custom Admin Console" built on the API can restrict an external provider to managing its own
-group's membership and factor resets.
+`Supplier1;max:10`, `regexp:.*`, `Supplier2;assignableGroups:Google,SalesForce;max:10`. The
+delegated administration tool also grants "Reset factors of administered users"; a "Custom
+Admin Console" built on the API can restrict an external provider to managing its own group's
+membership (the public API has no factor-reset call).
 
 ## 7. Branding and user communication
 
@@ -159,9 +163,10 @@ success of look-alike phishing pages.
 
 | Change | Where | Impact |
 |--------|-------|--------|
-| ADConnect or Trustelem Connect upgrade | agent VMs | none if the parallel-install procedure is used (chapters 02 and 03) |
+| ADConnect upgrade | agent VMs | none with the documented parallel install, new connector listed first (chapter 02) |
+| Trustelem Connect upgrade | agent VMs | no documented procedure; upgrade one VM at a time while the other serves (*inference*) |
 | New Trustelem IP ranges | egress firewall | connectors reconnect; restart them after the change |
-| Access rule change | console | immediate for new authentications |
+| Access rule change | console | expected at the next authentication (*inference*, not documented) |
 | Factor policy change | console | applies at next enrollment and login |
 | SAML certificate rotation | console plus SP re-import | short interruption |
 | RADIUS secret rotation | Trustelem app model, Bastion, Access Manager | coordinate; do the two Connect listeners one at a time |
@@ -174,8 +179,8 @@ Published history and incident log: [unavailability](https://trustelem-doc.walli
 page or maintenance calendar is documented. When the tenant is unreachable:
 
 1. Bastion administrators use the local break-glass account (IP-restricted).
-2. Existing Bastion and Access Manager sessions keep running; new native logins fail at the
-   RADIUS step until the Bastion timeout, then are refused.
+2. Existing Bastion and Access Manager sessions keep running; new native logins are expected to
+   fail at the RADIUS step once the Bastion timeout expires (*inference*).
 3. If the outage is long, temporarily remove the RADIUS secondary authentication from the AD
    domain on the Bastion (one field, documented rollback) and record the decision.
 4. Re-enable and verify with `./connect check` and a test login when the tenant is back.

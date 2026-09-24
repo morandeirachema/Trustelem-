@@ -13,8 +13,8 @@ Quotes are verbatim.
 | WALLIX Authenticator (push + TOTP) | "if the network is up the user receives a push notification, otherwise he can use a TOTP"; desktop version "in the Microsoft store only" and uses WNS | yes | yes (push-wait or TOTP) |
 | TOTP authenticator (any app, NFC hardware token) | standard TOTP | yes | yes (Access-Challenge or code appended to the password) |
 | Second-step passkey (FIDO2/WebAuthn) | "previously named Security key"; YubiKey, Feitian, Windows Hello, Touch ID/Face ID, password managers, cross-device QR with a 5-minute window | yes | no |
-| SMS | "additional cost, not available by default" | yes | not documented (the Trustelem Connect page describes push-wait and TOTP only; gap T16) |
-| E-mail OTP | "disable by default"; weak | yes | not documented (gap T16) |
+| SMS | "additional cost, not available by default" | yes | implied, not explicit: "You can use a code with LDAP (TOTP or OTP)"; only passkeys are excluded (gap T16) |
+| E-mail OTP | "disable by default"; weak | yes | implied, not explicit (same sentence; gap T16) |
 
 For a PAM tenant: WALLIX Authenticator for everyone (the only factor that gives push on the
 native RDP/SSH path), passkeys for administrators on the web path, TOTP as the fallback, SMS
@@ -57,21 +57,25 @@ Three routes, all on the same page:
    and "Automatic enroll during login": "every time users authenticate on Trustelem login
    page, they will have a window asking them to enroll a new factor. They can skip the
    enrollment, but the window will continue to appear".
-3. **Self-service** at `https://<tenant>.trustelem.com/#security` when "User can reset token"
-   allows it.
+3. **Self-service reset (re-enrolment)** at `https://<tenant>.trustelem.com/#security`, only for
+   the users defined under "User can reset token": "the defined users can use their dashboard to
+   reset this factor".
 
-Sequence for a PAM roll-out: run the campaign on the PAM groups with "Automatic enroll during
-login" before any access rule requires two factors; otherwise users fail: on LDAP "If the user
+Sequence for a PAM roll-out: run the campaign on the PAM groups before any access rule requires
+two factors. The vendor recommends "an enrollment campaign by email if possible" for the Bastion
+RADIUS populations, who may never open the Trustelem login page, and "automatic enroll during
+login" for the Access Manager SAML populations; otherwise users fail: on LDAP "If the user
 provides login + password and doesn't have WALLIX Authenticator, the authentication will failed",
-and on RADIUS there is no push to approve.
+and on RADIUS there is no enrolled app to receive the push (*inference*).
 
 ## 5. Lost or replaced factor
 
 "Use an alternative method" > "Ask for a rescue code" on the login page; "All administrators
 receive an email"; an administrator opens **Alerts** and clicks "Rescue code" after checking
 the user's identity; "The user has 24h to use this one-time rescue code." Then the user
-re-enrols. Record the identity check in the ticketing system; the Alerts page and the API
-(`listAlerts`, `markAlertAsRead`) keep 30 days of alerts.
+re-enrols. Record the identity check in the ticketing system; `listAlerts` returns "all the
+alerts of the 30 previous days" (`markAlertAsRead` clears them); the Alerts page retention is
+not documented.
 
 ## 6. Access rules
 
@@ -111,9 +115,11 @@ Notes:
   exemptions are done with a user rule and must be reviewed (list them with the API
   `listPerms`).
 - "Trustelem users will not be found by the Bastion before having an access rule (1 or 2
-  factors)" on LDAP; create the rule before testing the Bastion directory.
-- Pilot and rollback: change the group rule between *Always allow* / *Default* and
-  *2nd factor only* / *2 factors*; nothing changes on the appliances.
+  factors)" on LDAP ([Bastion app page](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion));
+  create the rule before testing the Bastion directory.
+- Pilot and rollback: on RADIUS change the group rule between *Always allow* and *2nd factor
+  only*; on the web zones between *Default* or *1 factor* and *2 factors*. The rollback is a
+  console change and needs no appliance change (*inference* from where the rule is evaluated).
 
 ## 8. MFA session on RADIUS
 
@@ -122,7 +128,8 @@ session"; the user authenticates once with the second factor and "for the durati
 Trustelem and as long as he remains on the same network, he will not be asked to provide his
 2nd factor again". The example is a GUI login followed by SSH within one hour. It requires the
 Bastion option "Use mobile device for Two-Factor Authentication (2FA)". The duration values are
-not documented; the Bastion sends Framed-IP-Address so "same network" can be evaluated.
+not documented, nor what "same network" is based on; *inference:* the Bastion's
+Framed-IP-Address attribute is the likely input.
 
 Choose the duration per risk: one working session (for example 8 hours) for operators on
 managed workstations, shorter for shared or external networks. The web (SAML) path has its own
