@@ -9,6 +9,7 @@ Dates are ISO. Product versions verified are stated in each document header.
   eight question blocks (deployment model and on-premise TOTP, licensing, effort, support and
   roadmap, Bastion, Access Manager, MFA, logging) cross-referenced to the gaps register.
 - `tools/check_docs.py` now skips `node_modules`, which the Mermaid check installs locally.
+- README: clone and local check instructions at the bottom.
 
 ## 2026-09-23
 

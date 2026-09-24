@@ -176,3 +176,17 @@ login, itself a live example of the IdP in this design; the PDF guides above are
 - [ ] Vendor answers to the open questions (RADIUS Message-Authenticator, SAML clock skew,
       PKCE, push number matching, hosting assurances, SLA, SCIM to Bastion)
 - [ ] Validation against the Bastion 12.4 and Access Manager 6.0 release notes (vendor login)
+
+## Getting a local copy
+
+```bash
+git clone https://github.com/morandeirachema/Trustelem-.git
+cd Trustelem-
+python3 tools/check_docs.py                      # structural checks, no dependencies
+npm install --no-save mermaid@11 jsdom@24        # optional, for the diagram parser
+node tools/check_mermaid.mjs
+```
+
+The repository is public and holds only Markdown, Mermaid sources and the two check scripts.
+Vendor PDFs downloaded for research are ignored by `.gitignore` and are not needed to read the
+documents.
