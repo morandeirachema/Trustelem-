@@ -26,7 +26,7 @@ to the customer documentation site; "lab" means it can be closed by testing.
 
 | # | Gap | Depends | Close by |
 |---|-----|---------|----------|
-| B1 | Bastion 12.4 release notes and the 12.3.x to 12.4.x change list (behind the doc login); 12.x sizing article | report, runbook | vendor login |
+| B1 | Bastion 12.4 release notes and the 12.3.x to 12.4.x change list (behind the doc login; the [public release notes](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html) stop at 12.3.2, checked 2026-09-24); 12.x sizing article | report, runbook | vendor login |
 | B2 | Sample output of `bastion-replication --status`, `--monitoring`, `--prerequisite-check`; step-by-step `--elevate-master` failover and failback; restore on a replicated node; HA e-mail template names (System Operations Guide) | runbook | vendor login, lab |
 | B3 | Closed for the NIC: eth1 may be used for replication like any other interface, and "When the eth1 interface is used for HA database replication, the associated administration features must be manually enabled from the System > Service control page for replication to work" ([Bastion release notes WAB-7947, WAB-17651](https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html)). Still open: latency limits for cross-site Master/Slaves | runbook, DR | vendor |
 | B4 | SCIM API base path on the appliance, required attributes for user creation, Bearer support, cluster behaviour (scim.wallix.com timed out again on both 80 and 443 on 2026-09-23) | 12 | vendor |
@@ -37,7 +37,7 @@ to the customer documentation site; "lab" means it can be closed by testing.
 
 | # | Gap | Depends | Close by |
 |---|-----|---------|----------|
-| A1 | Access Manager 6.0 release notes and Debian 12 changes (doc.wallix.com answers 303 to the Trustelem SSO login for both the 6.0 and the Bastion 12.4 notes, checked 2026-09-23) | report, runbook | vendor login |
+| A1 | Access Manager 6.0 release notes and Debian 12 changes (doc.wallix.com answers 303 to the Trustelem SSO login for both the 6.0 and the Bastion 12.4 notes, checked 2026-09-23; the [public release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html) stop at 5.2.4.0, checked 2026-09-24) | report, runbook | vendor login |
 | A2 | Replication script name and invocation beyond `--prerequisite-check` and `/root/sqlreplication/servers_list`; replication port; maximum node count | runbook | vendor login |
 | A3 | Health-check URL for the load balancer; TLS versions and cipher list | runbook | vendor, lab |
 | A4 | SAML clock-skew tolerance and assertion replay cache; ACS URL pattern (only in the generated SP metadata); whether push (not only TOTP) works in the RADIUS factor chain | 05, standards | vendor, lab |

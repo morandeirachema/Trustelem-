@@ -23,7 +23,9 @@ are Markdown reports with Mermaid diagrams and links to vendor documentation.
 - No Claude references in commit messages or document bylines.
 - Run `python3 tools/check_docs.py` before committing (fences, tables, placeholders, links, Mermaid
   embedding) and `node tools/check_mermaid.mjs` after `npm install --no-save mermaid@11 jsdom@24`
-  (Mermaid syntax). Add a line to `CHANGELOG.md` for each change.
+  (Mermaid syntax). Run `python3 tools/check_links.py` after adding or changing external URLs
+  (it fetches them; placeholders in code spans and known login-gated hosts are skipped or warned).
+  Add a line to `CHANGELOG.md` for each change.
 
 ## Vendor documentation sources
 

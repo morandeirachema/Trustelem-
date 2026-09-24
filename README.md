@@ -163,6 +163,9 @@ login, itself a live example of the IdP in this design; the PDF guides above are
 - `python3 tools/check_docs.py` runs the structural checks locally and `node tools/check_mermaid.mjs`
   parses the diagrams (after `npm install --no-save mermaid@11 jsdom@24`); GitHub Actions runs both
   on every push.
+- `python3 tools/check_links.py` fetches every external URL in the documents and fails on a dead
+  one; login-gated WALLIX pages and bot-blocking hosts are reported as warnings. GitHub Actions runs
+  it every Monday and on demand, not on every push, because the result depends on third-party sites.
 
 ## Status
 
@@ -183,6 +186,7 @@ login, itself a live example of the IdP in this design; the PDF guides above are
 git clone https://github.com/morandeirachema/Trustelem-.git
 cd Trustelem-
 python3 tools/check_docs.py                      # structural checks, no dependencies
+python3 tools/check_links.py                     # external links, needs Internet access
 npm install --no-save mermaid@11 jsdom@24        # optional, for the diagram parser
 node tools/check_mermaid.mjs
 ```

@@ -10,6 +10,13 @@ Dates are ISO. Product versions verified are stated in each document header.
   roadmap, Bastion, Access Manager, MFA, logging) cross-referenced to the gaps register.
 - `tools/check_docs.py` now skips `node_modules`, which the Mermaid check installs locally.
 - README: clone and local check instructions at the bottom.
+- Added `tools/check_links.py` (external link check, per-host serialised, retries, placeholder
+  and code-span exclusion, login-gated and bot-blocking hosts reported as warnings) and a weekly
+  `link-check` GitHub Actions workflow. First run over 120 URLs: one wrong link fixed in the
+  meeting script (Trustelem Connect page), RFC links moved to the static
+  `rfc-editor.org/rfc/rfcNNNN.html` renderings because the `info` pages timed out.
+- Public release-notes pages re-read: they stop at Bastion 12.3.2 and Access Manager 5.2.4.0,
+  so B1 and A1 stay open (noted in the register).
 - Gaps register: swept every chapter for gap and inference markers; added T11 (no OIDC template), T12 (no offline mode), T13 (agent sizing), A7 (no syslog forwarder on Access Manager), the SCIM reconciliation question to T5, and a commercial section C1 to C4; matching questions 5.8 and 8.5 in the meeting script.
 
 ## 2026-09-23
