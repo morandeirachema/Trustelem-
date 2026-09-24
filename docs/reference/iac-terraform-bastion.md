@@ -1,31 +1,42 @@
 # Codifying the Bastion side of the Trustelem integration with Terraform
 
-Date: 2026-09-24. Source: the WALLIX Terraform provider documentation
-([index](https://github.com/wallix/terraform-provider-wallix-bastion/blob/main/docs/index.md),
-[resources](https://github.com/wallix/terraform-provider-wallix-bastion/tree/main/docs/resources))
-and the [Bastion 12.3.2 Functional Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf).
-Verified against Bastion 12.4.3: the Functional Administration Guide, the Deployment Guide and the
-System Operations Guide (customer documentation behind the [doc.wallix.com](https://doc.wallix.com/)
-login); the Administration Guide sections behind these objects are unchanged from 12.3.2.
-The HCL below is illustrative and follows the documented arguments; validate it against the
-provider version you deploy. Placeholder values (`corp.example.local`, node addresses) are
-illustrative and are not those of the [worked example](../trustelem/09-worked-example.md),
-whose object names this file reuses.
+> - **Purpose:** the Terraform resources and arguments that create the Bastion objects of the
+>   Trustelem integration, with illustrative HCL and the options the provider cannot set.
+> - **Audience:** Bastion administrators and platform engineers who manage the Bastion cluster as
+>   code.
+> - **Verified:** 2026-09-24; provider source (`resource_externalauth_radius.go`) checked on 2026-09-23; Bastion
+>   12.4.3 customer guides (Functional Administration, Deployment, System Operations), whose
+>   sections behind these objects are unchanged from the 12.3.2 Functional Administration Guide.
+> - **Sources:** [WALLIX Terraform provider index](https://github.com/wallix/terraform-provider-wallix-bastion/blob/main/docs/index.md),
+>   [provider resources](https://github.com/wallix/terraform-provider-wallix-bastion/tree/main/docs/resources),
+>   [Bastion 12.3.2 Functional Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+>   Bastion 12.4.3 customer guides behind the [doc.wallix.com](https://doc.wallix.com/) login.
 
-## 1. Why
+The HCL below is illustrative and follows the documented arguments. Validate it against the
+provider version you deploy. Placeholder values (`corp.example.local`, node addresses) are not
+those of the [worked example](../trustelem/09-worked-example.md); only its object names are
+reused.
 
-The Trustelem integration on the Bastion is a handful of objects: an AD external
-authentication, one or two RADIUS external authentications pointing at Trustelem Connect, an
-AD authentication domain with RADIUS as secondary authentication and group mappings, a SAML
-external authentication with the Trustelem metadata, a SAML authentication domain with
-mappings, and an API key for Access Manager. Managing them as code makes the two cluster
-nodes identical, gives a reviewable change history, and allows the rollback plan (remove the
-secondary authentication) to be a one-line change.
+## 1. Why codify, and how to connect
 
-Provider facts: required `ip` and `user`; `password` or `token` (API key); `api_version`
-default `v3.12`; "Bastion 12.0.3+: Full feature support"; the SAML resource requires API
-v3.12. Environment variables `WALLIX_BASTION_HOST`, `WALLIX_BASTION_USER`,
-`WALLIX_BASTION_TOKEN`, `WALLIX_BASTION_API_VERSION`.
+Managing the Trustelem objects as code keeps the two cluster nodes identical, gives a
+reviewable change history, and reduces the MFA rollback (remove the secondary authentication)
+to a one-line change. The objects are:
+
+- an AD external authentication;
+- one or two RADIUS external authentications pointing at Trustelem Connect;
+- an AD authentication domain with RADIUS as secondary authentication, and its group mappings;
+- a SAML external authentication with the Trustelem metadata;
+- a SAML authentication domain with its mappings;
+- an API key for Access Manager.
+
+Provider facts:
+
+- Required: `ip` and `user`, plus `password` or `token` (API key).
+- `api_version` defaults to `v3.12`; the SAML resource requires API v3.12.
+- "Bastion 12.0.3+: Full feature support".
+- Environment variables: `WALLIX_BASTION_HOST`, `WALLIX_BASTION_USER`, `WALLIX_BASTION_TOKEN`,
+  `WALLIX_BASTION_API_VERSION`.
 
 ```hcl
 provider "wallix-bastion" {
@@ -36,15 +47,18 @@ provider "wallix-bastion" {
 }
 ```
 
-Run Terraform against the primary master only: "In Master/Master mode, API provisioning must
-not be performed simultaneously from both Bastions" ([Deployment Guide ch. 5](https://marketplace-wallix.s3.amazonaws.com/bastion_12.0.2_en_deployment_guide.pdf)).
+Run Terraform against the primary master only. In Master/Master mode the Bastion forbids API
+provisioning from both nodes at the same time (limitations table in the
+[Bastion HA runbook](../runbooks/bastion-ha-replication.md), section 1).
 
 ## 2. Resources
 
-### Active Directory external authentication (`externalauth_ldap`)
+Each subsection lists the documented arguments, then an example.
+
+### 2.1 Active Directory external authentication (`externalauth_ldap`)
 
 Arguments: `authentication_name`, `host`, `port`, `timeout`, `ldap_base`, `cn_attribute`,
-`login_attribute`; optional `is_active_directory`, `login`, `password`, `is_ssl`,
+`login_attribute`. Optional: `is_active_directory`, `login`, `password`, `is_ssl`,
 `is_starttls`, `ca_certificate`, `is_protected_user`, `use_primary_auth_domain`.
 
 ```hcl
@@ -63,18 +77,22 @@ resource "wallix-bastion_externalauth_ldap" "corp_ad" {
 }
 ```
 
-### RADIUS external authentications to Trustelem Connect (`externalauth_radius`)
+### 2.2 RADIUS external authentications to Trustelem Connect (`externalauth_radius`)
 
-Arguments: `authentication_name`, `host`, `port`, `secret`, `timeout`; optional
-`description`, `use_primary_auth_domain`. The GUI option "Use mobile device for 2 factor
-authentication(2FA)" is not exposed: the provider source `resource_externalauth_radius.go` has
-no such attribute (checked 2026-09-23), so set it in the GUI after every apply that recreates
-the resource. `use_primary_auth_domain` is the GUI option "Use primary domain name for two-factor
-authentication (2FA)", which "forces the domain name to be mentioned in the login (for example,
-user@domain) during the second authentication"
-([Admin Guide 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
-12.3.2 and 12.4.3). The worked example uses sAMAccountName logins and leaves it off; set it to
-`true` only when Trustelem logins are UPNs (chapter 04, section 3).
+Arguments: `authentication_name`, `host`, `port`, `secret`, `timeout`. Optional: `description`,
+`use_primary_auth_domain`.
+
+- The GUI option "Use mobile device for 2 factor authentication(2FA)" is not exposed. The
+  provider source `resource_externalauth_radius.go` has no such attribute (checked 2026-09-23).
+  Set it in the GUI after every apply that recreates the resource
+  ([section 3](#3-not-covered-by-the-provider)).
+- `use_primary_auth_domain` is the GUI option "Use primary domain name for two-factor
+  authentication (2FA)". It "forces the domain name to be mentioned in the login (for example,
+  user@domain) during the second authentication"
+  ([Admin Guide 7.2.5.4](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+  12.3.2 and 12.4.3). The worked example uses sAMAccountName logins and leaves it off. Set it to
+  `true` only when Trustelem logins are UPNs
+  ([chapter 04](../trustelem/04-bastion-integration.md), section 3).
 
 ```hcl
 resource "wallix-bastion_externalauth_radius" "trustelem_1" {
@@ -96,10 +114,10 @@ resource "wallix-bastion_externalauth_radius" "trustelem_2" {
 }
 ```
 
-### AD authentication domain with RADIUS as secondary (`authdomain_ad`)
+### 2.3 AD authentication domain with RADIUS as secondary (`authdomain_ad`)
 
 Arguments: `domain_name`, `auth_domain_name`, `external_auths`, `default_language`,
-`default_email_domain`; optional `group_attribute`, `display_name_attribute`,
+`default_email_domain`. Optional: `group_attribute`, `display_name_attribute`,
 `email_attribute`, `language_attribute`, `is_default`, `secondary_auth`.
 
 ```hcl
@@ -120,10 +138,10 @@ resource "wallix-bastion_authdomain_ad" "corp" {
 
 Rollback of MFA on the native path is `secondary_auth = []`.
 
-### Group mappings (`authdomain_mapping`)
+### 2.4 Group mappings (`authdomain_mapping`)
 
 Arguments: `domain_id`, `user_group`, `external_group` (an AD DN, or the SAML group claim
-value). Import format `<domain_id>/<user_group>`.
+value). Import format: `<domain_id>/<user_group>`.
 
 ```hcl
 resource "wallix-bastion_authdomain_mapping" "corp_admins" {
@@ -133,13 +151,14 @@ resource "wallix-bastion_authdomain_mapping" "corp_admins" {
 }
 ```
 
-### SAML external authentication with the Trustelem metadata (`externalauth_saml`)
+### 2.5 SAML external authentication with the Trustelem metadata (`externalauth_saml`)
 
-Arguments: `authentication_name`, `idp_metadata`, `timeout`, block
-`claim_customization { username (required), displayname, email, group, language }`; optional
-`description`, `certificate`, `private_key`, `passphrase`; computed `sp_entity_id`,
+Arguments: `authentication_name`, `idp_metadata`, `timeout`, and the block
+`claim_customization { username (required), displayname, email, group, language }`. Optional:
+`description`, `certificate`, `private_key`, `passphrase`. Computed: `sp_entity_id`,
 `sp_metadata`, `sp_assertion_consumer_service`, `sp_single_logout_service`, `idp_entity_id`,
-`saml_request_url`, `saml_request_method`.
+`saml_request_url`, `saml_request_method`. The claim values must match the names in the
+[SAML naming reference](saml-assertion-and-naming.md).
 
 ```hcl
 resource "wallix-bastion_externalauth_saml" "trustelem" {
@@ -158,16 +177,17 @@ output "trustelem_sp_entity_id" { value = wallix-bastion_externalauth_saml.trust
 output "trustelem_sp_acs"       { value = wallix-bastion_externalauth_saml.trustelem.sp_assertion_consumer_service }
 ```
 
-In the standalone native-SAML design the two outputs are the values to paste into a Trustelem
-generic SAML2 application (EntityID and Assertion Consumer Service); behind Access Manager no
-Bastion application is created (chapter 04). Rotate the Trustelem signing certificate by replacing the
-metadata file and applying.
+- Standalone native-SAML design: the two outputs are the values to paste into a Trustelem
+  generic SAML2 application (EntityID and Assertion Consumer Service).
+- Behind Access Manager: no Bastion application is created
+  ([chapter 04](../trustelem/04-bastion-integration.md)).
+- Signing certificate rotation: replace the Trustelem metadata file and apply.
 
-### SAML authentication domain (`authdomain_saml`)
+### 2.6 SAML authentication domain (`authdomain_saml`)
 
 Arguments: `domain_name`, `auth_domain_name`, `external_auths`, `default_email_domain`,
-`default_language`, `label`; optional `force_authn`, `is_default`, `secondary_auth`;
-computed `idp_initiated_url`.
+`default_language`, `label`. Optional: `force_authn`, `is_default`, `secondary_auth`.
+Computed: `idp_initiated_url`.
 
 ```hcl
 resource "wallix-bastion_authdomain_saml" "trustelem" {
@@ -189,19 +209,22 @@ resource "wallix-bastion_authdomain_mapping" "saml_admins" {
 output "trustelem_idp_initiated_url" { value = wallix-bastion_authdomain_saml.trustelem.idp_initiated_url }
 ```
 
-### API key for Access Manager (`apikey_v2`)
+### 2.7 API key for Access Manager (`apikey_v2`)
 
-Arguments: `apikey_name`, `profile`, `description`, `ip_limitation`; `profile` and
-`ip_limitation` are immutable; "The Bastion API never returns the raw API key value ... always
-reads back as a masked placeholder (********)"; "retrieving the usable secret value requires
-the Bastion web UI (or another out-of-band process) at creation time", so copy it from the web
-UI when it is created and store it in the secret manager. The Bastion guides match: the
-Configuration > API keys page accepts only "a profile with the Read-only profile type", takes one
-or more individual IP addresses ("Subnet notations, for example 192.0.2.1/24, are not
-supported"), and on edit "You cannot change the profile or the IP limitations"; the key is shown
-once ([Bastion 12.4.3 System Operations Guide](https://doc.wallix.com/) 12.1 and 12.2). On the
-12.0 branch API keys carry no profile (12.0.25 System Operations Guide 12.1), so `profile` does
-not apply there.
+Arguments: `apikey_name`, `profile`, `description`, `ip_limitation`. `profile` and
+`ip_limitation` are immutable.
+
+- The provider documentation: "The Bastion API never returns the raw API key value ... always
+  reads back as a masked placeholder (********)"; "retrieving the usable secret value requires
+  the Bastion web UI (or another out-of-band process) at creation time". Copy the key from the
+  web UI when it is created and store it in the secret manager.
+- The Bastion guides agree. The **Configuration > API keys** page accepts only "a profile with
+  the Read-only profile type". It takes one or more individual IP addresses ("Subnet notations,
+  for example 192.0.2.1/24, are not supported"). On edit, "You cannot change the profile or the
+  IP limitations". The key is shown once
+  ([Bastion 12.4.3 System Operations Guide](https://doc.wallix.com/) 12.1 and 12.2).
+- *Bastion 12.0:* API keys carry no profile (12.0.25 System Operations Guide 12.1), so `profile`
+  does not apply.
 
 ```hcl
 resource "wallix-bastion_apikey_v2" "access_manager" {
@@ -212,25 +235,32 @@ resource "wallix-bastion_apikey_v2" "access_manager" {
 }
 ```
 
-### User groups and authorizations
+### 2.8 User groups and authorizations
 
-`usergroup` (`group_name`, `timeframes`, optional `profile`, `users`, `restrictions`) and
-`authorization` (`authorization_name`, `user_group`, `target_group`, `authorize_sessions`,
-`subprotocols`, `approval_required`, `approvers`, `active_quorum`, `is_recorded`,
-`is_critical`, and so on) complete the model; they are independent of Trustelem.
+These resources complete the model and are independent of Trustelem:
+
+- `usergroup`: `group_name`, `timeframes`; optional `profile`, `users`, `restrictions`.
+- `authorization`: `authorization_name`, `user_group`, `target_group`, `authorize_sessions`,
+  `subprotocols`, `approval_required`, `approvers`, `active_quorum`, `is_recorded`,
+  `is_critical`, and so on.
 
 ## 3. Not covered by the provider
 
-No `externalauth_oidc` or `authdomain_oidc` resource exists in the documented set, so the OIDC
-alternative stays manual. The RADIUS "Use mobile device for 2 factor authentication(2FA)" option should be verified in
-the GUI after each apply until the provider documents it.
+Two parts of the integration stay manual:
+
+- OIDC: no `externalauth_oidc` or `authdomain_oidc` resource exists in the documented set, so
+  the OIDC alternative is configured in the GUI.
+- The RADIUS option "Use mobile device for 2 factor authentication(2FA)": verify it in the GUI
+  after each apply until the provider documents it (closed gap B5 in the
+  [register](open-questions-and-gaps.md)).
 
 ## 4. Workflow
 
-1. `terraform plan` against the primary master in a change window.
-2. Apply; *inference:* the objects replicate to the second node through HA Database
+1. Run `terraform plan` against the primary master in a change window.
+2. Apply. *Inference:* the objects replicate to the second node through HA Database
    Replication, as configuration data does.
-3. Standalone native SAML only: paste the SP outputs into Trustelem and download the metadata
-   again if the SP entity ID changed. Then and run the [test plan](../trustelem/10-test-plan.md), sections B and A.
-4. Keep the state file in a backend with encryption; it contains the RADIUS secret and the AD
-   bind password.
+3. Standalone native SAML only: paste the SP outputs into Trustelem, and download the metadata
+   again if the SP entity ID changed.
+4. Run the [test plan](../trustelem/10-test-plan.md), sections B and A.
+5. Keep the state file in an encrypted backend. It contains the RADIUS secret and the AD bind
+   password.

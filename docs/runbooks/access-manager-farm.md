@@ -1,126 +1,145 @@
 # Runbook: WALLIX Access Manager farm
 
-Date: 2026-09-24. Verified against Access Manager 6.0.5 (design baseline) and, on the Bastion
-side, Bastion 12.3.2. Primary sources: [Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) (AG),
-[Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) (DG) and
-[Access Manager 6.0.5 Users and Approvers Guide](https://doc.wallix.com/) (UG). These three guides are
-customer documentation behind the doc.wallix.com login; section numbers refer to the 6.0.5
-editions. Section 11 keeps the Access Manager 5.2.4.0 facts that no longer apply, with their
-public sources. Quotes are verbatim; *inference* marks what the guides do not state.
+> - **Purpose:** build, replicate, load-balance, back up, upgrade and monitor the two-node
+>   WALLIX Access Manager farm that Trustelem authenticates for the web path.
+> - **Audience:** Access Manager operators, load-balancer and network engineers, and the PAM
+>   architect.
+> - **Verified:** 2026-09-24, against the Access Manager 6.0.5 Administration, Deployment and
+>   Users and Approvers Guides (design baseline) and, on the Bastion side, Bastion 12.3.2 and the
+>   Bastion 12.4.3 System Operations Guide;
+>   section 11 keeps the Access Manager 5.2.4.0 facts from public sources.
+> - **Sources:** [Access Manager 6.0.5 Administration Guide](https://doc.wallix.com/) (AG),
+>   [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) (DG),
+>   [Access Manager 6.0.5 Users and Approvers Guide](https://doc.wallix.com/) (UG),
+>   [Access Manager 5.2.4.0 Administration Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf),
+>   [Access Manager release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html).
 
-Supporting role in this repository: Access Manager is the SAML service provider that Trustelem
-authenticates for the web path. The farm settings that matter for that integration are the
-trusted proxies (so the audit logs carry the real client address rather than the proxy's), the
-node-shared `crypto.install.key` (copied between nodes, DG 5.1), and the replication
-procedure (SAML identity providers are database content and replicate; `wabam.properties`,
-appliance settings and server certificates do not, DG 6).
+The three 6.0.5 guides are customer documentation behind the doc.wallix.com login; section
+numbers refer to the 6.0.5 editions. Section 11 keeps the Access Manager 5.2.4.0 facts that no
+longer apply, with their public sources. Quotes are verbatim; *inference* marks what the guides
+do not state.
+
+Role in this repository: Access Manager is the SAML service provider that Trustelem
+authenticates for the web path. The farm settings that matter for that integration are:
+
+- the trusted proxies, so the audit logs carry the real client address rather than the proxy's
+  ([section 4](#4-load-balancer-settings));
+- the node-shared `crypto.install.key`, copied between nodes (DG 5.1);
+- the replication: SAML identity providers are database content and replicate;
+  `wabam.properties`, appliance settings and server certificates do not (DG 6).
 
 ## 1. Appliance facts
 
-- Appliance only: "WALLIX Access Manager cannot be installed on third-party hardware" (DG 3.1).
+Access Manager 6.0.5 is a closed appliance with at least two network interfaces (one in the
+cloud, section 3.1), an embedded MariaDB
+database and no third-party agents.
+
+- **Platform.** "WALLIX Access Manager cannot be installed on third-party hardware" (DG 3.1).
   Virtual images exist for KVM, Hyper-V, Nutanix AHV, OpenStack, Proxmox and VMware vSphere, and
   cloud images for AWS, Azure, Outscale, GCP and Alibaba Cloud (DG 3.2.1).
-- Services: the web application is the systemd service `wabam` (`systemctl restart wabam`);
-  the front proxy is Proxyma, configured in `/etc/proxyma/config.toml` (`systemctl reload
+- **Services.** The web application is the systemd service `wabam` (`systemctl restart wabam`).
+  The front proxy is Proxyma, configured in `/etc/proxyma/config.toml` (`systemctl reload
   proxyma`), a Pingora-based service that also lists a "Local Apache endpoint" (AG 8.4.2,
   8.5.2). Configuration lives in `/etc/wabam`: "By default, the wabam.properties file is
-  located in /etc/wabam" (DG 5.1). The web server is "typically Jetty" (AG 8.2). The guides
-  do not state the Debian or Java version: "Refer to the Release Notes document to learn more
-  about the technical requirements of this version" (DG ch. 2).
-- Interfaces: "By default, WALLIX Access Manager requires at least two network interfaces for
+  located in /etc/wabam" (DG 5.1). The web server is "typically Jetty" (AG 8.2).
+- **Operating system and Java.** The guides do not state the Debian or Java version: "Refer to
+  the Release Notes document to learn more about the technical requirements of this version"
+  (DG ch. 2; gap A1).
+- **Interfaces.** "By default, WALLIX Access Manager requires at least two network interfaces for
   security and role separation" (DG 1.2). At initialisation the Administration service is
   "Mandatory" on the 1st interface ("This service cannot be deactivated") and User Access is
-  "Optional" on the 2nd ("This service can be deactivated") (DG 4.3). Global organization URL:
-  `https://INTERFACE_1/CONTEXT_PATH/global`; organization URL on either interface; appliance
-  administration `https://INTERFACE_1/accounts/login` as `wabsuper` (DG 1.2). "In case of Fully
-  Qualified Domain Name (FQDN), there can only be one FQDN for all interfaces." (DG 1.2).
-- SSH administration: "SSH administration is available using INTERFACE_1 on port 2242, with
+  "Optional" on the 2nd ("This service can be deactivated") (DG 4.3).
+- **URLs.** Global organization: `https://INTERFACE_1/CONTEXT_PATH/global`; organization URL on
+  either interface; appliance administration `https://INTERFACE_1/accounts/login` as `wabsuper`
+  (DG 1.2). "In case of Fully Qualified Domain Name (FQDN), there can only be one FQDN for all
+  interfaces." (DG 1.2).
+- **SSH administration.** "SSH administration is available using INTERFACE_1 on port 2242, with
   the wabadmin account", then `super` and `sudo -i` (DG 1.2, 4.2).
-- Default accounts (DG 2.1): `wabadmin` (SecureWabAdmin), `wabsuper`, `wabupgrade`, GRUB user
+- **Default accounts** (DG 2.1): `wabadmin` (SecureWabAdmin), `wabsuper`, `wabupgrade`, GRUB user
   `wabbootadmin` (SecureWABBoot), Access Manager `admin` / `admin` (on AWS "admin-{instanceID}").
   The guides contradict each other on the default administrator: "This account can be deleted
   and can be restored if deleted" (DG 2.1) against "The default administrator account for the
-  global organization (admin) cannot be deleted" (AG 4.2.7). Create a named global administrator
-  and log in with it (DG 4.4 steps 4 and 6) whichever holds.
-- Database: embedded MariaDB; for an external database "Only MySQL is supported", with an
+  global organization (admin) cannot be deleted" (AG 4.2.7). Whichever holds, create a named
+  global administrator and log in with it (DG 4.4 steps 4 and 6).
+- **Database.** Embedded MariaDB. For an external database "Only MySQL is supported", with an
   "Azure database" option and a "Secure" (TLS) option; the privileged account "is not saved"
   (AG 8.3). The appliance commands "only support MySQL Community Server and MariaDB Server
   databases" (AG 11.2).
-- Vendor rule on the appliance: "The installation of external components such as Endpoint
-  Detection and Response (EDR), backup, or monitoring agents is forbidden." (DG 1.3, AG 1.3).
-- Disk quotas: `/var/log` "is limited to 10GB" and `/home` "is limited to 4GB" (DG 2.4).
-- Compatibility: "WALLIX Access Manager 6.0.5 is compatible with: ... WALLIX Bastion 12.0 and
-  above" (DG 10.1). "Any network equipment (proxy or firewall) positioned in front of WALLIX
-  Access Manager must support the WebSocket protocol." (DG 10.1).
+- **Vendor rule.** "The installation of external components such as Endpoint Detection and
+  Response (EDR), backup, or monitoring agents is forbidden." (DG 1.3, AG 1.3).
+- **Disk quotas.** `/var/log` "is limited to 10GB" and `/home` "is limited to 4GB" (DG 2.4).
+- **Compatibility.** The supported Bastion versions are in the
+  [architecture overview, section 2](../architecture/01-overview.md#2-product-naming-and-versions).
+  "Any network equipment (proxy or firewall) positioned in front of WALLIX Access Manager must
+  support the WebSocket protocol." (DG 10.1).
 
-### Sizing (DG 2.3)
+### 1.1 Sizing
 
-Measured by WALLIX with Access Manager 6.0.3 and Bastion 12.3.4 at identical sizes; sessions
-without / with video recording:
-
-| Access Manager vCPU | Access Manager RAM | RDP sessions | SSH sessions |
-|--------------------:|-------------------:|-------------:|-------------:|
-| 4 | 8 GB | 85 / 80 | 110 / 100 |
-| 8 | 16 GB | 200 / 190 | 220 / 210 |
-| 8 | 32 GB | 305 / 300 | 510 / 500 |
-| 16 | 32 GB | 320 / 310 | 620 / 600 |
-
-Minimum for each replicated node: "RAM: 4 GB", "CPU: 2 cores", "Disk: 50 GB" (DG 6). On
-vSphere use one socket, shares High and a reservation (DG 3.2.2.1). Java heap: the
-`wabam.vmoptions` default "allocates 70% of the system’s total physical memory (RAM) to the JVM"
-(`-XX:MaxRAMPercentage`, or a fixed `-Xmx`), in `/etc/wabam/wabam.vmoptions`, checked in
-`tech.log` (AG 8.5.1).
+- Session capacity per node size (with and without recording), the minimum for a replicated
+  node and the vSphere settings are in the
+  [low-level design, section 5](../architecture/05-low-level-design.md#5-sizing).
+- Java heap: the `wabam.vmoptions` default "allocates 70% of the system’s total physical memory
+  (RAM) to the JVM" (`-XX:MaxRAMPercentage`, or a fixed `-Xmx`), in `/etc/wabam/wabam.vmoptions`,
+  checked in `tech.log` (AG 8.5.1).
 
 ## 2. Install node 1
 
+Node 1 becomes the primary Master; build it completely before adding node 2.
+
 1. Verify the image signature (`gpg --verify`, `sha256sum -c`) and deploy it (DG 3.2.1).
 2. Console wizard: installation, keyboard, `wabadmin` password change, `wabsuper`,
-   `wabbootadmin` and `wabupgrade` passwords, hostname, `eth0` address, FQDN (DG 4.1). Static
-   addresses outside cloud platforms ("we strongly discourage configuring DHCP").
-3. Harden the system (DG 4.2): `wallix-luks-update --interactive --change-passphrase` on premises
-   (the default disk passphrase "is common to all appliances and stored in a file in clear") or
-   `wallix-luks-update --reencrypt` on clouds other than AWS; store SSH public keys for
-   `wabadmin` and `wabupgrade`; run `WABSecurityLevel` for every service. With the interactive
-   mode the passphrase must be typed at every boot from the hypervisor console.
+   `wabbootadmin` and `wabupgrade` passwords, hostname, `eth0` address, FQDN (DG 4.1). Use
+   static addresses outside cloud platforms ("we strongly discourage configuring DHCP").
+3. Harden the system (DG 4.2):
+   - on premises, `wallix-luks-update --interactive --change-passphrase` (the default disk
+     passphrase "is common to all appliances and stored in a file in clear"); with the
+     interactive mode the passphrase must be typed at every boot from the hypervisor console;
+   - on clouds other than AWS, `wallix-luks-update --reencrypt`;
+   - store SSH public keys for `wabadmin` and `wabupgrade`;
+   - run `WABSecurityLevel` for every service.
 4. Appliance interface `https://INTERFACE_1/accounts/login` as `wabsuper`: network, time zone
    and NTP, service mapping (Administration on the 1st interface, User Access on the 2nd)
    (DG 4.3).
 5. Global organization: change the password, install the licence, create a named global
    administrator, take a backup, log in as the new administrator, reboot (DG 4.4).
 6. Licence. "During the initial installation, Access Manager creates a 31-day evaluation license
-   which allows up to 5 concurrent users." (AG 8.1). GUI: About > Access Manager License >
-   Download context file, send it to support, upload `wallix_license.json`. CLI as root (AG 8.1.3):
+   which allows up to 5 concurrent users." (AG 8.1). "Connections of the administrator of the
+   global organization are not counted." (AG 8.1). In the GUI: **About > Access Manager License >
+   Download context file**, send it to support, upload `wallix_license.json`. CLI as root
+   (AG 8.1.3):
 
-```
-wabam-license-list
-wabam-context-file-download -c /tmp/licenses/wabam_context_file.json
-wabam-license-import -l /root/wallix_license.json
-```
+   ```
+   wabam-license-list
+   wabam-context-file-download -c /tmp/licenses/wabam_context_file.json
+   wabam-license-import -l /root/wallix_license.json
+   ```
 
    Revocation is `wabam-revoke-license` in AG 8.1.3 but `wabam-license-revoke` in the AG 11.2
-   command table; check which exists on the node. "Connections of the administrator of the
-   global organization are not counted." (AG 8.1).
-7. Portal certificate with a SAN for every name clients and the load balancer use (section 4),
-   uploaded as PEM with an unencrypted key (AG 8.5.4.4):
+   command table; check which exists on the node.
+7. Portal certificate with a SAN for every name clients and the load balancer use
+   ([section 4](#4-load-balancer-settings)), uploaded as PEM with an unencrypted key
+   (AG 8.5.4.4):
 
-```
-wallix-proxyma-rotate-tls-certificate -c <path_to_certificate.pem> -k <path_to_private_key.pem>
-```
+   ```
+   wallix-proxyma-rotate-tls-certificate -c <path_to_certificate.pem> -k <path_to_private_key.pem>
+   ```
 
    The guide prints the first option with an en dash (`–c`); type a hyphen. Server certificates
    are not replicated (DG 6): repeat on node 2. WAMUT requires "at least one Subject Alternative
    Name field specified with the DNS used to connect" (UG 4.5).
-8. Inactivity timeout: application setting `session.maxInactiveInterval` in minutes, 0
-   disables it; "Users must log out of their current session for the changes to take effect."
-   (AG 7.3).
+8. Inactivity timeout: set `session.maxInactiveInterval`
+   ([section 5.3](#53-application-settings)).
 
 ## 3. Add node 2 and replicate the database
 
-HA Database Replication (DG 6):
+The two nodes run Master/Master replication through an SSH tunnel on port 2242; the install
+replaces node 2's database with node 1's. Source: HA Database Replication (DG 6).
 
-- "In WALLIX Access Manager, communication between databases is secured via an SSH tunnel with
-  port forwarding. This tunnel is maintained by the autossh service".
-- "Replication is configured in Master/Master mode, supporting two servers (nodes) that
+### 3.1 Replication facts and requirements
+
+- Transport: "In WALLIX Access Manager, communication between databases is secured via an SSH
+  tunnel with port forwarding. This tunnel is maintained by the autossh service".
+- Mode: "Replication is configured in Master/Master mode, supporting two servers (nodes) that
   synchronize data bidirectionally. Both nodes communicate using outbound port 3307 and inbound
   port 3306". *Inference:* 3306 and 3307 stay inside the tunnel, so the only port to open
   between the nodes is SSH 2242 on the administration interfaces ("HA Database Replication
@@ -128,21 +147,25 @@ HA Database Replication (DG 6):
 - Maximum two nodes. The primary Master is the node where the setup is run.
 - Requirements: same subnet, "connected directly or through only one router"; same version; NTP
   to the same time zone ("Replication across multiple time zones is not supported"); an
-  interface with administration features on every node. "Both Access Manager nodes must have
-  two network interfaces: 1. User Access to handle standard user connections. 2.
-  Administration for SSH management between nodes. It must allow SSH connections on port 2242
-  for secure replication setup." In the cloud "only one network interface is required" (DG 6.1).
-- "FQDN and IPv6 are not supported in the HA feature configuration. You must only use the IPv4
-  address for Access Managers." (DG 6.1).
-- "Be cautious when cloning virtual machines, as this can cause UUID conflicts in MySQL."
+  interface with administration features on every node.
+- Interfaces: "Both Access Manager nodes must have two network interfaces: 1. User Access to
+  handle standard user connections. 2. Administration for SSH management between nodes. It must
+  allow SSH connections on port 2242 for secure replication setup." In the cloud "only one
+  network interface is required" (DG 6.1).
+- Addressing: "FQDN and IPv6 are not supported in the HA feature configuration. You must only
+  use the IPv4 address for Access Managers." (DG 6.1).
+- Cloning: "Be cautious when cloning virtual machines, as this can cause UUID conflicts in
+  MySQL."
 - Not replicated: "wabam.properties file", "Appliance configurations", "Server certificates".
   "Several parameters such as some application settings or log levels can be modified through
   the web interface. However, these values are stored in the wabam.properties file. Because this
   file is excluded from replication, these parameters are not replicated."
 
-Procedure (DG 6.1), as root on the primary Master, after backing up both nodes ("During setup,
-the primary Master Access Manager’s database replaces the databases of the other Access Manager
-node, resulting in the loss of their existing data."):
+### 3.2 Install the replication
+
+Back up both nodes first: "During setup, the primary Master Access Manager’s database replaces
+the databases of the other Access Manager node, resulting in the loss of their existing data."
+Then, as root on the primary Master (DG 6.1):
 
 ```
 wallix-replication --prerequisite-check
@@ -152,36 +175,46 @@ wallix-replication --monitoring
 wallix-replication --install-monitoring   # optional: cron that collects the replication status
 ```
 
-Other options (DG 6.2): `--resync`, `--dump-resync`, `--status`, `--uninstall` ("Uninstall
-replication on every node, to run on Master"), `--stop`, `--start`, `--version`,
-`--uninstall-monitoring`, `--debug`. `--install` and `--dump-resync` restart both databases and
-erase the secondary's data ("Not all tables from the database are affected"); `--resync` restarts nothing; `--uninstall` restarts both without
-erasing. The `--create-conf-file` prompt also offers "2. Master/Slave(s)", which the guide does
-not document further.
+- Other options (DG 6.2): `--resync`, `--dump-resync`, `--status`, `--uninstall` ("Uninstall
+  replication on every node, to run on Master"), `--stop`, `--start`, `--version`,
+  `--uninstall-monitoring`, `--debug`.
+- Impact: `--install` and `--dump-resync` restart both databases and erase the secondary's data
+  ("Not all tables from the database are affected"); `--resync` restarts nothing; `--uninstall`
+  restarts both without erasing.
+- The `--create-conf-file` prompt also offers "2. Master/Slave(s)", which the guide does not
+  document further.
+- When replication is used, the manual `wabam.properties` copy of
+  [section 3.3](#33-two-nodes-without-replication-shared-external-database) "is not required. The
+  replication installation automatically performs all necessary steps." (DG 5.1).
+- Authentication priority: authenticators with the same factor are tried in Priority order for
+  high availability (AG 4.4.2).
 
-When replication is used, the manual `wabam.properties` copy of section 3.1 "is not required.
-The replication installation automatically performs all necessary steps." (DG 5.1).
+### 3.3 Two nodes without replication (shared external database)
 
-Authentication priority: authenticators with the same factor are tried in Priority order for
-high availability (AG 4.4.2).
+Procedure (DG 5.1):
 
-### 3.1 Two nodes without replication (shared external database)
+1. Deploy node 1, then node 2.
+2. Copy from node 1 into node 2's `/etc/wabam/wabam.properties` "The installation encryption key
+   (crypto.install.key)", "The database settings (all properties with a name starting with
+   db.connections)" and "The administrator credentials (all properties beginning with
+   user.admin)".
+3. Run `systemctl restart wabam` on node 2.
 
-DG 5.1: deploy node 1, deploy node 2, then copy from node 1 into node 2's
-`/etc/wabam/wabam.properties` "The installation encryption key (crypto.install.key)", "The
-database settings (all properties with a name starting with db.connections)" and "The
-administrator credentials (all properties beginning with user.admin)", then
-`systemctl restart wabam` on node 2.
+### 3.4 Per-node settings
 
-### 3.2 Per-node settings
+Because `wabam.properties` does not replicate, set these on each node:
 
-Because `wabam.properties` does not replicate, set on each node: `rdp.clientName` if targets must
-tell the nodes apart ("As the wabam.properties file is not replicated, you assign a unique RDP
-client name to each WALLIX Access Manager", AG 7.7.2), any application setting or log level
-stored there, `WABSecurityLevel` ("manually apply the security level to each node", AG 8.5.3),
-the TLS certificate, `/etc/proxyma/config.toml`, network, NTP and SNMP.
+- `rdp.clientName`, if targets must tell the nodes apart ("As the wabam.properties file is not
+  replicated, you assign a unique RDP client name to each WALLIX Access Manager", AG 7.7.2);
+- any application setting or log level stored in `wabam.properties`;
+- `WABSecurityLevel` ("manually apply the security level to each node", AG 8.5.3);
+- the TLS certificate and `/etc/proxyma/config.toml`;
+- network, NTP and SNMP.
 
 ## 4. Load balancer settings
+
+The load balancer is Layer 7 with sticky sessions and WebSocket, forwards the client SNI, and is
+declared as a trusted proxy on each node.
 
 | Item | Value | Source |
 |------|-------|--------|
@@ -192,14 +225,20 @@ the TLS certificate, `/etc/proxyma/config.toml`, network, NTP and SNMP.
 | SNI | strict since 5.2: a missing or wrong hostname returns "HTTP ERROR 400 Invalid SNI"; Proxyma `verify_server_cert_hostname` "Default value: true"; clients must use a hostname, "Using an IP address bypasses SNI and causes validation to fail" | AG 8.2, 8.2.1, 8.5.2 |
 | Forwarded headers | Proxyma `trusted_proxies` = load balancer addresses ("used to validate client IP addresses from the X-Forwarded-For header"); `prefer_forwarded_header` to prefer `Forwarded` over `X-Forwarded-For` | AG 8.5.2 |
 | Rate limits | Proxyma `dos_filter_activated`, `max_proxy_request_per_second`, `overrate_delay_requests`, `overrate_delay_ms` (above the extra allowance, HTTP 429), `ip_whitelist`, `max_concurrent_connections_per_ip`, `max_concurrent_connections_global` (0 = no limit); no defaults are stated | AG 8.5.2 |
-| Appliance firewall | behind a load balancer, WAF or reverse proxy: "Deactivate the Limit the number of parallel connections per IP option" (default 30 per IP) | AG 8.4.5.1 |
+| Appliance firewall | behind a load balancer, WAF or reverse proxy, in **System > Service Control**: "Deactivate the Limit the number of parallel connections per IP option" (default 30 per IP) | AG 8.4.5.1 |
 | Health check | a HEALTH_VIEW right "Allows access to the API endpoint that provides the health check and status of the WALLIX Access Manager"; the endpoint path is not given (gap A3). Until WALLIX gives it, probe with an HTTPS GET of `/wabam/` using the portal FQDN as SNI and Host (*inference:* an IP-based probe gets the 400 Invalid SNI answer) | AG ch. 1 |
 | Host header | trusted host names in `http_host_trusted_hostnames` of `/var/wab/etc/wabengine.conf`; `web.host.header.https` in `wabam.properties` for HTTP 1.0 requests | AG 8.5.4.1, 8.5.4.2 |
 
-Why trusted proxies matter: *inference* from AG 8.5.2 and the 5.2 guide (section 11): without
-them the audit logs carry the load balancer's address instead of the user's.
+Why trusted proxies matter: *inference* from AG 8.5.2 and the 5.2 guide
+([section 11](#11-access-manager-52-differences)): without them the audit logs carry the load
+balancer's address instead of the user's.
 
 ## 5. Parameters used by this design
+
+The design changes a few properties in two files and in the application settings; none of the
+file-based ones replicate.
+
+### 5.1 `wabam.properties`
 
 `/etc/wabam/wabam.properties` (edit, then `systemctl restart wabam`; not replicated):
 
@@ -215,20 +254,24 @@ them the audit logs carry the load balancer's address instead of the user's.
 | `rdp.clientName` | hostname | RDP client name per node | AG 7.7.2 |
 | `wabam.uuid` | | node identifier in `wabam-sessions-count` | AG 9.6 |
 
-`/etc/proxyma/config.toml` (AG 8.5.2): `trusted_proxies`, `prefer_forwarded_header`,
-`verify_server_cert_hostname`, `verify_wsm_cert`, `verify_wsm_cert_hostname`, the DoS
-parameters of section 4, and log levels `level`, `pingora_level`, `pingora_http_level`
-(error to trace). Leave `am_endpoint` and `apache_endpoint` alone: "This parameter should only
-be modified upon instruction from WALLIX support."
+### 5.2 Proxyma `config.toml`
 
-Application settings (Settings > Application Settings > Application tab):
+`/etc/proxyma/config.toml` (AG 8.5.2): `trusted_proxies`, `prefer_forwarded_header`,
+`verify_server_cert_hostname`, `verify_wsm_cert`, `verify_wsm_cert_hostname`, the DoS parameters
+of section 4, and log levels `level`, `pingora_level`, `pingora_http_level` (error to trace).
+Leave `am_endpoint` and `apache_endpoint` alone: "This parameter should only be modified upon
+instruction from WALLIX support."
+
+### 5.3 Application settings
+
+**Settings > Application Settings > Application** tab:
 
 | Parameter | Default | Purpose | Source |
 |-----------|---------|---------|--------|
 | `bastion.cluster.identical.mode` | not stated | Bastion cluster with identical configuration: sync from one node; "Copy the proxy certificates manually to every WALLIX Bastion in the cluster" | AG 3.3.3, 8.5.5.2 |
 | `bastion.connection.timeout` | not stated | wait for the target over SSH or RDP; "This does not affect webapp sessions." | AG 8.5.5.3 |
 | `restapi.connection.timeout` | not stated | Bastion REST API; "WALLIX recommends using the lowest practical value to reduce waiting times when a cluster node is unreachable" | AG 8.5.5.1 |
-| `session.maxInactiveInterval` | | inactivity disconnect in minutes, 0 disables | AG 7.3 |
+| `session.maxInactiveInterval` | | inactivity disconnect in minutes, 0 disables; "Users must log out of their current session for the changes to take effect." | AG 7.3 |
 | `session.keepAlive` | | WebSocket ping in seconds, 0 disables, maximum 3600; restart needed | AG 7.1 |
 | `sa.session.retention.days` | not stated | session audit retention | AG 9.1 |
 | `purge.audit.active` | disabled | automatic purge of user audit data; `purge.audit.hourOfDayToExec` 3, `purge.audit.purgeOlderThanInDays` 270 | AG 9.4 |
@@ -236,7 +279,9 @@ Application settings (Settings > Application Settings > Application tab):
 
 ## 6. Backup and restore
 
-CLI (AG 8.3.3.2, 8.3.3.4), as root:
+Use the CLI for the farm: it saves the database, the key store and `wabam.properties`, and a
+restore on the Master resynchronises the replication by itself. CLI (AG 8.3.3.2, 8.3.3.4), as
+root:
 
 ```
 wabam-backup -d <backup_directory> -n <backup_filename> -p <backup_password>
@@ -248,18 +293,18 @@ systemctl start wabam
 - `wabam-backup` saves "the database, key store, and wabam.properties file" in an AES-256 zip;
   default name `backup_yyyyMMdd-hhmmss.wambk`.
 - `wabam-restore` options: `-p` backup password, `-a` database administrator password, `-P` file
-  holding that password, `-u` database administrator (default root). "The database restore
-  operation can only be performed on a WALLIX Access Manager instance whose database schema
-  version is the same." The AG 8.3.3 comparison table says the CLI is "Compatible with all
-  supported versions"; treat the schema rule as binding.
+  holding that password, `-u` database administrator (default root).
+- "The database restore operation can only be performed on a WALLIX Access Manager instance
+  whose database schema version is the same." The AG 8.3.3 comparison table says the CLI is
+  "Compatible with all supported versions"; treat the schema rule as binding.
 - On a replicated Master, "WALLIX Access Manager pauses the replication. Then, after the
   restoration procedure is complete, WALLIX Access Manager automatically resynchronizes all
   nodes and resumes replication." (AG 8.3.3.4).
-- GUI (Settings > Application Settings > Database tab): one organization or all, "Maximum 10 MB",
-  "Backup/restore only possible on the same X.Y.Z version" (AG 8.3.3). Use the CLI for the farm.
-- The GUI backup asks for an Encryption Key that protects "sensitive data (such as API keys
-  used with WALLIX Bastion instances)" (AG 8.3.3.1). Keep `crypto.install.key` unchanged across
-  a restore (*inference* from the 5.2 issue WAB-14912 in section 11).
+- GUI (**Settings > Application Settings > Database** tab): one organization or all, "Maximum
+  10 MB", "Backup/restore only possible on the same X.Y.Z version" (AG 8.3.3).
+- The GUI backup asks for an Encryption Key that protects "sensitive data (such as API keys used
+  with WALLIX Bastion instances)" (AG 8.3.3.1). Keep `crypto.install.key` unchanged across a
+  restore (*inference* from the 5.2 issue WAB-14912 in section 11).
 - Global administrator reset: `wabam-restore-admin` (AG 4.8.1), or
   `wabam-restore-admin -f <configuration_file_path>` for the baseline organization administrator,
   with the service stopped first (AG 8.4.6).
@@ -274,8 +319,13 @@ wabam-config-database -H <host> -P <port> -s <schema> -u <db_user> -p <db_user_p
 
 ## 7. Upgrade
 
+Minor upgrades stop the replication and rebuild node 2 from the primary Master; moving from 5.x
+to 6.x is a migration to a new farm.
+
 ### 7.1 Minor upgrade in HA (6.x to 6.y, DG 8.2)
 
+"Your WALLIX Access Manager will be unavailable and unusable by all users during the update
+procedure." (DG 8.1 and 8.2). Plan a window for the whole farm.
 "Steps must be carried out in their given order to ensure a proper upgrade of the cluster."
 
 1. Snapshot both nodes; `wabam-backup` on the primary Master.
@@ -284,19 +334,22 @@ wabam-config-database -H <host> -P <port> -s <schema> -u <db_user> -p <db_user_p
 3. On the primary Master, as root: `wallix-replication --stop`.
 4. On both nodes (parallel allowed), as `wabupgrade`:
 
-```
-wallix-upgrade -i /home/wabupgrade/<ISO>.iso -c /home/wabupgrade/<ISO>.iso.sha256sum -s /home/wabupgrade/<ISO>.iso.sha256sum.sig
-```
+   ```
+   wallix-upgrade -i /home/wabupgrade/<ISO>.iso -c /home/wabupgrade/<ISO>.iso.sha256sum -s /home/wabupgrade/<ISO>.iso.sha256sum.sig
+   ```
 
 5. Reboot the primary Master, then the second node.
 6. On the primary Master: `wallix-replication --dump-resync`, `wallix-replication --start`,
    `wallix-replication --monitoring`.
 7. Check `WABSecurityLevel` on each node, then re-test the SAML login and a WAMUT tunnel.
 
-Standalone is the same without steps 3 and 6 (DG 8.1). If the upgrade aborts, keep the
-"Protective System Lockdown", audit in rescue mode, then `/opt/wab/bin/wallix-upgrade
---unlock-system` (DG 8.3). Rollback: restore the snapshot, or on a physical appliance reinstall
-the previous ISO and run `wallix-config-restore.py` (DG 8.4).
+Related cases:
+
+- Standalone: the same without steps 3 and 6 (DG 8.1).
+- Aborted upgrade: keep the "Protective System Lockdown", audit in rescue mode, then
+  `/opt/wab/bin/wallix-upgrade --unlock-system` (DG 8.3).
+- Rollback: restore the snapshot, or on a physical appliance reinstall the previous ISO and run
+  `wallix-config-restore.py` (DG 8.4).
 
 ### 7.2 Migration from 5.x to 6.x (DG 7)
 
@@ -312,23 +365,29 @@ a parallel 6.x cluster and switch over after validation (DG 7.1):
    `wabam-restore -b <backup_file> -u root -a $(/opt/wab/sbin/WABChangeDbRootPassword)`,
    `wabam-init-database -u root -a $(/opt/wab/sbin/WABChangeDbRootPassword)`,
    `systemctl start wabam`.
-4. Install replication (section 3), re-apply the per-node settings of section 3.2 and the
-   Proxyma settings of section 4 (the 5.x `web.proxy.*` values do not carry over, *inference*
-   from the changed parameter names), test, switch the load balancer, decommission the 5.x farm.
+4. Install replication ([section 3.2](#32-install-the-replication)), re-apply the per-node
+   settings of [section 3.4](#34-per-node-settings) and the Proxyma settings of section 4 (the
+   5.x `web.proxy.*` values do not carry over, *inference* from the changed parameter names).
+5. Test, switch the load balancer, decommission the 5.x farm.
 
-If a DR Access Manager exists, "Update the WALLIX Access Manager dedicated to the DRP last";
-its "DRP configuration script is erased" and must be redeployed (DG 7.3). Minimum version
-because of WSA-2026-07-0002: 6.0.4, met by 6.0.5 ([WALLIX advisories](https://www.wallix.com/support-services/alerts/)).
+- Disaster recovery: if a DR Access Manager exists, "Update the WALLIX Access Manager dedicated
+  to the DRP last"; its "DRP configuration script is erased" and must be redeployed (DG 7.3).
+- Minimum version because of WSA-2026-07-0002: 6.0.4, met by 6.0.5
+  ([WALLIX advisories](https://www.wallix.com/support-services/alerts/)).
 
 ## 8. Session audit repository
 
-Settings > Session Audit Settings (global administrator only): repository hostname, port,
-cluster name, HTTPS login and password, all "configured by default to work with the repository
-embedded in the appliance"; change them only on WALLIX request (AG 9.3). "IPv6 is not
-supported for session audits." Audit visibility is controlled by `sa.session.user.filter` and
-`sa.session.user.prefilter` (AG 9.1).
+Leave the embedded repository settings alone unless WALLIX asks. **Settings > Session Audit
+Settings** (global administrator only) holds the repository hostname, port, cluster name, HTTPS
+login and password, all "configured by default to work with the repository embedded in the
+appliance" (AG 9.3). "IPv6 is not supported for session audits." Audit visibility is controlled
+by `sa.session.user.filter` and `sa.session.user.prefilter` (AG 9.1).
 
 ## 9. Metrics, logs and monitoring
+
+Monitor each node by SNMP v3 and the session-count commands; log files and SIEM forwarding are
+described in the [logging and SIEM reference](../reference/logging-and-siem.md), section 1.3
+(forwarding is unconfirmed, gap A7).
 
 ```
 wabam-audit-data -b <date> -a <date> -t ALL   # licence and sizing data (AG 9.2)
@@ -340,84 +399,74 @@ snmpget -v3 -l authPriv -u wabsnmp -a SHA -A <authpass> -x AES -X <privpass> <ip
 - SNMP v2c/v3 with disk and CPU traps; v2c is disabled on a fresh install; "When Access Managers
   are configured in HA mode, the SNMP agent monitors all the nodes via the virtual IP address."
   (AG 8.4.4).
-- Logs: `access.log`, `error.log`, `cli.log`, `tech.log` and the Java `hs_err_pid` file "are
-  stored in the following directory: /var/log/wabam" (AG 9.7). Log levels and the archive are
-  on Settings > Application Settings > Logs tab. "The TRACE or ALL modes may expose sensitive
-  information, including passwords." Switch to DEBUG before generating an archive (AG 9.7.1).
-- SIEM: the Deployment Guide lists "Syslog server integration 514/UDP", "Configurable in
-  System > SIEM integration" (DG 2.2, table 4), and DG 2.4.1 suggests to "implement a SIEM
-  solution so as not to lose any event logs". The Administration Guide has no SIEM integration
-  section and does not describe the message content, so the forwarder exists but is not
-  documented beyond the port (vendor inconsistency, ask WALLIX). A file-shipping agent is not an
-  option because external agents are forbidden (section 1).
 - Support tools: `wabam-debug-config` (runs once; `--reset` to force again) and
   `wabam-debug-export -p <PASSWORD>` (writes `troubleshooting_info__DATE-TIME` in `/root`)
-  (AG 10.1, 10.2). Services: `WABServices`, `WABServices disable gui` (AG 8.4.5.2).
+  (AG 10.1, 10.2).
+- Services: `WABServices`, `WABServices disable gui` (AG 8.4.5.2).
 
 ## 10. Bastion objects and the Trustelem SAML domain
 
-Checklist per Bastion object (Configuration > Bastions, AG 3.2.1):
+Each Bastion of the cluster is declared once in Access Manager with a read-only API key and
+Strip Domain off.
 
-- Host = the IP address "used for the user service of WALLIX Bastion".
-- API key with profile `wallix_access_manager_session_audit` ("recommended"); "For versions
-  prior to 12.1, a single API key covers all features."
-- Cluster membership, then `bastion.cluster.identical.mode` (AG 3.3.3).
-- Strip Domain OFF: "WALLIX recommends not enabling this option unless there is a specific
-  need." (AG 3.2.1) and, for SAML, "disable the Strip Domain option in the Bastion configuration
-  window. This keeps the login format as user@domain, which is required for proper user mapping
-  and authorization." (AG 4.3.3.2).
-- Approval Time Zone (updated automatically on test or save).
-- Allow Session Search with a Search Start Date and the Bastion login "linked to the Auditor
-  profile".
-- Custom SSH, RDP and REST API ports under Advanced Options (AG 3.2.2); Test TCP Connections.
-- After a Bastion certificate change: Reset Bastion Certificate (AG 3.2.4).
+First, on the primary Bastion node (API keys and users are configuration data and replicate to
+the other node, [Bastion HA runbook, section 12](bastion-ha-replication.md#12-what-replicates-and-what-to-set-on-each-node)):
 
-SAML identity provider settings are in `docs/trustelem/05-access-manager-integration.md`.
+- **Configuration > API keys > Add**: create the API key for Access Manager with profile
+  `wallix_access_manager_session_audit` (only Read-only type profiles are offered) and list each
+  Access Manager node IP in the key's allowed addresses (one address per field, "Subnet
+  notations ... are not supported"); the user profile's IP limitations also apply (Bastion
+  Admin Guide 6.1). Copy the key when it is shown: "After closing the window, it is no longer
+  possible to view the API key."
+- Create the auditor login used by Access Manager session search (step 6 below).
+- On the 12.0 branch keys have no profile; restrict them by IP
+  ([chapter 04, section 11](../trustelem/04-bastion-integration.md#11-bastion-120-branch-bsi-certified-12014)).
+
+Sources: [Bastion 6.1.2](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+[Bastion 12.4.3 System Operations Guide](https://doc.wallix.com/) 12.1,
+[AM 13](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf).
+
+Then the checklist per Bastion object in Access Manager (**Configuration > Bastions**, AG 3.2.1):
+
+1. Host = the IP address "used for the user service of WALLIX Bastion".
+2. API key with profile `wallix_access_manager_session_audit` ("recommended"); "For versions
+   prior to 12.1, a single API key covers all features."
+3. Cluster membership, then `bastion.cluster.identical.mode` (AG 3.3.3).
+4. Strip Domain OFF: "WALLIX recommends not enabling this option unless there is a specific
+   need." (AG 3.2.1). SAML logins need `user@domain`; the rule and its source are in the
+   [SAML naming reference](../reference/saml-assertion-and-naming.md), section 1.2.
+5. Approval Time Zone (updated automatically on test or save).
+6. Allow Session Search with a Search Start Date and the Bastion login "linked to the Auditor
+   profile".
+7. Custom SSH, RDP and REST API ports under **Advanced Options** (AG 3.2.2); Test TCP
+   Connections.
+8. After a Bastion certificate change: Reset Bastion Certificate (AG 3.2.4).
+
+SAML identity provider settings are in
+[chapter 05](../trustelem/05-access-manager-integration.md).
 
 ## 11. Access Manager 5.2 differences
 
-Facts from the [Access Manager 5.2.4.0 Administration Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) (AG52),
+Use these facts only for a 5.x farm still in service or during the migration; they do not apply
+to 6.0.5. Sources:
+[Access Manager 5.2.4.0 Administration Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf) (AG52),
 [Access Manager 4.0.6.1 Installation Guide](https://marketplace-wallix.s3.amazonaws.com/am-install_en.pdf) (IG)
-and [Access Manager release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html) (RN) that
-do not apply to 6.0.5. Use them only for a 5.x farm still in service or during the migration.
+and [Access Manager release notes](https://pam.wallix.one/documentation/release-notes/am-rn-en.html) (RN).
 
-- Stack: application in Docker (`docker restart access-manager_access_manager_1`,
-  `docker exec ...`), Apache in front (`systemctl restart apache2`), configuration in
-  `/var/wab/etc/wabam`, logs in `/var/log/wallix/wabam` (IG 3.4.1, AG52 15.2, 21.9). Debian 10
-  base (RN WAB-9787). Admin session timeout `SESSION_TIMEOUT` in `/etc/apache2/AM_variables.conf`.
-- Database: external MySQL, Oracle or Azure listed (IG 3.1.2); database administrator password
-  in `/var/wab/etc/access-manager.conf`.
-- Interfaces: three in the installation guide (user access, HA, administration); since 5.2
-  "The administration interface is now tied to the first interface (the only one required)"
-  (RN WAB-13606). Replication over a dedicated HA interface (RN WAB-11783).
-- Replication script added in 5.0.0 (RN WAB-6124) with `--prerequisite-check` and
-  `/root/sqlreplication/servers_list` (RN WAB-11782, WAB-12957). "Before upgrading an Access
-  Manager cluster to version 5.2.3, replication must be uninstalled. Replication can be
-  reinstalled after the upgrade." (RN WAB-17588).
-- Upgrade with `./access-manager-upgrade.sh` from the mounted ISO, log in
-  `/root/migration-PREVIOUS_VERSION-NEW_VERSION.log` (IG 3.6).
-- Proxy and DoS settings in `wabam.properties`: `web.proxy.activated` (true),
-  `web.proxy.trusted-proxies`, `web.proxy.trusted-proxies.enabled` (on for new installations,
-  off after an upgrade), `web.proxy.header.forward.useRFC7239only`, `web.max.requests.perSec`
-  (60), `web.rate.ipWhitelist`, `web.sni.host.check` (true) (AG52 21.4 to 21.6). Without trusted
-  proxies "the information contained in the audit logs is that of the proxy" (AG52 21.6).
-- `purge.audit.active` "must be enabled only on one of the cluster nodes" (AG52 21.7).
-- Defaults stated in 5.2: `bastion.connection.timeout` and `restapi.connection.timeout` 10 s,
-  `sa.session.retention.days` 30, OIDC timeout 5 s, Java heap 2373 MB on the appliance
-  (AG52 15.1.1, 16, 10.5.2, 21.2); `approval.time.zone` in `wabam.properties` (AG52 13).
-- Portal certificate: `wabam-certificate-update` (`--certificate`, `-r | --restore`,
-  `-s | --subjectAlternativeNames`) (RN WAB-9894, WAB-14102).
-- Session audit in Elasticsearch 8.18 ("Session audit repository: 9300", "Session audit service
-  status: 9200" in IG 2.4), PKCS#12 certificate, `wabam-es-rootcertificate-update` after regenerating the certificates, password in
-  `/etc/elasticsearch/.elastic_password` (AG52 16, RN WAB-17644, WAB-14492, WAB-15707).
-- `/opt/wab/sbin/wabam-session-count` (singular) (AG52 ch. 6).
-- Load balancer: cookie persistence on Citrix ADC "incompatible with Universal Tunneling for
-  clusters", so source-IP affinity was advised (RN WAB-6600); HTTP 80 "is redirected to the
-  HTTPS one" in the web-application install mode (IG 2.2.3).
-- "Clusters are not compatible with the feature allowing the display of the target passwords.
-  However it can be used with an external vault." (AG52 13); the 6.0.5 guides no longer state it.
-- X.509 "is not possible on the administration interface of an appliance" (AG52 10.2.4).
-- Known issues: SAML URL auto-filled with the administration URL on a three-interface appliance
-  (RN WAB-4968); GUI restore with a different encryption key broke SAML (RN WAB-14912);
-  `wabam-backup` from cron fixed in 5.1.4 (RN WAB-14534); API key profiles from Bastion 12.2
-  in RN WAB-11577 against 12.1 in AG52 13.
+| Topic | Access Manager 5.2 | Source |
+|-------|--------------------|--------|
+| Stack | application in Docker (`docker restart access-manager_access_manager_1`, `docker exec ...`), Apache in front (`systemctl restart apache2`), configuration in `/var/wab/etc/wabam`, logs in `/var/log/wallix/wabam`; Debian 10 base; admin session timeout `SESSION_TIMEOUT` in `/etc/apache2/AM_variables.conf` | IG 3.4.1, AG52 15.2, 21.9; RN WAB-9787 |
+| Database | external MySQL, Oracle or Azure listed; database administrator password in `/var/wab/etc/access-manager.conf` | IG 3.1.2 |
+| Interfaces | three in the installation guide (user access, HA, administration); since 5.2 "The administration interface is now tied to the first interface (the only one required)"; replication over a dedicated HA interface | RN WAB-13606, WAB-11783 |
+| Replication | script added in 5.0.0 with `--prerequisite-check` and `/root/sqlreplication/servers_list`; "Before upgrading an Access Manager cluster to version 5.2.3, replication must be uninstalled. Replication can be reinstalled after the upgrade." | RN WAB-6124, WAB-11782, WAB-12957, WAB-17588 |
+| Upgrade | `./access-manager-upgrade.sh` from the mounted ISO, log in `/root/migration-PREVIOUS_VERSION-NEW_VERSION.log` | IG 3.6 |
+| Proxy and DoS | in `wabam.properties`: `web.proxy.activated` (true), `web.proxy.trusted-proxies`, `web.proxy.trusted-proxies.enabled` (on for new installations, off after an upgrade), `web.proxy.header.forward.useRFC7239only`, `web.max.requests.perSec` (60), `web.rate.ipWhitelist`, `web.sni.host.check` (true); without trusted proxies "the information contained in the audit logs is that of the proxy" | AG52 21.4 to 21.6 |
+| Audit purge | `purge.audit.active` "must be enabled only on one of the cluster nodes" | AG52 21.7 |
+| Defaults | `bastion.connection.timeout` and `restapi.connection.timeout` 10 s, `sa.session.retention.days` 30, OIDC timeout 5 s, Java heap 2373 MB on the appliance; `approval.time.zone` in `wabam.properties` | AG52 15.1.1, 16, 10.5.2, 21.2; AG52 13 |
+| Portal certificate | `wabam-certificate-update` with `--certificate`, `-r` (long form `--restore`) and `-s` (long form `--subjectAlternativeNames`) | RN WAB-9894, WAB-14102 |
+| Session audit | Elasticsearch 8.18 ("Session audit repository: 9300", "Session audit service status: 9200"), PKCS#12 certificate, `wabam-es-rootcertificate-update` after regenerating the certificates, password in `/etc/elasticsearch/.elastic_password` | IG 2.4, AG52 16, RN WAB-17644, WAB-14492, WAB-15707 |
+| Session count | `/opt/wab/sbin/wabam-session-count` (singular) | AG52 ch. 6 |
+| Load balancer | cookie persistence on Citrix ADC "incompatible with Universal Tunneling for clusters", so source-IP affinity was advised; HTTP 80 "is redirected to the HTTPS one" in the web-application install mode | RN WAB-6600, IG 2.2.3 |
+| Target passwords | "Clusters are not compatible with the feature allowing the display of the target passwords. However it can be used with an external vault."; the 6.0.5 guides no longer state it | AG52 13 |
+| X.509 | "is not possible on the administration interface of an appliance" | AG52 10.2.4 |
+| Known issues | SAML URL auto-filled with the administration URL on a three-interface appliance; GUI restore with a different encryption key broke SAML; `wabam-backup` from cron fixed in 5.1.4; API key profiles from Bastion 12.2 in RN WAB-11577 against 12.1 in AG52 13 | RN WAB-4968, WAB-14912, WAB-14534, WAB-11577; AG52 13 |

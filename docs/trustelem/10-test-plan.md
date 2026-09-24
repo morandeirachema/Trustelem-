@@ -1,29 +1,40 @@
 # Test plan
 
-Date: 2026-09-24. Each test has an identifier, preconditions, steps, the expected result and
-the evidence to keep (the log line or screen that proves it). Values refer to the
-[worked example](09-worked-example.md). Log formats are described in the
-[logging and SIEM reference](../reference/logging-and-siem.md). Bastion evidence is verified
-against the Bastion 12.4.3 SIEM Logs, Auditor, Deployment and Administration Guides, Access
-Manager rows against the Access Manager 6.0.5 Deployment Guide; these are WALLIX customer
-documentation behind the doc.wallix.com login ([doc.wallix.com](https://doc.wallix.com/)).
+> - **Purpose:** the acceptance tests for the Trustelem MFA integration, each with an ID,
+>   preconditions, steps, expected result and the evidence to keep.
+> - **Audience:** PAM engineers running acceptance, and anyone who cites a test ID.
+> - **Verified:** 2026-09-24, against the Trustelem books as read on 2026-09-24, the Bastion
+>   12.4.3 SIEM Logs, Auditor, Deployment and Administration Guides and the Access Manager 6.0.5
+>   Administration and Deployment Guides (WALLIX customer documentation behind the
+>   doc.wallix.com login).
+> - **Sources:** [Bastion 12.4.3 SIEM Logs Guide](https://doc.wallix.com/) 2.1,
+>   [Bastion 12.4.3 Auditor Guide](https://doc.wallix.com/) 10, the other Bastion 12.4.3 and
+>   Access Manager 6.0.5 guides on [doc.wallix.com](https://doc.wallix.com/), and the chapters
+>   each test exercises.
 
-Evidence conventions: TL = Trustelem Logs page entry (or SIEM JSON record); WA = Bastion
-syslog `[wabauth]` line; WD = Bastion `[wabaudit]` line; AH = Bastion Audit > Authentication
-history row; AM = Access Manager `access.log` or audit log entry.
+This page is the home of the test IDs and their expected results; other documents cite them.
+Values refer to the [worked example](09-worked-example.md). Failures are triaged with
+[08 Troubleshooting](08-troubleshooting.md).
 
-- WA: each login gives a `status="started"` line naming the domain
-  (`identified with {domain}({TYPE})`), then `status="success"`, `"failure"` or `"canceled"`. A
-  failure only says `infos="diagnostic [Authentication failed]"`, so the reason is taken from TL.
-  The wording for a RADIUS secondary authentication is not documented (gap B6): record the
-  lines captured in B-01 and B-05 as the reference ([Bastion 12.4.3 SIEM Logs Guide](https://doc.wallix.com/) 2.1).
-- AH lists "the authentication attempts on the RDP and SSH proxy interfaces (respectively on
-  ports 3389 and 22)" with Timestamp, User name, Source IP, Result and Diagnosis, exportable as
-  CSV; it does not cover web interface logins. "Authentication attempts with an expired OTP are
-  not attributed to a user and are logged as [unknown username]."
-  ([Bastion 12.4.3 Auditor Guide](https://doc.wallix.com/) 10)
+Evidence codes used in the tables:
+
+| Code | Evidence |
+|------|----------|
+| TL | Trustelem Logs page entry (or SIEM JSON record) |
+| WA | Bastion syslog `[wabauth]` line |
+| WD | Bastion `[wabaudit]` line |
+| AH | Bastion **Audit > Authentication history** row (columns and export in the [logging and SIEM reference, section 2.1](../reference/logging-and-siem.md#21-authentication-wabauth)) |
+| AM | Access Manager `access.log` or audit log entry |
+
+The WA, WD and AH formats are in the [logging and SIEM reference](../reference/logging-and-siem.md),
+section 2. Two limits shape the evidence. A WA failure line gives no reason, so the reason is
+taken from TL. AH covers RDP and SSH proxy logins only, not web interface logins. The WA wording
+for a RADIUS secondary authentication is not documented (gap B6): record the lines captured in
+B-01 and B-05 as the reference.
 
 ## 1. Connectivity and agents
+
+Pass: both agent types reach the tenant and every listener is up.
 
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
@@ -35,6 +46,8 @@ history row; AM = Access Manager `access.log` or audit log entry.
 
 ## 2. Directory and enrollment
 
+Pass: AD users arrive with their attributes and can enrol the required factors.
+
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
 | D-01 | C-05 | open user `jdoe` in Users | attributes `sAMAccountName`, `userPrincipalName`, `memberOf` present | screenshot |
@@ -43,6 +56,10 @@ history row; AM = Access Manager `access.log` or audit log entry.
 | D-04 | user in `PAM-Admins` and a local Trustelem account with the same e-mail | sync runs | accounts merged; AD password wins | TL, Users page |
 
 ## 3. Bastion RADIUS (native path)
+
+Pass: every Bastion test in the table gives its expected result: the web UI and native RDP and
+SSH logins require the second factor where the rule says so, *Always allow* and break-glass
+logins do not, the Connect VMs fail over, and the local RADIUS and LDAP scenarios work.
 
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
@@ -64,6 +81,9 @@ history row; AM = Access Manager `access.log` or audit log entry.
 
 ## 4. Access Manager SAML (web path)
 
+Pass: portal logins go through Trustelem, land with the right profile and authorizations, and
+survive the loss of one Access Manager node.
+
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
 | A-01 | chapter 05 section 2 configured | open `https://pam.acme.example/wabam/acme?domain=TRUSTELEM` | redirect to `acme.trustelem.com/app/<ID>/sso` | browser address bar, SAML tracer |
@@ -80,6 +100,9 @@ history row; AM = Access Manager `access.log` or audit log entry.
 
 ## 5. Trustelem operations
 
+Pass: the operational procedures of [07 Operations](07-operations.md) work without breaking
+logins.
+
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
 | O-01 | SIEM target configured | perform B-01 | JSON record arrives within 30 s | SIEM index |
@@ -91,6 +114,8 @@ history row; AM = Access Manager `access.log` or audit log entry.
 
 ## 6. Cluster behaviour
 
+Pass: configuration replicates and logins continue when one node is lost.
+
 | ID | Precondition | Steps | Expected | Evidence |
 |----|--------------|-------|----------|----------|
 | H-01 | Bastion replication installed | `wallix-replication --monitoring` on `bastion-1` (12.4.3; `bastion-replication --monitoring` on 12.0.x) | both nodes in sync | command output ([Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 5.1.1) |
@@ -100,6 +125,8 @@ history row; AM = Access Manager `access.log` or audit log entry.
 
 ## 7. Exit criteria
 
-All C, D, B (except B-11 if Kerberos is not enabled), A and H tests pass; O tests are
-executed at least once before go-live and again after every rotation or upgrade. Failures are
-triaged with [08 Troubleshooting](08-troubleshooting.md).
+Go-live requires:
+
+- all C, D, B (except B-11 if Kerberos is not enabled), A and H tests passed;
+- every O test executed at least once before go-live, and again after every rotation or
+  upgrade.

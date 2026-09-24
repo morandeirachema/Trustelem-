@@ -1,20 +1,35 @@
 # Exporting the Trustelem configuration with the API
 
-Date: 2026-09-23. Trustelem publishes no tenant backup or export feature (see
-[07 Operations](../trustelem/07-operations.md)). The API and scripts feature gives a way to
-snapshot the parts of the configuration that matter for the PAM integration: users, groups,
-application permissions (access rules), alerts and 30 days of logs. The function signatures
-below are copied from the [API page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/api)
-as read on 2026-09-23; the handler bodies that combine them are the author's and were not
-executed against a tenant. The console's script editor shows the current `api` object and
-must be treated as the reference.
+> - **Purpose:** API scripts that snapshot the Trustelem configuration that matters for the PAM
+>   integration (users, groups, access rules, alerts, logs) and a nightly job that checks them.
+> - **Audience:** Trustelem administrators and the PAM operations team.
+> - **Verified:** 2026-09-23, against the Trustelem API page; the handler bodies were not executed
+>   against a tenant.
+> - **Sources:** [Trustelem API](https://trustelem-doc.wallix.com/books/trustelem-administration/page/api),
+>   [07 Operations](../trustelem/07-operations.md).
 
-Prerequisites: the API feature enabled by WALLIX support ("if you don't have access to this
-feature, please contact WALLIX Trustelem support"); a script created under
-`https://admin-<tenant>.trustelem.com/app#/api-scripts`; an API key restricted to the
-exporting host's public IP and bound to the script.
+Trustelem publishes no tenant backup or export feature (see
+[07 Operations](../trustelem/07-operations.md)). The API and scripts feature can snapshot the
+parts of the configuration that matter for the PAM integration: users, groups, application
+permissions (access rules), alerts and 30 days of logs.
+
+The function signatures below are copied from the
+[API page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/api) as read on
+2026-09-23. The handler bodies that combine them are this repository's and were not executed
+against a tenant. The console's script editor shows the current `api` object; treat it as the
+reference.
+
+Prerequisites:
+
+- The API feature enabled by WALLIX support ("if you don't have access to this feature, please
+  contact WALLIX Trustelem support").
+- A script created under `https://admin-<tenant>.trustelem.com/app#/api-scripts`.
+- An API key restricted to the exporting host's public IP and bound to the script.
 
 ## 1. Documented signatures used here
+
+The scripts below rely on these read calls. `listPerms` and `listLogs` have constraints that
+shape the scripts.
 
 ```ts
 listUsers(args: { withGroups?: boolean; withAttributes?: boolean; }): User[];
@@ -33,14 +48,15 @@ listAlerts(args: { unreadOnly?: boolean; since?: string; }): Alert[];   // Alert
 listSessions(args: { showDeleted?: boolean; since?: string; limit?: number; }): Session[];
 ```
 
-"The research is done on only one id, the priority order is userID, then groupID, then
-appID" for `listPerms`, so permissions are exported per application. `listLogs`: "List all the
-logs of the 30 previous days", RFC 3339 dates, 1000 logs per page, `nextPageToken` for the
-next page.
+- `listPerms`: "The research is done on only one id, the priority order is userID, then
+  groupID, then appID". Permissions are therefore exported per application.
+- `listLogs`: "List all the logs of the 30 previous days". Dates are RFC 3339, pages hold 1000
+  logs, and `nextPageToken` gives the next page.
 
 ## 2. Script: export permissions (access rules) per application
 
-Purpose: detect user-level exemptions and confirm the rule set of chapter 06 every night.
+This script detects user-level exemptions and confirms the rule set of
+[chapter 06](../trustelem/06-mfa-and-access-rules.md) every night.
 
 ```ts
 // script name: export_perms
@@ -57,12 +73,15 @@ function handler(req: Request, w: ResponseWriter): void {
 }
 ```
 
-A permission whose `userID` is set is a user-level rule; on the Bastion and Access Manager
-apps, a `radiusZone` or `ldapZone` of `''` (no rule) or a web zone of `'1_factor'` for a PAM
-group is the deviation to alert on. Note that the API exposes the five documented levels;
-the RADIUS-specific *Always allow* and *2nd factor only* values shown in the console are not
-listed in the `ZoneSecurityLevel` type, so their API representation must be checked in the
-script editor.
+Deviations to alert on, for the Bastion and Access Manager apps:
+
+- a permission whose `userID` is set (a user-level rule);
+- a `radiusZone` or `ldapZone` of `''` (no rule) for a PAM group;
+- a web zone of `'1_factor'` for a PAM group.
+
+The API exposes the five documented levels only. The RADIUS-specific *Always allow* and *2nd
+factor only* values shown in the console are not in the `ZoneSecurityLevel` type. Check their
+API representation in the script editor (gap T6 in the [register](open-questions-and-gaps.md)).
 
 ## 3. Script: export users and groups
 
@@ -84,10 +103,12 @@ function handler(req: Request, w: ResponseWriter): void {
 }
 ```
 
-The `User` datatype has no field describing enrolled factors, but the API lists them per user:
-`listAuthTokens(args: { id: UserID; })` returns `AuthToken { id, userID, kind, name }` ("List the
-second factors of a user"). Calling it for each user in the export lists the users without a
-second factor before an access rule requires one (chapter 06). Keep only the attributes you need; the export contains personal data.
+- The `User` datatype has no field describing enrolled factors. The API lists them per user:
+  `listAuthTokens(args: { id: UserID; })` returns `AuthToken { id, userID, kind, name }` ("List
+  the second factors of a user").
+- Calling it for each user lists the users without a second factor before an access rule
+  requires one ([chapter 06](../trustelem/06-mfa-and-access-rules.md)).
+- Keep only the attributes you need: the export contains personal data.
 
 ## 4. Script: export logs and alerts (rolling window)
 
@@ -123,28 +144,27 @@ curl -sS -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer $
 ```
 
 The endpoint pattern and headers are the documented ones:
-`https://admin.trustelem.com/api/script/{script-path-id}/<script>` with `Authorization: Bearer`;
-the path segment is the opaque value shown in the script's "sample command" (for example
+`https://admin.trustelem.com/api/script/{script-path-id}/<script>` with `Authorization: Bearer`.
+The path segment is the opaque value shown in the script's "sample command" (for example
 `46e3xi...gtea`), not the API key.
 
 ## 6. Nightly job and checks
 
 1. Run the three calls from a hardened host inside the administration network (the API key's
    allowed IP).
-2. Diff `trustelem-perms` against the previous day and alert on any new user-level permission
-   and on any change of zone level for the PAM groups.
+2. Diff `trustelem-perms` against the previous day. Alert on any new user-level permission and
+   on any change of zone level for the PAM groups.
 3. Diff `trustelem-identities` to catch users added to the administrator groups, suspended
    accounts still in PAM groups, and accounts near `accountExpiration`.
-4. Retain exports for the period required by the audit policy; they are the closest thing to a
-   tenant backup and allow manual re-creation of rules with `setGroupPerm` and `setUserPerm`
+4. Retain the exports for the period the audit policy requires. They are the closest thing to a
+   tenant backup. They allow manual re-creation of rules with `setGroupPerm` and `setUserPerm`
    after an administrative error.
 
 ## 7. Limits
 
-- Rate limits are not documented; keep the job nightly.
+- Rate limits are not documented (gap T6); keep the job nightly.
 - The API cannot export application settings (SAML certificates, connector definitions,
-  passkey policy); enrolled factors are readable with `listAuthTokens` but cannot be recreated
-by the API; record those in the worked example table and in the
-  change log.
+  passkey policy). Record those in the worked example table and in the change log.
+- Enrolled factors are readable with `listAuthTokens` but cannot be recreated by the API.
 - Restoring is manual: `createUser`, `createGroup`, `addUsersToGroup`, `setGroupPerm` and
   `setUserPerm` exist, but there is no bulk import.

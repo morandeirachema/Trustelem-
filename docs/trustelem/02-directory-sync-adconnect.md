@@ -1,17 +1,27 @@
 # Active Directory synchronisation with Trustelem ADConnect
 
-Date: 2026-09-23. Source: [Active Directory users - Trustelem ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect)
-and the [SSPR page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/self-service-password-reset).
-Quotes are verbatim.
+> - **Purpose:** install two ADConnect agents and synchronise the PAM groups of Active Directory
+>   into Trustelem.
+> - **Audience:** Trustelem administrator, Active Directory administrator, Windows or Linux
+>   system administrator.
+> - **Verified:** 2026-09-24, against the Trustelem documentation books as read on 2026-09-24.
+> - **Sources:** [Active Directory users - Trustelem ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect),
+>   [self-service password reset (SSPR)](https://trustelem-doc.wallix.com/books/trustelem-administration/page/self-service-password-reset).
 
-## 1. How it works
+All quotes without another source are from the ADConnect page.
 
-"During the setup, Trustelem ADConnect opens a websocket to admin.trustelem.com using port
-443. Note: with the websocket, information is encrypted by TLS protocol and with an additional
-symmetric encryption." The cloud sends search and authentication requests down that socket;
-"Trustelem ADConnect sends the request to Active Directory using LDAP(S) with the service
-account running the connector"; "thanks to this connector Trustelem does not store any password
-for Active Directory users."
+## 1. How ADConnect works
+
+ADConnect is an outbound-only agent. It relays the cloud's LDAP requests to Active Directory,
+so Trustelem never stores AD passwords.
+
+- "During the setup, Trustelem ADConnect opens a websocket to admin.trustelem.com using port
+  443. Note: with the websocket, information is encrypted by TLS protocol and with an additional
+  symmetric encryption."
+- The cloud sends search and authentication requests down that socket. "Trustelem ADConnect
+  sends the request to Active Directory using LDAP(S) with the service account running the
+  connector".
+- "thanks to this connector Trustelem does not store any password for Active Directory users."
 
 ```mermaid
 flowchart LR
@@ -27,21 +37,27 @@ flowchart LR
     CLOUD -.- NOTE
 ```
 
-## 2. Prerequisites (verbatim)
+## 2. Prerequisites
 
-- "Prepare a VM, Windows Server or Linux, with minimal resources for the OS".
-- "If you have only one VM which is down, the link to your AD is down too.. The recommendation
-  is 2 VM at least, to have a failover system".
-- Download from https://dl.trustelem.com/adconnect/ (.exe or .tgz).
-- "If the VM isn't a Windows Server in the AD domain, you need to open the flow from the VM to a
-  DC - tcp port 389 or 636".
-- Outbound TCP 443 to `*.trustelem.com` (see chapter 01 for the full list).
-- "A service account with "read only" rights should be created on your Active Directory". Use
-  the UPN form (`connector@ADdomain`). For self-service password reset the same account also
-  needs the "Reset user password and force password change at next logon" delegation
-  ([SSPR page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/self-service-password-reset)).
+Two VMs, a read-only AD service account and two network flows. The vendor requirements:
+
+- **VM:** "Prepare a VM, Windows Server or Linux, with minimal resources for the OS".
+- **Redundancy:** "If you have only one VM which is down, the link to your AD is down too.. The
+  recommendation is 2 VM at least, to have a failover system".
+- **Software:** download the `.exe` or `.tgz` from
+  [dl.trustelem.com/adconnect](https://dl.trustelem.com/adconnect/).
+- **Flow to Active Directory:** "If the VM isn't a Windows Server in the AD domain, you need to
+  open the flow from the VM to a DC - tcp port 389 or 636".
+- **Flow to Trustelem:** outbound TCP 443, as listed in
+  [chapter 01, section 4](01-tenant-setup.md#4-network-prerequisites-for-every-connector).
+- **Service account:** "A service account with "read only" rights should be created on your
+  Active Directory". Use the UPN form (`connector@ADdomain`). For self-service password reset
+  the same account also needs the "Reset user password and force password change at next logon"
+  delegation ([SSPR page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/self-service-password-reset)).
 
 ## 3. Register the directory in the console
+
+Create the directory first; its synchronization ID is needed by the installer.
 
 1. **Directories**: "Click on Create and select Active Directory."
 2. "Give a name to the new directory, and optionally a description."
@@ -49,6 +65,9 @@ flowchart LR
 4. "Write down the synchronization ID, then click on Save."
 
 ## 4. Install on Windows Server
+
+The installer takes the synchronization ID. On a domain-joined host the service can run under
+the AD service account (Log On tab); otherwise the credentials go in `config.ini` (step 5).
 
 1. "launch the installation software and paste the synchronization ID then click on Validate
    the Configuration".
@@ -59,61 +78,66 @@ flowchart LR
 5. If the machine is not in the AD domain, "you can't use the Log On tab of the service. Create a
    config.ini file in Trustelem setup directory":
 
-```ini
-ldap_addr = ldap://ad_fqdn_or_ip
-ldap_port = 389
-# use the UPN
-ldap_user = connector@ADdomain
-ldap_password = xxxx
-```
+   ```ini
+   ldap_addr = ldap://ad_fqdn_or_ip
+   ldap_port = 389
+   # use the UPN
+   ldap_user = connector@ADdomain
+   ldap_password = xxxx
+   ```
 
    LDAPS variant:
 
-```ini
-ldap_addr = ldaps://ad_fqdn_or_ip
-# or, to verify the certificate (place it in the Trustelem setup directory):
-ldap_addr = ldaps://ad_fqdn_or_ip?tls_verify
-ldap_port = 636
-```
+   ```ini
+   ldap_addr = ldaps://ad_fqdn_or_ip
+   # or, to verify the certificate (place it in the Trustelem setup directory):
+   ldap_addr = ldaps://ad_fqdn_or_ip?tls_verify
+   ldap_port = 636
+   ```
 
 6. "Launch the service. Note: if you used a config.ini file (machine not in the AD domain), the
    4th led will be red."
 
 ## 5. Install on Linux
 
+On Linux all settings, including the AD credentials, go in one `config.ini` file.
+
 1. "launch the installation software from the .tgz file, using ./setup.sh with root rights".
 2. "edit /opt/wallix/trustelem-adconnect/config.ini file containing the synchronization id":
 
-```ini
-sync_id = 2jy34wpcohrhdytr6hutym6qfi2l7nnw
-state_dir = run/
-ldap_addr = ldap://ad_fqdn_or_ip
-ldap_port = 389
-# use the UPN
-ldap_user = connector@ADdomain
-ldap_password = xxxx
-# if there is a proxy
-proxy = https://username:password@proxy_IP:proxy_port
-```
+   ```ini
+   sync_id = 2jy34wpcohrhdytr6hutym6qfi2l7nnw
+   state_dir = run/
+   ldap_addr = ldap://ad_fqdn_or_ip
+   ldap_port = 389
+   # use the UPN
+   ldap_user = connector@ADdomain
+   ldap_password = xxxx
+   # if there is a proxy
+   proxy = https://username:password@proxy_IP:proxy_port
+   ```
 
 3. For LDAPS with verification, "make sure the certificate is signed by a known CA. Check that
-   the certificate is signed by a CA listed in /etc/ssl/certs", either by linking it
-   (`ln -nsf /path/to/public.crt /etc/ssl/certs/my-ca-name.crt`) or by adding to
+   the certificate is signed by a CA listed in /etc/ssl/certs". Either link the certificate
+   (`ln -nsf /path/to/public.crt /etc/ssl/certs/my-ca-name.crt`) or add this to
    `/lib/systemd/system/trustelem-adconnect.service`:
 
-```ini
-[Service]
-Type = simple
-ExecStart = ...
-Environment = "SSL_CERT_FILE=/path/to/public.crt"
-```
+   ```ini
+   [Service]
+   Type = simple
+   ExecStart = ...
+   Environment = "SSL_CERT_FILE=/path/to/public.crt"
+   ```
 
 4. `systemctl start trustelem-adconnect.service`.
 
-Config keys: `sync_id`, `state_dir`, `ldap_addr` (with optional `?tls_verify`), `ldap_port`,
-`ldap_user`, `ldap_password`, `proxy`. Log settings and log file locations are not documented.
+Documented configuration keys: `sync_id`, `state_dir`, `ldap_addr` (with optional
+`?tls_verify`), `ldap_port`, `ldap_user`, `ldap_password`, `proxy`. Log settings and log file
+locations are not documented.
 
 ## 6. Activate and configure the synchronisation
+
+A new connector stays inactive until an administrator checks and activates it in the console.
 
 1. "Get back to the Trustelem admin dashboard, Directory tab. Refresh the page: the connector
    should show up in the table. Once the connector is up, check the IP address, the server name
@@ -121,17 +145,21 @@ Config keys: `sync_id`, `state_dir`, `ldap_addr` (with optional `?tls_verify`), 
    "No" button."
 2. "Setup the appropriate synchronization frequency (nota: a high frequency increases the load
    of your domain controllers)." The list of values is not documented.
-3. "Select the groups to be synchronized." Scope by AD group; "Domain users" cannot be used
-   ("it is not a real group").
+3. "Select the groups to be synchronized." The scope is set by AD group. "Domain users" cannot
+   be used ("it is not a real group").
 4. Optional: "By checking Advanced options, you can define a list of Custom attributes (title,
-   memberOf,objectGUID,userPrincipalName...) to import with the users." The login
-   itself needs no custom attribute: "A user synchronized from Active Directory can have the login
-   sets to sAMAccountName, userPrincipalName or mail" (Trustelem Connect page). *Inference to test:*
-   the SAML `uid` sent to Access Manager is that login.
-5. Repeat the install on the second VM (*inference:* with the same synchronization ID, as the
-   upgrade procedure implies); in the directory's connector list order them by priority.
+   memberOf,objectGUID,userPrincipalName...) to import with the users." The login itself needs
+   no custom attribute: the login choices of an AD user are listed in
+   [chapter 03, section 6](03-trustelem-connect.md#6-what-the-ldap-listener-exposes).
+   *Inference to test:* the SAML `uid` sent to Access Manager is that login.
+5. Repeat the installation on the second VM (*inference:* with the same synchronization ID, as
+   the upgrade procedure implies). In the directory's connector list, order the two connectors
+   by priority.
 
-## 7. Upgrades without interruption
+## 7. Upgrade without interruption
+
+Install the new release next to the old one, give it priority, then retire the old one. The
+vendor procedure:
 
 "Install the latest release of the connector in parallel with your current connector. In the
 directory tab of the Trustelem administration console, select the relevant directory and
@@ -142,36 +170,51 @@ your server and then it can be deleted from the Trustelem administration console
 
 ## 8. Health and troubleshooting
 
-Health: the Dashboard shows "number of users by directories (the led indicates if the directory
-synchronization works, needs attention or doesn't work)"; the connector table shows IP, server
-name, service account, usage statistics and a Server Link status behind the "i" icon.
+Check the Dashboard LED first, then the connector table, then the network and the service
+account.
 
-Connector not visible in the console:
+### Health indicators
 
-- "ping admin.trustelem.com on the machine running the connector to verify the outgoing flows"
-  (the network-flows page adds that ping alone is not a valid test: on Windows "use the connection
-  test" of the configuration tool, on Linux `./connect check <your sync id>`).
+- The Dashboard shows "number of users by directories (the led indicates if the directory
+  synchronization works, needs attention or doesn't work)".
+- The connector table shows IP, server name, service account, usage statistics and a Server
+  Link status behind the "i" icon.
+
+### Connector not visible in the console
+
+- "ping admin.trustelem.com on the machine running the connector to verify the outgoing flows".
+  The [connectors network flows page](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows)
+  adds that a ping alone is not a valid test: on Windows "use the connection test" of the
+  configuration tool, on Linux `./connect check <your sync id>`.
 - "verify the synchronization ID", "verify the proxy setup".
 - "if the VM is a Windows machine, verify that you clicked on Validate on Trustelem ADConnect
   program".
 
-No groups listed in "Sync groups": open the "i" icon; if Server Link shows an error, "verify the
-flows from the VM running the connector to the Active Directory; verify the service account
-used for Trustelem AD Connect (UserPrincipalName and password); verify if you have a
-replication delay between the DC"; otherwise "verify if the service account has the right to
-search groups on Active Directory; try to refresh the page".
+### No groups listed in "Sync groups"
 
-Group missing users: "If your group is Domain users, it's normal, it can't be used because it
-is not a real group"; check that the service account can read the user objects and that DC
-replication has completed.
+Open the "i" icon.
+
+- If Server Link shows an error: "verify the flows from the VM running the connector to the
+  Active Directory; verify the service account used for Trustelem AD Connect
+  (UserPrincipalName and password); verify if you have a replication delay between the DC".
+- Otherwise: "verify if the service account has the right to search groups on Active
+  Directory; try to refresh the page".
+
+### Group missing users
+
+- "If your group is Domain users, it's normal, it can't be used because it is not a real
+  group".
+- Otherwise check that the service account can read the user objects and that DC replication
+  has completed.
 
 ## 9. Security notes
 
-- The service account is read-only unless self-service password reset is used (then it also
-  holds the reset delegation and "Password recovery" is enabled on the directory); do not reuse it
-  for Trustelem Connect or for the Bastion AD bind.
-- Prefer LDAPS with `?tls_verify` (or the Windows Log On tab on a domain-joined host).
-- The connector pins the Trustelem server certificate; exclude `*.trustelem.com`,
-  `relay-fr-01.wallix.com` and `relay-fr-02.wallix.com` from TLS inspection
-  ([connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows)).
-- Two connectors on different hosts, patched on the vendor's rolling procedure above.
+- The service account is read-only, unless self-service password reset is used. In that case
+  it also holds the reset delegation and "Password recovery" is enabled on the directory. Do not
+  reuse it for Trustelem Connect or for the Bastion AD bind.
+- Prefer LDAPS with `?tls_verify`, or the Windows Log On tab on a domain-joined host.
+- The connector pins the Trustelem server certificate. Exclude the Trustelem destinations from
+  TLS inspection, as listed in
+  [chapter 01, section 4](01-tenant-setup.md#4-network-prerequisites-for-every-connector).
+- Run two connectors on different hosts and patch them with the vendor's rolling procedure
+  (section 7).

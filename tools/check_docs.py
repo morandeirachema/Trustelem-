@@ -12,6 +12,10 @@ Exit code 1 when any check fails. Checks:
    verbatim in at least one document as a ```mermaid block.
 6. Every ```mermaid block in the documents matches one of the sources (edit the source, then
    paste; never edit a diagram inline).
+7. Every document under docs/ (except folder README.md indexes and docs/archive/) starts with the
+   header block of CONTRIBUTING.md: Purpose, Audience, Verified and Sources.
+8. Every relative link with a #fragment, and every in-page #link, points to an existing heading.
+9. Warning: two headings with the same text in one file (their anchors become ambiguous).
 """
 import pathlib
 import re
@@ -27,9 +31,63 @@ def md_files():
     return [p for p in ROOT.rglob("*.md") if not {".scratch", ".git", "node_modules"} & set(p.parts)]
 
 
+HEADER_LABELS = ("**Purpose:**", "**Audience:**", "**Verified:**", "**Sources:**")
+
+
+def slug(heading: str) -> str:
+    """GitHub heading anchor."""
+    s = re.sub(r"[`*_]", "", heading.strip().lower())
+    s = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", s)
+    s = re.sub(r"[^\w\- ]", "", s)
+    return s.replace(" ", "-")
+
+
+_anchor_cache = {}
+
+
+def anchors(path: pathlib.Path):
+    if path not in _anchor_cache:
+        seen, out, in_fence = {}, set(), False
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("```"):
+                in_fence = not in_fence
+                continue
+            m = re.match(r"^(#{1,6})\s+(.*)$", line)
+            if m and not in_fence:
+                base = slug(m.group(2))
+                n = seen.get(base, 0)
+                out.add(base if n == 0 else f"{base}-{n}")
+                seen[base] = n + 1
+        _anchor_cache[path] = out
+    return _anchor_cache[path]
+
+
+def needs_header(path: pathlib.Path) -> bool:
+    rel = path.relative_to(ROOT)
+    return rel.parts[0] == "docs" and "archive" not in rel.parts and path.name != "README.md"
+
+
+def check_header(path: pathlib.Path, lines):
+    head = "\n".join(lines[:25])
+    missing = [l for l in HEADER_LABELS if l not in head]
+    if missing:
+        errors.append(f"{path}: header block missing {', '.join(missing)} (see CONTRIBUTING.md section 1)")
+
+
 def check_markdown(path: pathlib.Path):
     text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
+    if needs_header(path):
+        check_header(path, lines)
+    heads, in_f = {}, False
+    for n, l in enumerate(lines, 1):
+        if l.strip().startswith("```"):
+            in_f = not in_f
+        elif not in_f and re.match(r"^#{2,6}\s", l):
+            key = l.lstrip("#").strip().lower()
+            if key in heads and path.name != "CHANGELOG.md":
+                warnings.append(f"{path}:{n}: duplicate heading '{key}' (first at line {heads[key]})")
+            heads.setdefault(key, n)
     fences = sum(1 for l in lines if l.strip().startswith("```"))
     if fences % 2:
         errors.append(f"{path}: unbalanced code fences")
@@ -60,11 +118,15 @@ def check_markdown(path: pathlib.Path):
         i += 1
     for m in re.finditer(r"\[[^\]]*\]\(([^)]+)\)", text):
         target = m.group(1)
-        if target.startswith(("http://", "https://", "#", "mailto:")):
+        if target.startswith(("http://", "https://", "mailto:")):
             continue
-        target = target.split("#")[0]
-        if target and not (path.parent / target).exists():
-            errors.append(f"{path}: broken relative link {target}")
+        file_part, _, frag = target.partition("#")
+        dest = (path.parent / file_part) if file_part else path
+        if file_part and not dest.exists():
+            errors.append(f"{path}: broken relative link {file_part}")
+            continue
+        if frag and dest.suffix == ".md" and frag not in anchors(dest.resolve()):
+            errors.append(f"{path}: link to missing anchor {file_part}#{frag}")
 
 
 def mermaid_blocks(text: str):

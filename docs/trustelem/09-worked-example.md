@@ -1,16 +1,25 @@
 # Worked example: one tenant, one Bastion pair, one Access Manager farm
 
-Date: 2026-09-24. This chapter fills in every field from chapters 01 to 06 for a fictitious
-organisation so that the values can be checked side by side. All names, addresses and secrets
-are invented; the field names and rules come from the vendor pages cited in the chapters
-([Bastion app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion),
-[Access Manager app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager),
-[Bastion SAML](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
-[Bastion Admin Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
-[AM Admin Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf)), re-checked against the
-Bastion 12.4.3 and Access Manager 6.0.5 customer guides behind the [doc.wallix.com](https://doc.wallix.com/) login.
+> - **Purpose:** every field of chapters 01 to 06 filled in for one fictitious organisation, so
+>   that the values can be checked side by side and copied as a template.
+> - **Audience:** PAM architects and the engineers who configure Trustelem, the Bastion and
+>   Access Manager.
+> - **Verified:** 2026-09-24, against the Trustelem applications book as read on 2026-09-24 and
+>   the Bastion 12.4.3 and Access Manager 6.0.5 customer guides behind the doc.wallix.com login.
+> - **Sources:** [Bastion app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion),
+>   [Access Manager app](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-access-manager),
+>   [Bastion SAML](https://trustelem-doc.wallix.com/books/trustelem-applications/page/wallix-bastion-saml),
+>   [Bastion Admin Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+>   [AM Admin Guide](https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf),
+>   [doc.wallix.com](https://doc.wallix.com/) (Bastion 12.4.3 and Access Manager 6.0.5 guides).
+
+All names, addresses and secrets are invented. The field names and rules come from the vendor
+pages cited in the chapters. Each section links to the document that owns the rule behind the
+values; the tests that validate them are in [10 Test plan](10-test-plan.md).
 
 ## 1. The organisation
+
+Acme Industries runs one Trustelem tenant, one Bastion pair and one Access Manager farm.
 
 | Item | Value |
 |------|-------|
@@ -25,12 +34,17 @@ Bastion 12.4.3 and Access Manager 6.0.5 customer guides behind the [doc.wallix.c
 | Access Manager URL | `https://pam.acme.example/wabam` (L7 load balancer 10.10.20.30) |
 | Trustelem Connect VMs | `tconnect-1` 10.10.21.41, `tconnect-2` 10.10.21.42 (administration network) |
 | ADConnect VMs | `adconnect-1` 10.10.21.51, `adconnect-2` 10.10.21.52 |
-| Federated domain name | `TRUSTELEM` (identical on the Bastion authentication domain, the Access Manager SAML domain and the Trustelem Access Manager app) |
+| Federated domain name | `TRUSTELEM` (identical on the Bastion authentication domain, the Access Manager SAML domain and the Trustelem Access Manager app; rule in [SAML assertion and naming](../reference/saml-assertion-and-naming.md)) |
 | Access Manager organization | identifier `acme` |
 
 ## 2. Trustelem console
 
+The tenant has one AD directory, two Connect services (one per VM) with the same three
+listeners, two apps and one rule set.
+
 ### Directories
+
+Field meanings are in [02 Directory sync with ADConnect](02-directory-sync-adconnect.md).
 
 | Field | Value |
 |-------|-------|
@@ -57,6 +71,9 @@ ldap_password = <from the secret manager>
 
 ### Services (Trustelem Connect)
 
+Listener ports follow [03 Trustelem Connect](03-trustelem-connect.md); the SIEM target follows
+[07 Operations](07-operations.md), section 2.
+
 | Service | VM | Applications and listeners |
 |---------|----|----------------------------|
 | `tconnect-1` | 10.10.21.41 | Bastion: RADIUS `*:1812`, LDAP `*:2001` (LDAPS off, StartTLS from the Bastion); Access Manager: RADIUS `*:2812` |
@@ -74,6 +91,9 @@ port = "5514"
 ```
 
 ### Apps
+
+App settings follow [04 Bastion integration](04-bastion-integration.md) and
+[05 Access Manager integration](05-access-manager-integration.md).
 
 | App | Template | Settings |
 |-----|----------|----------|
@@ -93,6 +113,9 @@ for (let g in groups){ msg.addAttr("groups",g); }
 
 ### Security settings
 
+Factor and passkey choices follow [06 MFA and access rules](06-mfa-and-access-rules.md),
+sections 1 to 3.
+
 | Setting | Value |
 |---------|-------|
 | Authentication factors | WALLIX Authenticator (Login on, User can reset token: `PAM-Operators` only), TOTP (Login on), Second-step passkey (Login on); SMS and e-mail off |
@@ -105,6 +128,9 @@ for (let g in groups){ msg.addAttr("groups",g); }
 
 ### Access rules
 
+The rule set of [06 MFA and access rules](06-mfa-and-access-rules.md), section 7, applied to
+the Acme groups.
+
 | App | Target | Web internal | Web external | LDAP | RADIUS |
 |-----|--------|--------------|--------------|------|--------|
 | Acme Access Manager | `PAM-Admins`, `PAM-Operators`, `PAM-Auditors` | 2 factors | 2 factors | | 2nd factor only |
@@ -115,6 +141,10 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | Acme Bastion | everyone | | | Forbidden | Forbidden |
 
 ## 3. Bastion (configured on `bastion-1`, replicated to `bastion-2`)
+
+The Bastion has one AD domain with RADIUS as secondary authentication, one LDAP domain for
+partners and one SAML domain for Access Manager ([04 Bastion integration](04-bastion-integration.md),
+scenarios A, C and D).
 
 ### External authentications
 
@@ -147,7 +177,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | `TRUSTELEM` | `PAM-Operators` | `pam-operators` | `user` |
 | `TRUSTELEM` | `PAM-Auditors` | `pam-auditors` | `auditor` |
 
-### Other
+### Other Bastion settings
 
 | Item | Value |
 |------|-------|
@@ -158,6 +188,10 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | SIEM integration (each node) | `siem.corp.acme.example`, TLS, RFC 5424, all filters enabled as WALLIX recommends ([System Operations Guide 12.4.3](https://doc.wallix.com/) 13.6) |
 
 ## 4. Access Manager (organization `acme`)
+
+Access Manager uses Trustelem as its SAML identity provider, reaches both Bastions through one
+cluster, and keeps RADIUS as a fallback for local administrators
+([05 Access Manager integration](05-access-manager-integration.md)).
 
 ### SAML Identity Provider `Trustelem`
 
@@ -183,7 +217,7 @@ for (let g in groups){ msg.addAttr("groups",g); }
 | Strip Domain | OFF | OFF |
 | Allow Session Search / Login | ON / `am-auditor` | ON / `am-auditor` |
 
-Settings > Application Settings: `bastion.cluster.identical.mode` on,
+**Settings > Application Settings**: `bastion.cluster.identical.mode` on,
 `bastion.connection.timeout` 5.
 
 ### RADIUS server `Trustelem` (fallback path for local administrators)
@@ -194,6 +228,8 @@ Login type simple login, secret `R2`, NAS Identifier empty. Local domain: Local 
 Factor 1, RADIUS Factor 2.
 
 ### Farm
+
+The farm procedure is in the [Access Manager farm runbook](../runbooks/access-manager-farm.md).
 
 Access Manager 6.0.5: `wallix-replication --create-conf-file` (Master/Master) on `am-1` with
 `am-2` as the other node, then `--install` and `--monitoring`; the replication installation
@@ -207,6 +243,10 @@ and set `purge.audit.active=true` on `am-1` only.
 
 ## 5. How the users log in
 
+Each row is one population on one path; users such as `jdoe` use several paths. Only `bg-admin`
+logs in without Trustelem. What users see is in
+[11 User and help-desk guide](11-user-and-helpdesk-guide.md).
+
 | User | Path | What happens |
 |------|------|--------------|
 | `jdoe` in `PAM-Operators` | browser to `https://pam.acme.example/wabam/acme` | redirect to `acme.trustelem.com`, AD password via ADConnect, push on the phone (passkey offered on the web), portal shows the `pam-operators` authorizations of `jdoe@TRUSTELEM`, RDP launches without a prompt |
@@ -216,6 +256,10 @@ and set `purge.audit.active=true` on `am-1` only.
 | `bg-admin` | Bastion web UI from the admin network | local password, no MFA, used only when Trustelem is unreachable |
 
 ## 6. Consistency checks before go-live
+
+Check these values on all sides before the first test. The rules behind them are in
+[SAML assertion and naming](../reference/saml-assertion-and-naming.md) and, for the egress
+destinations, [01 Tenant setup](01-tenant-setup.md), section 4.
 
 - `TRUSTELEM` appears identically in: Trustelem Access Manager app Domain; Access Manager SAML
   Domain Name; Bastion `Domain server name` and `Authentication domain name`.

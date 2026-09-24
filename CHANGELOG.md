@@ -1,124 +1,65 @@
 # Changelog
 
-Dates are ISO. Product versions verified are stated in each document header.
+Dates are ISO. Each document's header states the versions and sources it was verified against.
+Detailed history is in the git log.
 
 ## 2026-09-24
 
-- Customer guides reviewed (Bastion 12.4.3 and 12.0.25 administration, deployment, system
-  operations, SIEM logs, user and auditor guides; Access Manager 6.0.5 administration,
-  deployment, user and auditor guides; doc.wallix.com login, PDFs kept out of the repository).
-  Target versions are now Bastion 12.4.3 and Access Manager 6.0.5. Bastion HA runbook rewritten
-  on the 12.4.3 guides (`wallix-replication`, `wallix-luks-update`, `wallix-upgrade`, port 2242
-  documented as the replication path, same subnet with at most one router, `--status` checks,
-  restore on a master, minor upgrade in HA with a full-cluster window, automatic backups, disk);
-  Access Manager farm runbook rewritten for 6.0.5 (systemd `wabam`, Proxyma, `/etc/wabam`, two
-  interfaces, `wallix-replication` over 2242, sticky L7 load balancing, migration from 5.x by
-  backup and restore) with a 5.2 differences section; chapter 05 re-sourced to 6.0.5; logging
-  reference rewritten on the SIEM Logs Guide (UDP/TCP/TLS, RFC 5424 or 3164, full event
-  catalogue, verbatim `wabauth` lines, `AuthDomain`/`AuthDomainMapping` instead of the
-  non-existent `Ldapdomain`/`LdapMapping`); chapters 04, 07, 08, 09, 10, 11, the IaC and SAML
-  references, the meeting script, the architecture report and four diagrams updated. Register:
-  B3, B7, B8, A2 and A6 closed; B1, B2, B6, A1, A3, A4, A5, A7, T4, T5, B4 and S3 narrowed; new
-  B9 (rotation after losing the primary), B10 (RADIUS after SSH-key or FIDO2 login) and B11 (MFA
-  session behind a load balancer).
-- Remaining audit items: Kerberos-Password marked deprecated, RDP CredSSP condition restated,
-  LUKS re-encryption and API key IP limitation re-cited, the Access Manager challenge-response
-  statement added to A4, runbook defaults cited to the install guide, test-plan expectations
-  and help-desk screen wording marked as expected rather than documented, the Bastion RADIUS
-  timeout caution after upgrades added to chapter 04; PCI DSS row marked as not re-read.
-- Audit and source verification ("fuentes"): every cited claim, not only quotations, checked
-  against the Bastion 12.3.2 and Access Manager 5.2.4.0 guides, the 4.0.6.1 install guide, the
-  12.0.2 deployment guide, both public release notes, the four Trustelem books and 69 third-party
-  sources (RFCs, OASIS, OpenID, W3C, NIST, EUR-Lex through the Publications Office, ANSSI, BSI,
-  MITRE, CIS, Splunk, Sekoia, Terraform provider, advisories, app stores). Main corrections:
-  the Access Manager domain name must equal the Bastion *Domain server name* (both product
-  guides; the Trustelem page's Authentication domain name wording is recorded in B7), reverting
-  the pass-2 change; the API does list enrolled factors (`listAuthTokens`); SCIM pushes groups;
-  certificate-expiry mail can come after expiry; SSH key/CA is SSH-proxy only; the Bastion RADIUS
-  client is PAP only (WAB-16237); X.509 is not available to the Access Manager global
-  administrator; OIDC and certificate-command versions; HID timeout guide and the OT DR note
-  re-attributed; DORA, IEC 62443, ANSSI PA-022 R37/R39, MITRE T1556.006 and ISO scope rows fixed;
-  about 40 statements marked as inference or recommendation; prose, tree and tag fixes.
-- Deep audit and sync, cross-references: meeting questions cite their register row or are
-  marked as design confirmations (commercial blocks tagged C1 to C4 in the source pass); new rows T14 (log retention) and T15 (hardware TOTP
-  tokens); T1, T4, T5, A5, B1 and A1 extended; closed rows S1, S2 and B5 moved to a *Closed*
-  section; register rows put in numeric order; report 9.1 and 7.5 point to the register and the
-  test plan; README tree, dates, counts and CI wording corrected; archive notes indexed; stale
-  `tools/__pycache__` file removed from git.
-- Deep audit and sync, diagrams: the Access Manager RADIUS listener is port 2812 (it was 1812
-  in three diagrams, the port matrix and the runbook; the glossary and chapter 03 firewall line
-  followed in the source pass); component names unified across
-  the eleven diagrams; the TOTP path drawn through the client and the Access-Challenge instead of
-  the app; Master/Master failover by front-end rerouting and `--elevate-master` only for
-  Master/Slaves; DR diagram per-node settings moved off the storage box; the Bastion field that
-  must equal the Access Manager domain name was changed to the Authentication domain name
-  (reverted in the source pass below: both product guides name the Domain server name); new gap B7 and meeting question 6.6 on which Bastion domain the Access Manager
-  domain name matches; Access Manager to Trustelem 443 back-channel row added to the port matrix.
-- Deep audit and sync, sources: every quotation re-checked against the Bastion and Access
-  Manager guides, the public release notes and the four Trustelem books (about 160 Bastion, 26
-  Access Manager and 300 Trustelem strings). Four paraphrases lost their quotation marks and are
-  now stated with their real source (user rule priority, EU hosting, local users and SAML, API-key
-  log wording); the HA tunnel port 2242 and the absence of a VIP are marked as inferences; the
-  console log retention is marked undocumented; two section citations corrected (AM 10.1/10.2.1
-  and 21.5); the 12.4.3 build is sourced to the AWS Marketplace listing; the legacy ADConnect page
-  slug replaced. Cross-document facts synced: worked-example partner flow and B-14 login,
-  Trustelem login attribute, Access Manager interface count since 5.2, TLS-inspection exclusion
-  list with the relay FQDNs, relay IPs in the port matrix, timeline labelled as the repo's own;
-  new gaps T16 (SMS and e-mail over RADIUS) and B8 (backup key length), B6 extended; WAB-16173
-  note in chapter 04.
-- Added the vendor meeting script (`docs/reference/vendor-meeting-script.md`): platform brief
-  with components, integration order, hardware requirements and an indicative timeline, then
-  eight question blocks (deployment model and on-premise TOTP, licensing, effort, support and
-  roadmap, Bastion, Access Manager, MFA, logging) cross-referenced to the gaps register.
-- `tools/check_docs.py` now skips `node_modules`, which the Mermaid check installs locally.
-- README: clone and local check instructions at the bottom.
-- Added `tools/check_links.py` (external link check, per-host serialised, retries, placeholder
-  and code-span exclusion, login-gated and bot-blocking hosts reported as warnings) and a weekly
-  `link-check` GitHub Actions workflow. First run over 120 URLs: one wrong link fixed in the
-  meeting script (Trustelem Connect page), RFC links moved to the static
-  `rfc-editor.org/rfc/rfcNNNN.html` renderings because the `info` pages timed out.
-- Public release-notes pages re-read: they stop at Bastion 12.3.2 and Access Manager 5.2.4.0,
-  so B1 and A1 stay open (noted in the register).
-- Gaps register: swept every chapter for gap and inference markers; added T11 (no OIDC template), T12 (no offline mode), T13 (agent sizing), A7 (no syslog forwarder on Access Manager), the SCIM reconciliation question to T5, and a commercial section C1 to C4; matching questions 5.8 and 8.5 in the meeting script.
+### Changed
+
+- Repository refactored: the 1,326-line architecture report split into the
+  [architecture set](docs/architecture/README.md); glossary and sources moved to
+  `docs/reference/`; every document opens with the Purpose, Audience, Verified and Sources block;
+  one home per fact, with links instead of restatements; README reduced to a landing page;
+  writing rules moved to [CONTRIBUTING.md](CONTRIBUTING.md).
+- Target versions set to Bastion 12.4.3 and Access Manager 6.0.5 after reviewing the customer
+  guides (Bastion 12.4.3 and 12.0.25; Access Manager 6.0.5). Bastion HA and Access Manager farm
+  runbooks rewritten on them; Access Manager 5.2 facts kept as labelled notes.
+- Logging reference rewritten on the Bastion SIEM Logs Guide: transport, full event catalogue,
+  verbatim `wabauth` lines, `AuthDomain` and `AuthDomainMapping` event types.
+
+### Added
+
+- `CONTRIBUTING.md`; header, anchor and duplicate-heading checks in `tools/check_docs.py`.
+- Vendor meeting script with platform brief, hardware table and indicative timeline.
+- External link checker `tools/check_links.py` and a weekly `link-check` workflow.
+- Register rows T11 to T16, B9 to B11, A7 and the commercial rows C1 to C4.
+
+### Fixed
+
+- The Access Manager domain name must equal the Bastion *Domain server name*, as both product
+  guides say; a same-day change to "Authentication domain name" was reverted.
+- The Access Manager RADIUS listener on Trustelem Connect is port 2812, not 1812.
+- Every cited claim re-checked against its source (vendor guides, Trustelem books, 69
+  third-party sources): paraphrases no longer shown as quotes, about 40 statements marked as
+  inference, wrong section citations, sources and product facts corrected.
+- Fabrication check after the refactor: all 803 quotations found in the vendor and third-party
+  texts; every new or changed prose claim reviewed against its source (no invented facts; about
+  30 overstatements, dropped *inference* markers, changed meanings and wrong "home" links fixed).
+- Register: B3, B7, B8, A2, A6 closed; B1, B2, B4, B6, A1, A3, A4, A5, A7, T4, T5 and S3
+  narrowed with the customer guides; new rows B9 to B12.
 
 ## 2026-09-23
 
-- Mermaid labels shortened so boxes no longer overlap text (six diagram sources, README, report,
-  SAML reference).
-- Gap closure pass: official texts of Implementing Regulation 2024/2690 and DORA RTS 2024/1774
-  read and quoted (an earlier row had attributed recital wording to point 11.7.1); eth1 HA note
-  from the Bastion release notes; Terraform RADIUS resource verified from source; absence of a
-  Trustelem status page, push number matching and remember-device confirmed in the books.
-- Second audit: every command, key, path, URL fragment and ticket ID checked against the vendor
-  texts, the Splunk add-on and the Sekoia page; fixed three undocumented console URL fragments,
-  the SSH connection syntax in the help-desk guide and a `connect check` expectation; added the
-  open questions and gaps register.
-- Fabrication review: every quotation checked against the downloaded vendor texts; corrected a
-  sentence wrongly attributed to Trustelem (single source of identity), the LDAP two-factor
-  wording, two option names, a Trustelem spelling, and rewrote the API export scripts against the
-  documented signatures; external standards quotes verified at their source.
-- All diagrams converted to Mermaid (`tools/diagrams/*.mmd`); ASCII grid tooling removed;
-  `tools/check_docs.py` now verifies Mermaid embedding and `tools/check_mermaid.mjs` parses every
-  diagram with the Mermaid library in CI.
-- Reference: Trustelem API export scripts (permissions, identities, logs, alerts) as the
-  substitute for the missing tenant backup.
-- SCIM host scim.wallix.com and Access Manager 6.0 / Bastion 12.4 notes re-checked: still
-  unreachable or login-only.
-- Trustelem chapter 12: SCIM provisioning assessment (plausible, undocumented, vendor questions).
-- Trustelem chapters 09 (worked example), 10 (test plan), 11 (user and help-desk guide).
-- Reference: SAML assertion and naming consistency, with the naming diagram.
-- Docs check script (`tools/check_docs.py`) and GitHub Actions workflow.
-- Research notes moved to `docs/archive/` as superseded material.
-- Trustelem chapters 01 to 08 (tenant setup, ADConnect, Trustelem Connect, Bastion and Access
-  Manager integration, MFA and access rules, operations, troubleshooting).
-- Runbooks (Bastion HA Database Replication, Access Manager farm); references (Terraform for the
-  Bastion side, logging and SIEM, standards and compliance).
-- README refactored around Trustelem setup, configuration and integration.
-- Architecture report: advisory scope corrected (Bastion 12.3.0 to 12.3.6 and 12.4.0),
-  certification facts (BSI BSZ-0020-2025), RADIUS transport security note.
+### Added
+
+- Trustelem chapters 01 to 12, runbooks, references (Terraform, logging and SIEM, standards,
+  SAML naming, API export) and the gaps register.
+- `tools/check_docs.py`, the Mermaid parser check and the `docs-check` workflow.
+
+### Changed
+
+- All diagrams converted to Mermaid sources in `tools/diagrams/`.
+- Research notes moved to `docs/archive/`.
+
+### Fixed
+
+- Quotations, commands, URL fragments and ticket IDs checked against the downloaded vendor
+  texts; official EU texts (NIS2 Implementing Regulation 2024/2690, DORA RTS 2024/1774) quoted.
 
 ## 2026-09-22
 
-- Repository created; architecture report with diagrams; gap review adding access-path
-  coverage, administrator access model, OIDC alternative, disaster recovery, sizing, hardening,
-  rollout plan, vendor questions and glossary.
+### Added
+
+- Repository and architecture report with diagrams, access-path coverage, administrator access
+  model, OIDC alternative, disaster recovery, sizing, hardening and rollout plan.

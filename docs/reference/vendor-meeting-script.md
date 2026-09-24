@@ -1,29 +1,41 @@
 # Vendor meeting script: questions for WALLIX
 
-Date: 2026-09-24. Design under discussion: WALLIX Trustelem (WALLIX One IDaaS) as MFA/SSO for a
-WALLIX Bastion cluster and a WALLIX Access Manager cluster. Verified against the public Bastion
-12.3.2 and Access Manager 5.2.4.0 guides and, since 2026-09-24, the customer guides for Bastion
-12.4.3 and Access Manager 6.0.5 (behind the [doc.wallix.com](https://doc.wallix.com/) login). Each block gives the
-facts already established from the documentation,
-so the meeting time goes on what the documentation does not answer. Gap IDs (T, B, A, S, C) refer to the
-[open questions and gaps register](open-questions-and-gaps.md). Write the answers in the last
-column and copy them into the register after the meeting.
+> - **Purpose:** the questions to put to WALLIX, grouped in blocks, with the facts already
+>   established so that meeting time goes on what the documentation does not answer.
+> - **Audience:** the project lead and the PAM architect who meet the WALLIX account manager and
+>   pre-sales engineer.
+> - **Verified:** 2026-09-24, against the public Bastion 12.3.2 and Access Manager 5.2.4.0 guides
+>   and the customer guides for Bastion 12.4.3 and Access Manager 6.0.5.
+> - **Sources:** the links in each block;
+>   [open questions and gaps register](open-questions-and-gaps.md); customer guides behind the
+>   [doc.wallix.com](https://doc.wallix.com/) login.
 
-## How to run the meeting
+Design under discussion: WALLIX Trustelem (WALLIX One IDaaS) as MFA/SSO for a WALLIX Bastion
+cluster and a WALLIX Access Manager cluster. Gap IDs (T, B, A, S, C) refer to the
+[register](open-questions-and-gaps.md). Write the answers in the last column of each table and
+copy them into the register after the meeting.
 
-1. The platform brief below is the one-page background; blocks 1 to 4 are the decision blocks (deployment model, licensing, effort, support). Do them
-   first; they decide whether the rest matters.
-2. Blocks 5 to 8 are technical; hand a copy to the pre-sales engineer if the account manager
+This script is printed and read on its own, so it repeats figures from other documents. Each
+repeated figure links to its source or to the document that owns it.
+
+## A. How to run the meeting
+
+1. Use the [platform brief](#b-platform-brief-what-is-being-bought-and-how-it-fits-together) as
+   the one-page background.
+2. Do blocks 1 to 4 first: deployment model, licensing, effort, support. They decide whether the
+   rest matters.
+3. Blocks 5 to 8 are technical. Hand a copy to the pre-sales engineer if the account manager
    cannot answer.
-3. Ask for a written follow-up for anything answered "yes, that works" without a document
+4. Ask for a written follow-up for anything answered "yes, that works" without a document
    reference. Verbal answers do not close a gap in the register.
 
-## Platform brief: what is being bought and how it fits together
+## B. Platform brief: what is being bought and how it fits together
 
-Bring this to the meeting so the vendor's answers can be checked against the design on the spot.
-Verified facts carry a source; the timeline is the repo's own estimate and is labelled as such.
+Bring this brief to the meeting so the vendor's answers can be checked against the design on
+the spot. Verified facts carry a source. The timeline is this repository's own estimate and is
+labelled as such.
 
-### Components and how they integrate
+### B.1 Components and how they integrate
 
 ```mermaid
 flowchart TB
@@ -67,17 +79,17 @@ flowchart TB
     B1 & B2 -->|RDP, SSH, VNC, HTTPS, Telnet| TGT
 ```
 
-Source: [architecture report section 4](../trustelem-bastion-access-manager-architecture.md).
+Source: [design and flows](../architecture/03-design-and-flows.md).
 
 | Component | Role in the design | Talks to | Source |
 |-----------|--------------------|----------|--------|
 | Trustelem (WALLIX One IDaaS) | SaaS identity provider: SAML 2.0 / OIDC for the web path, RADIUS and LDAP through Trustelem Connect for native clients; MFA by push, TOTP, passkey | browsers, the two agents | [Trustelem summary](https://trustelem-doc.wallix.com/books/trustelem-administration/page/summary) |
 | ADConnect (two VMs) | syncs AD users and groups into the tenant and validates AD passwords; outbound 443 only | domain controllers, Trustelem | [ADConnect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/active-directory-users-trustelem-adconnect) |
-| Trustelem Connect (two VMs) | on-premise RADIUS listeners (1812 for the Bastion app, 2812 for the Access Manager app) and LDAP 2001 listener; SIEM push; SCIM; outbound 443 only | Bastion, Access Manager, Trustelem | [Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect) |
-| Bastion cluster (two appliances) | session proxies (RDP, SSH, VNC, HTTPS, Telnet), vault, recordings; HA Database Replication through an autossh SSH tunnel on the administration port 2242 ("HA Database Replication relies on this port being open"), nodes on the same subnet with at most one router; no VIP or heartbeat documented; Master/Master fails over by front-end rerouting, Master/Slaves by `wallix-replication --elevate-master`; only the primary runs scheduled password rotations | AD, Trustelem Connect (RADIUS secondary factor), targets | [Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 2.2 and ch. 5 |
-| Access Manager farm (two appliances) | HTML5 web portal in front of one or more Bastions; SAML SP toward Trustelem; RADIUS factor chain for local admins; Master/Master replication of two nodes with `wallix-replication` over the administration interface (SSH 2242); behind a Layer 7 load balancer with sticky sessions | users, Bastion REST API 443 and proxies, Trustelem | [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) ch. 5 and 6 |
+| Trustelem Connect (two VMs) | on-premise RADIUS listeners (1812 for the Bastion app, 2812 for the Access Manager app) and LDAP 2001 listener; SIEM push; SCIM; outbound 443 only | Bastion, Access Manager, Trustelem | [Trustelem Connect](https://trustelem-doc.wallix.com/books/trustelem-administration/page/ldap-radius-trustelem-connect); home: [chapter 03](../trustelem/03-trustelem-connect.md) |
+| Bastion cluster (two appliances) | session proxies (RDP, SSH, VNC, HTTPS, Telnet), vault, recordings; HA Database Replication through an autossh SSH tunnel on the administration port 2242 ("HA Database Replication relies on this port being open"), nodes on the same subnet with at most one router; no VIP or heartbeat documented; Master/Master fails over by front-end rerouting, Master/Slaves by `wallix-replication --elevate-master`; only the primary runs scheduled password rotations | AD, Trustelem Connect (RADIUS secondary factor), targets | [Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 2.2 and ch. 5; home: [HA runbook](../runbooks/bastion-ha-replication.md) |
+| Access Manager farm (two appliances) | HTML5 web portal in front of one or more Bastions; SAML SP toward Trustelem; RADIUS factor chain for local admins; Master/Master replication of two nodes with `wallix-replication` over the administration interface (SSH 2242); behind a Layer 7 load balancer with sticky sessions | users, Bastion REST API 443 and proxies, Trustelem | [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) ch. 5 and 6; home: [farm runbook](../runbooks/access-manager-farm.md) |
 
-Integration order, from the [setup runbook](../trustelem-bastion-access-manager-architecture.md)
+Integration order, from [deployment and rollout](../architecture/06-deployment-and-rollout.md)
 section 7: "directory first, then agents, then Bastion cluster, then Access Manager farm, then
 federation, then MFA enforcement. Test after each block."
 
@@ -85,8 +97,8 @@ federation, then MFA enforcement. Test after each block."
    group. [Chapters 01 and 02](../trustelem/01-tenant-setup.md).
 2. Trustelem Connect on two hosts with one RADIUS listener per application (Bastion, Access
    Manager). [Chapter 03](../trustelem/03-trustelem-connect.md).
-3. Bastion cluster: two nodes at the same version, encryption, licences, HA Database Replication,
-   then the AD authentication domain with RADIUS as *secondary authentication*.
+3. Bastion cluster: two nodes at the same version, encryption, licences, HA Database
+   Replication, then the AD authentication domain with RADIUS as *secondary authentication*.
    [Chapter 04](../trustelem/04-bastion-integration.md), [HA runbook](../runbooks/bastion-ha-replication.md).
 4. Access Manager farm: two nodes, database replication, load balancer, Bastion cluster object,
    then the SAML domain pointed at the Trustelem app template and the RADIUS factor for local
@@ -95,26 +107,26 @@ federation, then MFA enforcement. Test after each block."
    [Chapter 06](../trustelem/06-mfa-and-access-rules.md).
 6. Acceptance tests and SIEM. [Test plan](../trustelem/10-test-plan.md), [logging reference](logging-and-siem.md).
 
-### Hardware and platform requirements
+### B.2 Hardware and platform requirements
 
 | Item | Requirement | Source |
 |------|-------------|--------|
-| Bastion, per node | the 12.4.3 guides publish no sizing table and point to the support article "What should be the sizing of my Wallix Bastion" (login); vSphere: one socket, CPU and memory reservation, because "The number of concurrent sessions can only be guaranteed if the appropriate numbers of CPU Mhz and the appropriate memory size are reserved" | [Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 3.2.2 and 3.2.2.1 |
-| Bastion, legacy sizing table | 25 RDP / 110 SSH sessions: 4 vCPU, 8 GB. 25 / 240: 4 vCPU, 16 GB. 40 / 240: 8 vCPU, 16 GB. 50 / 480: 8 vCPU, 32 GB. 75 / 480: 16 vCPU, 32 GB (10.0.6 Quick Start; the only published figures for the Bastion alone) | [Quick Start 3.3](https://marketplace-wallix.s3.amazonaws.com/Bastion-quickstart-en.pdf) |
-| Bastion recordings | remote storage (NFS/CIFS) with "owner users and owner groups ... identical on all WALLIX Bastion instances"; recordings and audit data stay per node and "it is not possible to view the session recordings from another Bastion from the cluster" | [Bastion 12.4.3 System Operations Guide](https://doc.wallix.com/) 6.5.3 and 10.2 |
-| Access Manager with Bastion, by load | measured with Bastion 12.3.4 and Access Manager 6.0.3 at the same size: 4 vCPU / 8 GB each: 85 RDP / 110 SSH sessions without recording; 8 / 16: 200 / 220; 8 / 32: 305 / 510. At least two network interfaces (administration on the first, user access on the second); the Java heap defaults to 70% of RAM | [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) 1.2 and 2.3, Administration Guide 8.5.1 |
-| Load balancer for Access Manager | Layer 7 with sticky sessions ("requires stateful load balancing"), WebSocket support; X.509 user authentication is not compatible with Layer 7 load balancers; deactivate "Limit the number of parallel connections per IP" behind a load balancer | [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) ch. 5, Administration Guide 8.4.5.1 |
-| ADConnect and Trustelem Connect | four small VMs, Windows Server or Linux, outbound TCP 443 to the Trustelem relay FQDNs and IPs, no TLS inspection, HTTP CONNECT proxy allowed | [Connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows) |
+| Bastion, per node | the 12.4.3 guides publish no sizing table and point to the support article "What should be the sizing of my Wallix Bastion" (login); vSphere: one socket, CPU and memory reservation, because "The number of concurrent sessions can only be guaranteed if the appropriate numbers of CPU Mhz and the appropriate memory size are reserved" | [Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 3.2.2 and 3.2.2.1; home: [low-level design](../architecture/05-low-level-design.md) section 5 |
+| Bastion, legacy sizing table | 25 RDP / 110 SSH sessions: 4 vCPU, 8 GB. 25 / 240: 4 vCPU, 16 GB. 40 / 240: 8 vCPU, 16 GB. 50 / 480: 8 vCPU, 32 GB. 75 / 480: 16 vCPU, 32 GB (10.0.6 Quick Start; the only published figures for the Bastion alone) | [Quick Start 3.3](https://marketplace-wallix.s3.amazonaws.com/Bastion-quickstart-en.pdf); home: [low-level design](../architecture/05-low-level-design.md) section 5 |
+| Bastion recordings | remote storage (NFS/CIFS) with "owner users and owner groups ... identical on all WALLIX Bastion instances"; recordings and audit data stay per node and "it is not possible to view the session recordings from another Bastion from the cluster" | [Bastion 12.4.3 System Operations Guide](https://doc.wallix.com/) 6.5.3 and 10.2; home: [HA runbook](../runbooks/bastion-ha-replication.md) section 12 |
+| Access Manager with Bastion, by load | measured with Bastion 12.3.4 and Access Manager 6.0.3 at the same size: 4 vCPU / 8 GB each: 85 RDP / 110 SSH sessions without recording; 8 / 16: 200 / 220; 8 / 32: 305 / 510. At least two network interfaces (administration on the first, user access on the second); the Java heap defaults to 70% of RAM | [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) 1.2 and 2.3, Administration Guide 8.5.1; home: [low-level design](../architecture/05-low-level-design.md) section 5 |
+| Load balancer for Access Manager | Layer 7 with sticky sessions ("requires stateful load balancing"), WebSocket support; X.509 user authentication is not compatible with Layer 7 load balancers; deactivate "Limit the number of parallel connections per IP" behind a load balancer | [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) ch. 5, Administration Guide 8.4.5.1; home: [farm runbook](../runbooks/access-manager-farm.md) section 4 |
+| ADConnect and Trustelem Connect | four small VMs, Windows Server or Linux, outbound TCP 443 to the Trustelem relay FQDNs and IPs, no TLS inspection, HTTP CONNECT proxy allowed | [Connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows); home: [ADConnect](../trustelem/02-directory-sync-adconnect.md) for the VMs and operating systems, [tenant setup](../trustelem/01-tenant-setup.md) section 4 |
 | Versions to order | Bastion 12.4.3 and Access Manager 6.0.5, the versions of the customer guides (both above the advisory minimums 12.3.7 or 12.4.1, and 5.2.7 or 6.0.4); Access Manager 6.0.5 "is compatible with ... WALLIX Bastion 12.0 and above"; moving from Access Manager 5.x to 6 is a backup and restore into a new instance | [WALLIX advisories](https://www.wallix.com/support-services/alerts/), [Access Manager 6.0.5 Deployment Guide](https://doc.wallix.com/) ch. 7 and 10.1 |
 | Not published | Bastion 12.x sizing figures (support article, login), Access Manager health-check endpoint path, step-by-step `--elevate-master` failover | gaps B1, A3, B2 |
 
-Full port matrix: [architecture report section 6.3](../trustelem-bastion-access-manager-architecture.md).
+Full port matrix: [low-level design, network flows and ports](../architecture/05-low-level-design.md#3-network-flows-and-ports).
 
-### Indicative timeline
+### B.3 Indicative timeline
 
-*Inference.* WALLIX publishes no deployment durations; the figures below are the repo's estimate
-for a two-site, two-node-per-product design with one AD forest, to be confirmed in block 3.
-The two-week pilot exit criterion is also the repo's own (report section 7.6).
+*Inference.* WALLIX publishes no deployment durations. The figures below are this repository's
+estimate for a two-site, two-node-per-product design with one AD forest, to be confirmed in
+block 3. The two-week pilot exit criterion is also this repository's own ([rollout and rollback](../architecture/06-deployment-and-rollout.md#6-rollout-and-rollback)).
 
 | Phase | Content | Estimate | Depends on |
 |-------|---------|----------|------------|
@@ -122,12 +134,13 @@ The two-week pilot exit criterion is also the repo's own (report section 7.6).
 | 1. Tenant and agents | tenant, ADConnect, Trustelem Connect, pilot group synced | 2 to 3 days | phase 0 |
 | 2. Bastion cluster | install, replication, AD domain, RADIUS secondary factor, first targets | 3 to 5 days | phase 0 |
 | 3. Access Manager farm | install, replication, load balancer, Bastion link, SAML, RADIUS factor | 3 to 5 days | phase 2 |
-| 4. Pilot | one administrator group on MFA, acceptance tests, SIEM dashboards | 2 weeks (repo exit criterion, report 7.6) | phases 1 to 3 |
+| 4. Pilot | one administrator group on MFA, acceptance tests, SIEM dashboards | 2 weeks (repository exit criterion, [rollout](../architecture/06-deployment-and-rollout.md#6-rollout-and-rollback)) | phases 1 to 3 |
 | 5. Native clients and everyone | RADIUS on all groups, web path *2 factors*, enrollment campaign | 2 to 4 weeks, driven by enrollment | phase 4 |
 | 6. Hardening and handover | default accounts, passkey policy, runbooks, help-desk training | 1 week | phase 5 |
 
-Total elapsed time in the order of 8 to 12 weeks, of which about 15 working days are hands-on
-engineering. Rollout phases and rollback steps: [architecture report section 7.6](../trustelem-bastion-access-manager-architecture.md).
+Total elapsed time is in the order of 8 to 12 weeks, of which about 15 working days are
+hands-on engineering. Rollout phases and rollback steps:
+[rollout and rollback](../architecture/06-deployment-and-rollout.md#6-rollout-and-rollback).
 
 ## 1. Deployment model: cloud only, or on-premise with TOTP
 
@@ -137,7 +150,7 @@ What is already known:
   identity provider in the public documentation. The only on-premise components are the agents
   ADConnect (directory sync) and Trustelem Connect (LDAP/RADIUS listener, SIEM push, SCIM).
   Sources: [connectors network flows](https://trustelem-doc.wallix.com/books/trustelem-administration/page/connectors-network-flows),
-  [architecture report section 2](../trustelem-bastion-access-manager-architecture.md).
+  [architecture overview](../architecture/01-overview.md#2-product-naming-and-versions).
 - Bastion has no built-in TOTP. Its model is a primary authentication plus one *secondary
   authentication* (RADIUS, TACACS+, PingID, Kerberos-Password); WALLIX states "it is not
   possible to directly configure a multifactor authentication (MFA)" and recommends putting
@@ -186,9 +199,9 @@ What is already known:
 
 What is already known:
 
-- The repo's rollout plan has five phases: build, pilot (one AD group, two weeks without
+- The rollout plan has five phases: build, pilot (one AD group, two weeks without
   incidents), native clients, everyone on the web path, hardening.
-  Source: [architecture report section 7.6](../trustelem-bastion-access-manager-architecture.md).
+  Source: [rollout and rollback](../architecture/06-deployment-and-rollout.md#6-rollout-and-rollback).
 - ADConnect needs a Windows Server (domain-joined only if IWA is wanted) or a Linux host; Trustelem Connect needs an outbound
   443 websocket to the relay and no TLS inspection. Sources: [chapter 02](../trustelem/02-directory-sync-adconnect.md),
   [chapter 03](../trustelem/03-trustelem-connect.md).
@@ -208,7 +221,7 @@ What is already known:
 
 - No public status page; the [unavailability](https://trustelem-doc.wallix.com/books/trustelem-news/page/unavailability)
   and [incidents](https://trustelem-doc.wallix.com/books/trustelem-news/page/incidents) pages are
-  the only published record. Contractual SLA is not published (gap T1).
+  the only published record. The contractual SLA is not published (gap T1).
 - Bastion 12.4 and Access Manager 6.0 release notes are behind the customer login (gaps B1, A1).
 
 | # | Question | Why it matters | Answer |
@@ -256,9 +269,10 @@ What is already known:
 | 6.1 | Does push (not only TOTP) work in the Access Manager RADIUS factor chain? (A4) | Admin experience | |
 | 6.2 | SAML clock-skew tolerance and replay protection on Access Manager and Bastion; assertion validity Trustelem issues. (A4) | Time sync requirements | |
 | 6.3 | Farm: what is the path of the health-check endpoint behind the HEALTH_VIEW right, and which TLS versions does Proxyma accept? (A3) | HA build | |
-| 6.4 | The 5.2 guide said Access Manager clusters of Bastions cannot display target passwords; the 6.0.5 guide no longer says so. Is it still true, and what pattern does WALLIX recommend for password checkout? (design confirmation, report 3.3) | Feature gap | |
+| 6.4 | The 5.2 guide said Access Manager clusters of Bastions cannot display target passwords; the 6.0.5 guide no longer says so. Is it still true, and what pattern does WALLIX recommend for password checkout? (design confirmation, [caveats](../architecture/08-caveats-and-questions.md#1-caveats-and-gaps)) | Feature gap | |
 | 6.5 | Migration from Access Manager 5.2 to 6.0 is a backup and restore into a new instance: does the licence carry over, and what is the end-of-support date for 5.2? (A1) | Upgrade planning | |
 | 6.6 | The Deployment Guide lists "Syslog server integration 514/UDP ... Configurable in System > SIEM integration" for Access Manager, the Administration Guide documents no such page, and external agents are forbidden. Which is right, and what is the log format? (A7) | SIEM coverage | |
+| 6.7 | When Access Manager fronts the Bastion, is a Trustelem SAML application for the Bastion still needed, or does the Access Manager application alone suffice? (B12) | Tenant setup | |
 
 ## 7. MFA and user experience
 
@@ -284,7 +298,7 @@ What is already known:
 ## 9. Close of meeting
 
 - Ask who owns each open answer and by when.
-- Ask for: customer-portal login, the deployment checklist (3.4), the SLA document (4.1), the
-  licence quote broken down per component (block 2).
-- After the meeting, update the [gaps register](open-questions-and-gaps.md): move closed rows to the Closed section
-  out, add the source WALLIX sends.
+- Ask for the customer-portal login, the deployment checklist (3.4), the SLA document (4.1) and
+  the licence quote broken down per component (block 2).
+- After the meeting, update the [gaps register](open-questions-and-gaps.md): move the answered
+  rows to its Closed section and add the source WALLIX sends.

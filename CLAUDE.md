@@ -1,48 +1,38 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for automated editors working in this repository.
 
 ## What this repository is
 
-A documentation and architecture workspace for a WALLIX Privileged Access Management (PAM) design:
-WALLIX Trustelem (now sold as WALLIX One IDaaS) providing MFA/SSO for a WALLIX Bastion cluster and a
-WALLIX Access Manager cluster. The main concern is Trustelem setup, configuration and integration;
-Bastion and Access Manager content supports that. Trustelem-specific documents live in `docs/trustelem/`. There is no application code; the only tooling is the three check scripts in `tools/` and two GitHub Actions workflows. Deliverables
-are Markdown reports with Mermaid diagrams and links to vendor documentation.
+A documentation workspace for a WALLIX Privileged Access Management design: WALLIX Trustelem
+(sold as WALLIX One IDaaS) providing MFA and SSO for a WALLIX Bastion cluster and a WALLIX Access
+Manager cluster. The main concern is Trustelem setup, configuration and integration
+(`docs/trustelem/`); the architecture set (`docs/architecture/`), runbooks and references support
+it. There is no application code: only Markdown, Mermaid sources, three check scripts in `tools/`
+and two GitHub Actions workflows.
 
-## Conventions for documents in this repo
+## Rules
 
-- Every technical claim must carry a link to its external source (vendor guide, release notes, KB article).
-  Prefer primary WALLIX sources over blogs.
-- Put today's date (ISO format) in the header of each report and state which product versions it was
-  verified against (currently the public Bastion 12.3.2 and Access Manager 5.2.4.0 guides plus the
-  customer guides for Bastion 12.4.3 and Access Manager 6.0.5; target versions 12.4.3 and 6.0.5).
-- Diagrams are Mermaid only. One source per diagram in `tools/diagrams/*.mmd`, embedded verbatim as a fenced
-  `mermaid` code block; never edit a diagram inline, edit the source and re-paste. Use `{placeholder}` rather
-  than `<placeholder>` inside sequence diagrams.
-- Keep verified facts separate from inferences; mark gaps explicitly rather than guessing.
-- No Claude references in commit messages or document bylines.
-- Run `python3 tools/check_docs.py` before committing (fences, tables, placeholders, links, Mermaid
-  embedding) and `node tools/check_mermaid.mjs` after `npm install --no-save mermaid@11 jsdom@24`
-  (Mermaid syntax). Run `python3 tools/check_links.py` after adding or changing external URLs
-  (it fetches them; placeholders in code spans and known login-gated hosts are skipped or warned).
-  Add a line to `CHANGELOG.md` for each change.
+Follow [CONTRIBUTING.md](CONTRIBUTING.md): header block on every document, one home per fact,
+verbatim quotes with a link to the source, *inference* and *gap* markers, Mermaid sources in
+`tools/diagrams/`, checks before committing, one line in `CHANGELOG.md` per change. No Claude
+references in documents or commit messages.
 
-## Vendor documentation sources
+Target versions: Bastion 12.4.3 and Access Manager 6.0.5; the public 12.3.2 and 5.2.4.0 guides are
+still cited where their text is unchanged.
 
-- WALLIX One PAM documentation index: https://pam.wallix.one/documentation/administration/getting-started/documentation.html
-- Bastion Functional Administration Guide (PDF): https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf
-- Access Manager Administration Guide (PDF): https://pam.wallix.one/documentation/admin-doc/am-admin-guide_en.pdf
-- Bastion release notes: https://pam.wallix.one/documentation/release-notes/bastion-rn-en.html
-- Access Manager release notes: https://pam.wallix.one/documentation/release-notes/am-rn-en.html
-- The HTML doc site https://doc.wallix.com/ requires a WALLIX Trustelem SSO login. The user downloaded
-  the customer PDFs (Bastion 12.4.3 and 12.0.25, Access Manager 6.0.5) to ~/Descargas/WallixDoc;
-  extract them to the scratchpad, cite them as "[Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 5.1",
+## Vendor sources
+
+- Public guides and release notes: listed in [docs/reference/sources.md](docs/reference/sources.md).
+- Customer guides behind the doc.wallix.com login: the user downloaded the Bastion 12.4.3 and
+  12.0.25 and Access Manager 6.0.5 PDFs to `~/Descargas/WallixDoc`. Extract them to the scratchpad
+  with `pdftotext -layout`, cite them as "[Bastion 12.4.3 Deployment Guide](https://doc.wallix.com/) 5.1",
   and never commit the PDFs or long excerpts to this public repository.
-- Useful workflow: download the PDFs to the scratchpad and run `pdftotext -layout` to grep chapters.
+- Trustelem has no PDFs: its four public books export as HTML at
+  `https://trustelem-doc.wallix.com/books/{book}/export/html`.
 
 ## Git
 
-- Remote: https://github.com/morandeirachema/Trustelem- (public repository, branch `main`).
-- Commit directly to `main` with plain descriptive messages; the report lives under `docs/`.
-- PDFs downloaded for research are ignored by `.gitignore`; keep them in the scratchpad, not the repo.
+- Remote: https://github.com/morandeirachema/Trustelem- (public, branch `main`).
+- Commit directly to `main` with plain descriptive messages.
+- Research PDFs stay in the scratchpad; `.gitignore` excludes `*.pdf`.

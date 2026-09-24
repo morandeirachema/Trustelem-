@@ -1,24 +1,38 @@
 # SCIM provisioning from Trustelem to the Bastion: assessment
 
-Date: 2026-09-23. Status: **plausible but undocumented by WALLIX; not recommended for production
-until the vendor answers the questions in section 6.** Sources: [Trustelem SCIM client](https://trustelem-doc.wallix.com/books/trustelem-administration/page/scim-client),
-the Bastion SCIM API documentation at https://scim.wallix.com/scim/doc/ (host unreachable on
-2026-09-23; statements from it come from search-engine snippets and are marked as such),
-the [Bastion 12.3.2 Functional Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf)
-and the [WALLIX SailPoint datasheet](https://www.wallix.com/wp-content/uploads/2020/06/WALLIX_SAILPOINT-Datasheet.pdf).
-Quotes are verbatim.
+> - **Purpose:** whether Trustelem can provision users into the Bastion over SCIM 2.0: what each
+>   side documents, what a configuration would look like, the risks and the questions for WALLIX.
+> - **Audience:** PAM architects deciding how users outside Active Directory reach the Bastion.
+> - **Verified:** 2026-09-24, against the Trustelem administration book as read on 2026-09-24
+>   and the Bastion 12.3.2 Functional Administration Guide; the Bastion SCIM documentation host
+>   was unreachable on 2026-09-23.
+> - **Sources:** [Trustelem SCIM client](https://trustelem-doc.wallix.com/books/trustelem-administration/page/scim-client),
+>   the Bastion SCIM API documentation at https://scim.wallix.com/scim/doc/,
+>   the [Bastion 12.3.2 Functional Administration Guide](https://pam.wallix.one/documentation/admin-doc/bastion_en_administration_guide.pdf),
+>   the [WALLIX SailPoint datasheet](https://www.wallix.com/wp-content/uploads/2020/06/WALLIX_SAILPOINT-Datasheet.pdf).
+
+**Status: plausible but undocumented by WALLIX; not recommended for production until the vendor
+answers the questions in section 6.**
+
+The Bastion SCIM documentation host was unreachable on 2026-09-23. Statements from it come from
+search-engine snippets and are marked as such.
 
 ## 1. Why it is interesting
 
-Chapter 04 scenario C makes Trustelem-only users (partners, contractors) visible to the Bastion
-through the Trustelem LDAP listener. SCIM would instead create them as Bastion users in
-advance, driven by Trustelem access rules, with automatic removal when the rule is lost. It
-would also keep Trustelem as the single place where users outside Active Directory are
-managed.
+SCIM would replace a directory lookup at login by accounts that Trustelem creates and removes.
+
+- Today, [04 Bastion integration](04-bastion-integration.md) scenario C makes Trustelem-only
+  users (partners, contractors) visible to the Bastion through the Trustelem LDAP listener.
+- SCIM would instead create them as Bastion users in advance, driven by Trustelem access rules,
+  with automatic removal when the rule is lost.
+- It would also keep Trustelem as the single place where users outside Active Directory are
+  managed.
 
 ## 2. What is documented on the Trustelem side
 
-- Trustelem is the SCIM client: "Trustelem is the SCIM client: it builds the provisioning
+Trustelem documents the transport, the trigger and the scope, but not the payload.
+
+- Role: "Trustelem is the SCIM client: it builds the provisioning
   requests and Trustelem Connect forwards them to the SCIM server (typically one that lives on
   the private network, but any reachable SCIM server works)."
 - Target on the agent: `./TrustelemConnect set-target <name> <host:port>` writes
@@ -47,6 +61,9 @@ managed.
 
 ## 3. What is documented on the Bastion side
 
+The Bastion SCIM 2.0 API exists, but its public documentation could only be read through
+search snippets, and the administration guide does not mention it.
+
 - The Bastion exposes a SCIM 2.0 API documented at https://scim.wallix.com/scim/doc/ with
   pages Usage, Users, Groups, Schemas, Resource Type, Service Provider Config, Containers,
   Privileged Data, X509, Kerberos. WALLIX used it with SailPoint before 2020: "The integration
@@ -68,6 +85,8 @@ managed.
 
 ## 4. What the configuration would look like (untested)
 
+The settings below combine both sides. None has been tested.
+
 | Side | Setting | Value |
 |------|---------|-------|
 | Bastion | service user | dedicated local user with a profile allowed to manage users and groups; Basic authentication is the only mode both products document in common (Trustelem offers Bearer or Basic; the Bastion documents API key headers, Basic and X.509) |
@@ -80,6 +99,8 @@ managed.
 
 ## 5. Risks
 
+The main risks are unusable or duplicated accounts and irreversible deletions.
+
 - **Users created without a profile or authentication method** cannot log in, or receive an
   unintended default profile.
 - **Deletion is permanent on the Bastion.** If Trustelem sends DELETE when a rule is lost,
@@ -91,15 +112,18 @@ managed.
   SAML (the Admin Guide 7.4.3 lists password, SSH key and X.509 as local and RADIUS, TACACS+
   and PingID as external methods for local users; SAML is absent).
 - **Reconciliation scope.** The full synchronization that "lists the resources already present
-  on the SCIM server" is described for Force SCIM Sync; the five-minute cycle "computes the users
-  and groups that should exist" and prepares requests, so its listing scope is not documented; whether it would touch Bastion local users it did not create
-  (break-glass, `am-auditor`) is not documented.
+  on the SCIM server" is described for Force SCIM Sync. The five-minute cycle "computes the
+  users and groups that should exist" and prepares requests, so its listing scope is not
+  documented. Whether it would touch Bastion local users it did not create (break-glass,
+  `am-auditor`) is not documented either.
 - **Cluster.** Which node should receive SCIM writes and whether created users replicate is not
   documented; the Master/Master rule that "API provisioning must not be performed
-  simultaneously from both Bastions" applies.
+  simultaneously from both Bastions" applies ([Bastion HA runbook](../runbooks/bastion-ha-replication.md)).
 - **Single connector.** Provisioning stops if the only Connect VM with the target is down.
 
 ## 6. Questions for WALLIX
+
+These questions decide whether a proof of concept is worth running.
 
 1. Is Bastion 12.3.x or 12.4.x a supported SCIM provisioning target of WALLIX One IDaaS, and is
    there a reference configuration or an app template?
@@ -121,7 +145,7 @@ managed.
 
 ## 7. Recommendation
 
-Keep chapter 04 scenario C (Trustelem LDAP plus RADIUS) for users outside Active Directory.
+Keep [04 Bastion integration](04-bastion-integration.md) scenario C (Trustelem LDAP plus RADIUS) for users outside Active Directory.
 Run a SCIM proof of concept in the lab only after WALLIX answers questions 2, 3 and 5, with a
 dedicated Bastion user group and a `Partners-scim` Trustelem group so that reconciliation
 cannot touch other accounts, and test deprovisioning before anything else.
