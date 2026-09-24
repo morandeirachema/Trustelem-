@@ -3,7 +3,7 @@
 Date: 2026-09-24. Design under discussion: WALLIX Trustelem (WALLIX One IDaaS) as MFA/SSO for a
 WALLIX Bastion cluster (verified against 12.3.2) and a WALLIX Access Manager cluster (verified
 against 5.2.4.0). Each block gives the facts already established from the public documentation,
-so the meeting time goes on what the documentation does not answer. Gap IDs refer to the
+so the meeting time goes on what the documentation does not answer. Gap IDs (T, B, A, S, C) refer to the
 [open questions and gaps register](open-questions-and-gaps.md). Write the answers in the last
 column and copy them into the register after the meeting.
 
@@ -233,6 +233,7 @@ What is already known:
 | 5.5 | Sizing of Trustelem Connect and ADConnect for our RADIUS request rate; is a second Connect instance active-active? | HA of the agents | |
 | 5.6 | Latency limit for cross-site Master/Slaves replication and the supported DR failover procedure. (B3, B2) | DR design | |
 | 5.7 | SCIM from Trustelem into the Bastion: supported, payload, deprovisioning semantics, cluster behaviour. (T5, B4; full list in [chapter 12 section 6](../trustelem/12-scim-provisioning.md)) | Provisioning | |
+| 5.8 | OIDC instead of SAML: is there a WALLIX OIDC app template in Trustelem and guidance for a groups claim, or does WALLIX only support the SAML templates? (T11) | Keeps OIDC as a fallback | |
 
 ## 6. Access Manager integration
 
@@ -267,6 +268,7 @@ What is already known:
 | 8.2 | API rate limits and how *Always allow* and *2nd factor only* are represented in the API. (T6) | Automation | |
 | 8.3 | ADConnect synchronisation frequency values and the log file locations of both agents. (T3) | Operations | |
 | 8.4 | Statement of applicability for the ISO 27001 certificate and any SOC 2 or pentest summary available under NDA. | Vendor risk assessment | |
+| 8.5 | Access Manager has no native syslog forwarder: which agent or method does WALLIX recommend to ship its log files to a SIEM? (A7) | SIEM coverage | |
 
 ## 9. Close of meeting
 

@@ -10,6 +10,7 @@ Dates are ISO. Product versions verified are stated in each document header.
   roadmap, Bastion, Access Manager, MFA, logging) cross-referenced to the gaps register.
 - `tools/check_docs.py` now skips `node_modules`, which the Mermaid check installs locally.
 - README: clone and local check instructions at the bottom.
+- Gaps register: swept every chapter for gap and inference markers; added T11 (no OIDC template), T12 (no offline mode), T13 (agent sizing), A7 (no syslog forwarder on Access Manager), the SCIM reconciliation question to T5, and a commercial section C1 to C4; matching questions 5.8 and 8.5 in the meeting script.
 
 ## 2026-09-23
 
